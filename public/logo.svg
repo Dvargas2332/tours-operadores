@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Volcán Arenal: cono truncado flat geométrico -->
+  <path d="M25 12h14l13.2 39.6c1.3 3.9-1 6.4-4.4 6.4H16.2c-3.4 0-5.7-2.5-4.4-6.4L25 12Z" fill="#0E6B47"/>
+  <!-- Cráter con punto de lava -->
+  <ellipse cx="32" cy="12" rx="8" ry="3.4" fill="#E8722A"/>
+  <path d="M30 18c-.8 3-2.6 4.4-3 7M35.5 19c.5 2.4 1.8 3.6 2.3 6" stroke="#0A573A" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- Curva de río en la base -->
+  <path d="M7 60.5c4.2-3.2 8.4-3.2 12.6 0s8.4 3.2 12.6 0 8.4-3.2 12.6 0 8.4-3.2 12.6-1" stroke="#3FA97C" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+</svg>

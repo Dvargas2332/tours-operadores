@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBE3D0"/>
+      <stop offset="0.55" stop-color="#F6D3BC"/>
+      <stop offset="1" stop-color="#EFC0A8"/>
+    </linearGradient>
+  </defs>
+  <!-- Cielo atardecer -->
+  <rect x="24" y="16" width="432" height="328" rx="24" fill="url(#cielo)"/>
+  <!-- Sol bajo -->
+  <circle cx="352" cy="128" r="42" fill="#E8722A" opacity="0.9"/>
+  <circle cx="352" cy="128" r="58" fill="#E8722A" opacity="0.18"/>
+  <!-- Nubes suaves -->
+  <g fill="#FDF6EE" opacity="0.9">
+    <ellipse cx="120" cy="84" rx="34" ry="10"/>
+    <ellipse cx="150" cy="76" rx="24" ry="8"/>
+    <ellipse cx="268" cy="60" rx="28" ry="9"/>
+  </g>
+  <!-- Volcán Arenal -->
+  <path d="M206 96h44l96 216H110l96-216Z" fill="#0E6B47"/>
+  <ellipse cx="228" cy="96" rx="24" ry="8" fill="#0A573A"/>
+  <path d="M214 118c-4 12-10 18-12 30M242 120c3 10 8 16 10 26" stroke="#0A573A" stroke-width="5" stroke-linecap="round"/>
+  <!-- Humo del cráter -->
+  <path d="M228 84c-6-10 4-14 0-24M240 86c-3-8 5-11 3-19" stroke="#FDF6EE" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+  <!-- Cerros laterales -->
+  <path d="M24 312c30-44 62-58 96-52 24 4 40 18 52 52H24Z" fill="#3FA97C" opacity="0.55"/>
+  <path d="M456 312c-26-38-54-50-84-45-22 4-36 17-46 45h130Z" fill="#3FA97C" opacity="0.45"/>
+  <!-- Lago -->
+  <rect x="24" y="306" width="432" height="38" rx="0" fill="#CDE7DA"/>
+  <path d="M40 318h64M130 326h84M250 318h70M348 328h76" stroke="#8FC7AE" stroke-width="4" stroke-linecap="round"/>
+  <!-- Kayaks -->
+  <g>
+    <path d="M150 318c10-7 30-7 40 0-10 7-30 7-40 0Z" fill="#E8722A"/>
+    <path d="M162 312l16-10" stroke="#0E6B47" stroke-width="3.4" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M300 326c8-6 24-6 32 0-8 6-24 6-32 0Z" fill="#0E6B47"/>
+    <path d="M310 321l13-8" stroke="#E8722A" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- Vegetación tropical esquinas -->
+  <g fill="#0E6B47">
+    <path d="M52 344c-4-22 4-38 18-46 2 16-2 34-18 46Z"/>
+    <path d="M70 344c2-20 12-32 26-36-1 15-9 28-26 36Z" opacity="0.7"/>
+  </g>
+  <g fill="#0E6B47">
+    <path d="M428 344c4-22-4-38-18-46-2 16 2 34 18 46Z"/>
+    <path d="M410 344c-2-20-12-32-26-36 1 15 9 28 26 36Z" opacity="0.7"/>
+  </g>
+</svg>

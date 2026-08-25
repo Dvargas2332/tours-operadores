@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <!-- Tarjeta izquierda -->
+  <g transform="rotate(-5 150 190)">
+    <rect x="80" y="120" width="140" height="150" rx="14" fill="#FFFFFF" stroke="#E3E1D8" stroke-width="3"/>
+    <rect x="96" y="138" width="64" height="14" rx="7" fill="#0E6B47"/>
+    <rect x="96" y="164" width="108" height="9" rx="4.5" fill="#EFEEE7"/>
+    <rect x="96" y="182" width="88" height="9" rx="4.5" fill="#EFEEE7"/>
+    <rect x="96" y="212" width="52" height="20" rx="10" fill="#E3F2EA"/>
+    <rect x="96" y="240" width="70" height="12" rx="6" fill="#E8722A"/>
+  </g>
+  <!-- Tarjeta derecha -->
+  <g transform="rotate(5 330 190)">
+    <rect x="260" y="120" width="140" height="150" rx="14" fill="#FFFFFF" stroke="#E3E1D8" stroke-width="3"/>
+    <rect x="276" y="138" width="64" height="14" rx="7" fill="#E8722A"/>
+    <rect x="276" y="164" width="108" height="9" rx="4.5" fill="#EFEEE7"/>
+    <rect x="276" y="182" width="88" height="9" rx="4.5" fill="#EFEEE7"/>
+    <rect x="276" y="212" width="52" height="20" rx="10" fill="#FCEEDF"/>
+    <rect x="276" y="240" width="70" height="12" rx="6" fill="#0E6B47"/>
+  </g>
+  <!-- Balanza equilibrada -->
+  <g>
+    <path d="M240 120v110" stroke="#1B241E" stroke-width="7" stroke-linecap="round"/>
+    <path d="M186 132h108" stroke="#1B241E" stroke-width="7" stroke-linecap="round"/>
+    <path d="M186 132l-16 34h32l-16-34ZM294 132l-16 34h32l-16-34Z" fill="none" stroke="#0E6B47" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M168 168c4 10 12 16 18 16s14-6 18-16M276 168c4 10 12 16 18 16s14-6 18-16" fill="#3FA97C"/>
+    <circle cx="240" cy="116" r="9" fill="#E8722A"/>
+    <path d="M212 232h56l8 12H204l8-12Z" fill="#1B241E"/>
+  </g>
+  <!-- Hojas tropicales -->
+  <g fill="#0E6B47">
+    <path d="M96 306c-10-24-4-46 12-58 6 19 0 44-12 58Z"/>
+    <path d="M116 308c0-22 10-38 26-44 0 18-8 34-26 44Z" opacity="0.65"/>
+    <path d="M384 306c10-24 4-46-12-58-6 19 0 44 12 58Z"/>
+    <path d="M364 308c0-22-10-38-26-44 0 18 8 34 26 44Z" opacity="0.65"/>
+  </g>
+  <!-- Destellos -->
+  <path d="M240 66v14M233 73h14" stroke="#E8722A" stroke-width="5" stroke-linecap="round"/>
+  <path d="M150 84v10M145 89h10" stroke="#0E6B47" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <path d="M336 78v10M331 83h10" stroke="#0E6B47" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+</svg>

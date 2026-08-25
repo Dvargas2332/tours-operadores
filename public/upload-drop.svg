@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <!-- Hojas subiendo -->
+  <g transform="rotate(-10 190 130)">
+    <rect x="150" y="70" width="82" height="104" rx="10" fill="#FFFFFF" stroke="#E3E1D8" stroke-width="3"/>
+    <path d="M164 92h54M164 108h54" stroke="#EFEEE7" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <!-- Hoja con tabla de precios -->
+  <g transform="rotate(4 268 118)">
+    <rect x="224" y="56" width="94" height="120" rx="10" fill="#FFFFFF" stroke="#0E6B47" stroke-width="3"/>
+    <rect x="236" y="70" width="70" height="14" rx="6" fill="#E3F2EA"/>
+    <path d="M236 98h34M236 114h34M236 130h34" stroke="#93A094" stroke-width="5" stroke-linecap="round"/>
+    <path d="M282 98h24M282 114h24M282 130h24" stroke="#0E6B47" stroke-width="5" stroke-linecap="round"/>
+    <rect x="236" y="146" width="70" height="16" rx="8" fill="#FCEEDF"/>
+    <path d="M244 154h20" stroke="#E8722A" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g transform="rotate(12 330 140)">
+    <rect x="312" y="84" width="70" height="88" rx="9" fill="#FFFFFF" stroke="#E3E1D8" stroke-width="3"/>
+    <path d="M324 104h46M324 118h46M324 132h30" stroke="#EFEEE7" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <!-- Flecha ascendente naranja -->
+  <g>
+    <path d="M240 214V146" stroke="#E8722A" stroke-width="10" stroke-linecap="round"/>
+    <path d="M216 168l24-26 24 26" stroke="#E8722A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <!-- Carpeta abierta -->
+  <g>
+    <path d="M118 236c0-8 6-14 14-14h64c8 0 14-4 18-10l6-9c3-5 8-7 13-7h112c8 0 14 6 14 14v18H118v-8Z" fill="#0A573A"/>
+    <path d="M110 250h260l-18 64c-2 8-9 14-18 14H146c-9 0-16-6-18-14l-18-64Z" fill="#0E6B47"/>
+    <path d="M110 250h260l-4 14H114l-4-14Z" fill="#3FA97C" opacity="0.7"/>
+  </g>
+  <!-- Hojas de monstera -->
+  <g fill="#0E6B47">
+    <path d="M82 300c-16-26-12-54 6-72 10 22 6 54-6 72Z"/>
+    <path d="M106 304c-2-26 8-46 26-55 2 21-8 43-26 55Z" opacity="0.65"/>
+  </g>
+  <g fill="#0E6B47">
+    <path d="M398 300c16-26 12-54-6-72-10 22-6 54 6 72Z"/>
+    <path d="M374 304c2-26-8-46-26-55-2 21 8 43 26 55Z" opacity="0.65"/>
+  </g>
+  <!-- Destellos -->
+  <path d="M140 56v12M134 62h12" stroke="#E8722A" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M352 44v12M346 50h12" stroke="#0E6B47" stroke-width="4.5" stroke-linecap="round" opacity="0.6"/>
+</svg>

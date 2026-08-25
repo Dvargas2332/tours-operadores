@@ -1,0 +1,248 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ===== Tokens de diseño — Tema claro (beige + verdes ecológicos) ===== */
+    --bg: #F3ECDC;
+    --surface: #FCFAF4;
+    --surface-2: #EAE1CF;
+    --border: #DED4C0;
+    --ink: #1D2B22;
+    --ink-muted: #5B6B5E;
+    --ink-faint: #8FA193;
+    --brand: #12855A;
+    --brand-hover: #0C6B47;
+    --brand-soft: #DCF1E4;
+    --accent: #DE7A35;
+    --accent-soft: #F7E8D6;
+    --ok: #2E8B4F;
+    --warn: #B07712;
+    --danger: #BA3A2B;
+    --info: #2B6CB0;
+
+    /* Colores de categoría (design.md §2) */
+    --cat-aventura: #C2571B;
+    --cat-aventura-bg: #FCEEDF;
+    --cat-naturaleza: #15803D;
+    --cat-naturaleza-bg: #E3F2EA;
+    --cat-acuatico: #1D6FB8;
+    --cat-acuatico-bg: #E2EEF9;
+    --cat-cultural: #7C3AED;
+    --cat-cultural-bg: #F0E9FD;
+    --cat-termas: #C2477F;
+    --cat-termas-bg: #FBE7F1;
+
+    /* Radios (design.md §4) */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --radius: 12px;
+
+    /* Sombras cálidas (design.md §4) */
+    --shadow-card: 0 1px 2px rgba(27, 36, 30, 0.05), 0 1px 3px rgba(27, 36, 30, 0.06);
+    --shadow-hover: 0 4px 12px rgba(27, 36, 30, 0.1), 0 2px 4px rgba(27, 36, 30, 0.06);
+    --shadow-overlay: 0 16px 48px rgba(27, 36, 30, 0.18);
+
+    /* Tokens de movimiento (design.md §5) */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --t-fast: 150ms;
+    --t-med: 220ms;
+    --t-drawer: 300ms;
+  }
+
+  .dark {
+    /* ===== Tokens de diseño — Tema oscuro (design.md §2) ===== */
+    --bg: #111712;
+    --surface: #18211B;
+    --surface-2: #222C25;
+    --border: #2D3931;
+    --ink: #EBEFE9;
+    --ink-muted: #9AA99D;
+    --ink-faint: #66756A;
+    --brand: #3FB27F;
+    --brand-hover: #5AC795;
+    --brand-soft: #1B3327;
+    --accent: #F09555;
+    --accent-soft: #3A2716;
+    --ok: #4ADE80;
+    --warn: #F0A45C;
+    --danger: #F87171;
+    --info: #7FA6F5;
+
+    /* Categorías: mismos tonos, fondos al 14% sobre --surface */
+    --cat-aventura-bg: color-mix(in srgb, #C2571B 14%, var(--surface));
+    --cat-naturaleza-bg: color-mix(in srgb, #15803D 14%, var(--surface));
+    --cat-acuatico-bg: color-mix(in srgb, #1D6FB8 14%, var(--surface));
+    --cat-cultural-bg: color-mix(in srgb, #7C3AED 14%, var(--surface));
+    --cat-termas-bg: color-mix(in srgb, #C2477F 14%, var(--surface));
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
+    --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.55);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Sora', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  code,
+  kbd,
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 22%, transparent);
+  }
+
+  /* Scrollbars delgadas (buscador.md §8) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Movimiento reducido (design.md §5) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 100ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 100ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* ===== Escala tipográfica (design.md §3) ===== */
+  .text-display {
+    font-family: 'Sora', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .text-h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+  .text-h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  .text-precio {
+    font-family: 'Sora', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+  .text-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+  }
+  .text-small {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+  .text-caption {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+  .text-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* Skeleton shimmer (design.md §5) */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 25%,
+      color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 50%,
+      var(--surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+  .font-display {
+    font-family: 'Sora', 'Inter', sans-serif;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin-soft {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
