@@ -2,7 +2,7 @@
  * Generadores de texto plano para copiar al portapapeles (tour-detalle.md §7,
  * comparador.md §6). Texto limpio para el huésped: sin comisión ni fuente.
  */
-import { formatPrecio } from '@/data/mock-tours';
+import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
 
@@ -18,18 +18,32 @@ function incluyeCorto(tour: Tour): string {
   return tour.incluye.map((k) => (INCLUYE_META[k] ? INCLUYE_META[k].label.toLowerCase() : k)).join(', ');
 }
 
+function labelRango(t: { min_edad: number; max_edad: number | null }): string {
+  return t.max_edad != null ? `${t.min_edad}-${t.max_edad}` : `+${t.min_edad}`;
+}
+
 function preciosLinea(tour: Tour): string {
-  return tour.precio_nino != null
-    ? `${formatPrecio(tour.precio_adulto, tour.moneda)} adulto · ${formatPrecio(tour.precio_nino, tour.moneda)} niño`
-    : `${formatPrecio(tour.precio_adulto, tour.moneda)} adulto · niño no aplica`;
+  if (tour.tarifas.length === 0) {
+    return `${formatPrecio(tour.precio_adulto, tour.moneda)} adulto · niño no aplica`;
+  }
+  const rangos = tour.tarifas
+    .sort((a, b) => a.min_edad - b.min_edad)
+    .map((t) => `${formatPrecio(t.rack, tour.moneda)} ${labelRango(t)}`);
+  return rangos.join(' · ');
 }
 
 /** Resumen de un tour para el huésped (tour-detalle.md §7) */
 export function buildResumenTour(tour: Tour): string {
+  const horario = horarioRepresentativo(tour);
+  const salidas = tour.horarios.map((h) => h.hora_salida).join(', ');
+  const llegadas = tour.horarios.map((h) => h.hora_llegada).join(', ');
+  const horarioTexto = tour.horarios.length > 1
+    ? `Salidas: ${salidas} · Llegadas: ${llegadas}`
+    : `Salida: ${horario?.hora_salida ?? '—'} · Llegada: ${horario?.hora_llegada ?? '—'}`;
   const lineas = [
     `${tour.nombre} — ${tour.operador.nombre}`,
     preciosLinea(tour),
-    `Duración: ${formatDuracion(tour.duracion_horas)} · Salida: ${tour.hora_salida}`,
+    `Duración: ${formatDuracion(tour.duracion_horas)} · ${horarioTexto}`,
   ];
   if (tour.incluye.length > 0) lineas.push(`Incluye: ${incluyeCorto(tour)}`);
   lineas.push(`Mínimo ${tour.minimo_personas} personas · ${tour.apto_ninos ? 'Apto para niños' : 'Solo adultos'}`);
@@ -39,18 +53,23 @@ export function buildResumenTour(tour: Tour): string {
 
 /** Comparación de 2–3 tours para WhatsApp/email (comparador.md §6) */
 export function buildResumenComparacion(tours: Tour[]): string {
-  const bloques = tours.map((tour, i) =>
-    [
+  const monedas = [...new Set(tours.map((t) => (t.moneda === 'crc' ? 'CRC' : 'USD')))];
+  const bloques = tours.map((tour, i) => {
+    const horario = horarioRepresentativo(tour);
+    const horarioTexto = tour.horarios.length > 1
+      ? `Salidas: ${tour.horarios.map((h) => h.hora_salida).join(', ')}`
+      : `Salida: ${horario?.hora_salida ?? '—'}`;
+    return [
       `${i + 1}) ${tour.nombre} — ${tour.operador.nombre}`,
       `   ${preciosLinea(tour)}`,
-      `   Duración: ${formatDuracion(tour.duracion_horas)} · Salida: ${tour.hora_salida} · Zona: ${tour.zona}`,
+      `   Duración: ${formatDuracion(tour.duracion_horas)} · ${horarioTexto} · Zona: ${tour.zona}`,
       tour.incluye.length > 0 ? `   Incluye: ${incluyeCorto(tour)}` : null,
       tour.politica_cancelacion ? `   Cancelación: ${tour.politica_cancelacion}` : null,
     ]
       .filter(Boolean)
-      .join('\n'),
-  );
-  return [`Comparación de tours (precios en USD):`, ...bloques].join('\n\n');
+      .join('\n');
+  });
+  return [`Comparación de tours (precios en ${monedas.join('/')}):`, ...bloques].join('\n\n');
 }
 
 /** Copia al portapapeles con fallback para contextos sin navigator.clipboard */
@@ -75,9 +94,9 @@ export async function copiarTexto(texto: string): Promise<boolean> {
   }
 }
 
-/** Extrae un teléfono internacional del campo contacto ("+506 2479-9800 · email"). */
-export function telefonoDeContacto(contacto: string): string | null {
-  const digitos = (contacto.split('·')[0] ?? contacto).replace(/\D/g, '');
+/** Normaliza un teléfono para WhatsApp. Si no trae código de país (506), lo anteponemos. */
+export function telefonoDeContacto(telefono: string): string | null {
+  const digitos = telefono.replace(/\D/g, '');
   if (!digitos) return null;
   // Costa Rica: si no trae código de país (506), lo anteponemos.
   return digitos.length >= 11 ? digitos : `506${digitos}`;

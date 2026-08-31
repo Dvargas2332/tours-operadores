@@ -7,12 +7,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Eye, MapPin, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2, Eye, MapPin, Search, Trash2 } from 'lucide-react';
 import FreshnessPill from '@/components/admin/FreshnessPill';
 import FuenteCell from '@/components/admin/FuenteCell';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
-import { formatDateEs, formatPrecio, freshness } from '@/data/mock-tours';
+import { formatPrecio, freshness } from '@/data/mock-tours';
 import type { Frescura, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -20,9 +20,9 @@ import { cn } from '@/lib/utils';
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const POR_PAGINA = 25;
 
-type ColOrden = 'nombre' | 'operador' | 'precio' | 'actualizacion' | 'estado';
+type ColOrden = 'nombre' | 'operador' | 'precio' | 'estado';
 
-const ORDEN_DEFAULT: OrdenColumna<ColOrden> = { key: 'actualizacion', dir: 'asc' };
+const ORDEN_DEFAULT: OrdenColumna<ColOrden> = { key: 'estado', dir: 'asc' };
 
 const RANGO_ESTADO: Record<Frescura, number> = { danger: 0, warn: 1, ok: 2 };
 
@@ -36,10 +36,8 @@ function comparar(a: Tour, b: Tour, orden: OrdenColumna<ColOrden>): number {
     case 'precio':
       return dir * (a.precio_adulto - b.precio_adulto);
     case 'estado':
-      return dir * (RANGO_ESTADO[freshness(a.fecha_actualizacion).estado] - RANGO_ESTADO[freshness(b.fecha_actualizacion).estado]);
-    case 'actualizacion':
     default:
-      return dir * a.fecha_actualizacion.localeCompare(b.fecha_actualizacion);
+      return dir * (RANGO_ESTADO[freshness(a.fecha_actualizacion).estado] - RANGO_ESTADO[freshness(b.fecha_actualizacion).estado]);
   }
 }
 
@@ -49,6 +47,8 @@ interface ToursTableProps {
   /** Filtro de operador impuesto desde la tabla de operadores ("Ver tours") */
   filtroOperador: number | null;
   onFiltroOperadorChange: (id: number | null) => void;
+  onEditar: (tour: Tour) => void;
+  onEliminar: (tour: Tour) => void;
 }
 
 export default function ToursTable({
@@ -56,6 +56,8 @@ export default function ToursTable({
   operadores,
   filtroOperador,
   onFiltroOperadorChange,
+  onEditar,
+  onEliminar,
 }: ToursTableProps) {
   const navigate = useNavigate();
   const { orden, ciclar } = useOrdenColumna<ColOrden>(ORDEN_DEFAULT);
@@ -163,15 +165,14 @@ export default function ToursTable({
                 <th scope="col" className="px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Zona
                 </th>
-                <SortTh colKey="precio" label="$ Adulto" orden={orden} onCiclar={ciclar} className="w-[90px]" />
+                <SortTh colKey="precio" label="$ Base" orden={orden} onCiclar={ciclar} className="w-[90px]" />
                 <th scope="col" className="w-[80px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
-                  $ Niño
+                  Tarifas
                 </th>
                 <th scope="col" className="w-[200px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Fuente
                 </th>
-                <SortTh colKey="actualizacion" label="Actualización" orden={orden} onCiclar={ciclar} className="w-[150px]" />
-                <SortTh colKey="estado" label="Estado" orden={orden} onCiclar={ciclar} className="w-[150px]" />
+                <SortTh colKey="estado" label="Estado" orden={orden} onCiclar={ciclar} className="w-[80px]" />
                 <th scope="col" className="w-[90px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Detalle
                 </th>
@@ -216,39 +217,53 @@ export default function ToursTable({
                       </span>
                     </td>
                     <td className="px-3 py-3 text-[14px] font-medium text-ink tnum">
-                      {formatPrecio(tour.precio_adulto, tour.moneda)}
+                      {formatPrecio(tour.tarifas.length ? Math.min(...tour.tarifas.map((t) => t.rack)) : tour.precio_adulto, tour.moneda)}
                     </td>
                     <td className="px-3 py-3 text-[14px] text-ink tnum">
-                      {tour.precio_nino != null ? formatPrecio(tour.precio_nino, tour.moneda) : <span className="text-ink-faint">—</span>}
+                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-caption text-ink-muted">
+                        {tour.tarifas.length || 1}
+                      </span>
                     </td>
                     <td className="px-3 py-3">
                       <FuenteCell fuente={tour.fuente} />
                     </td>
+                    <td className="px-3 py-3 text-center">
+                      <FreshnessPill frescura={frescura} compact />
+                    </td>
                     <td className="px-3 py-3">
-                      <div className="text-[13px] font-medium text-ink tnum">
-                        {formatDateEs(tour.fecha_actualizacion)}
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/tour/${tour.id}`)}
+                          title="Ver detalle"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onEditar(tour)}
+                          title="Editar tour"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-brand-soft hover:text-brand"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onEliminar(tour)}
+                          title="Eliminar tour"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-danger/10 hover:text-danger"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div className="text-caption text-ink-muted">{frescura.relativo}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <FreshnessPill frescura={frescura} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/tour/${tour.id}`)}
-                        title="Ver detalle"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
                     </td>
                   </motion.tr>
                 );
               })}
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-small text-ink-muted">
+                  <td colSpan={8} className="px-3 py-10 text-center text-small text-ink-muted">
                     Ningún tour coincide con los filtros.
                   </td>
                 </tr>

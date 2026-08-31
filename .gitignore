@@ -20,3 +20,6 @@ coverage/
 .nyc_output/
 # Logs
 *.log
+# Uploaded files
+public/uploads/
+uploads/

@@ -10,7 +10,7 @@
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import type { AppRouter } from '../../api/router';
-import type { Operador as DbOperador, Tour as DbTour } from '../../db/schema';
+import type { Operador as DbOperador, Tour as DbTour, TourHorario as DbTourHorario, TourTarifa as DbTourTarifa } from '../../db/schema';
 
 export type Categoria = 'aventura' | 'naturaleza' | 'acuatico' | 'cultural' | 'termas';
 
@@ -19,8 +19,31 @@ export type Moneda = 'usd' | 'crc';
 export interface Operador {
   id: number;
   nombre: string;
-  contacto: string;
+  telefono: string; // teléfono de contacto (WhatsApp/llamadas)
+  email: string | null; // correo del operador
   comision: number | null; // % — visible solo en admin (uso interno)
+  logo_url: string | null; // URL pública del logo del operador
+  poliza_url: string | null; // URL pública de la póliza de seguro
+  politica_cancelacion: string; // política de cancelación compartida por todos sus tours
+}
+
+export interface Tarifa {
+  id: number;
+  nombre: string;
+  min_edad: number;
+  max_edad: number | null;
+  rack: number;
+  neta: number | null;
+  hora_desde: string | null; // HH:MM inicio del rango (legacy)
+  hora_hasta: string | null; // HH:MM fin del rango (legacy)
+  orden: number;
+}
+
+export interface Horario {
+  id: number;
+  hora_salida: string; // "07:30"
+  hora_llegada: string; // "12:30"
+  orden: number;
 }
 
 export interface Tour {
@@ -29,12 +52,13 @@ export interface Tour {
   nombre: string;
   zona: string;
   categoria: Categoria;
-  precio_adulto: number; // USD — tarifa RACK (público al huésped)
-  precio_nino: number | null; // rack niño
-  precio_neto_adulto: number; // USD — tarifa NETA (costo operador, uso interno)
-  precio_neto_nino: number | null;
+  precio_adulto: number; // tarifa base representativa (rango adulto 12-64)
+  precio_nino: number | null; // legacy
+  precio_neto_adulto: number | null; // legacy
+  precio_neto_nino: number | null; // legacy
+  tarifas: Tarifa[];
+  horarios: Horario[];
   duracion_horas: number;
-  hora_salida: string; // "07:30"
   incluye: string[]; // transporte, guia, almuerzo, entradas, equipo, seguro
   no_incluye: string[];
   minimo_personas: number;
@@ -88,6 +112,17 @@ export function freshness(fechaISO: string): InfoFrescura {
   return { estado, dias, label, relativo };
 }
 
+/** Devuelve el horario principal de un tour (el de orden 0). */
+export function horarioRepresentativo(tour: Tour): Horario | undefined {
+  return tour.horarios.slice().sort((a, b) => a.orden - b.orden)[0];
+}
+
+/** Lista legible de salidas de un tour, p. ej. "07:00, 09:00". */
+export function salidasTour(tour: Tour): string {
+  const salidas = tour.horarios.slice().sort((a, b) => a.orden - b.orden).map((h) => h.hora_salida);
+  return salidas.join(', ');
+}
+
 /* ------------------------------------------------------------------ */
 /* Cliente tRPC vanilla (mismo patrón que src/providers/trpc.tsx)      */
 /* ------------------------------------------------------------------ */
@@ -111,14 +146,41 @@ const trpcClient = createTRPCClient<AppRouter>({
 /* Mapeo backend (Drizzle, camelCase) → frontend (design.md §8, snake) */
 /* ------------------------------------------------------------------ */
 
-type RowTour = { tour: DbTour; operador: DbOperador };
+type RowTour = { tour: DbTour; operador: DbOperador; horarios: DbTourHorario[]; tarifas: DbTourTarifa[] };
+
+function mapHorario(h: DbTourHorario): Horario {
+  return {
+    id: h.id,
+    hora_salida: h.horaSalida,
+    hora_llegada: h.horaLlegada,
+    orden: h.orden,
+  };
+}
+
+function mapTarifa(t: DbTourTarifa): Tarifa {
+  return {
+    id: t.id,
+    nombre: t.nombre ?? '',
+    min_edad: t.minEdad,
+    max_edad: t.maxEdad,
+    rack: Number(t.rack),
+    neta: t.neta == null ? null : Number(t.neta),
+    hora_desde: t.horaDesde ?? null,
+    hora_hasta: t.horaHasta ?? null,
+    orden: t.orden,
+  };
+}
 
 function mapOperador(o: DbOperador): Operador {
   return {
     id: o.id,
     nombre: o.nombre,
-    contacto: o.contacto,
+    telefono: o.telefono,
+    email: o.email ?? null,
     comision: o.comision == null ? null : Number(o.comision),
+    logo_url: o.logoUrl ?? null,
+    poliza_url: o.polizaUrl ?? null,
+    politica_cancelacion: o.politicaCancelacion ?? '',
   };
 }
 
@@ -127,19 +189,20 @@ function toISODate(fecha: string | Date): string {
   return fecha instanceof Date ? fecha.toISOString().slice(0, 10) : fecha.slice(0, 10);
 }
 
-function mapTour({ tour: t, operador }: RowTour): Tour {
+function mapTour({ tour: t, operador, horarios, tarifas }: RowTour): Tour {
   return {
     id: t.id,
     operador: mapOperador(operador),
     nombre: t.nombre,
     zona: t.zona,
     categoria: t.categoria,
-    precio_adulto: Number(t.precioAdulto), // tarifa rack (público)
-    precio_nino: t.precioNino == null ? null : Number(t.precioNino), // rack niño
-    precio_neto_adulto: Number(t.precioNetoAdulto), // tarifa neta (uso interno)
-    precio_neto_nino: t.precioNetoNino == null ? null : Number(t.precioNetoNino),
+    precio_adulto: Number(t.precioAdulto), // tarifa base representativa
+    precio_nino: t.precioNino == null ? null : Number(t.precioNino), // legacy
+    precio_neto_adulto: t.precioNetoAdulto == null ? null : Number(t.precioNetoAdulto), // legacy
+    precio_neto_nino: t.precioNetoNino == null ? null : Number(t.precioNetoNino), // legacy
+    tarifas: tarifas.map(mapTarifa).sort((a, b) => a.orden - b.orden),
+    horarios: horarios.map(mapHorario).sort((a, b) => a.orden - b.orden),
     duracion_horas: Number(t.duracionHoras),
-    hora_salida: t.horaSalida,
     incluye: t.incluye,
     no_incluye: t.noIncluye,
     minimo_personas: t.minimoPersonas,

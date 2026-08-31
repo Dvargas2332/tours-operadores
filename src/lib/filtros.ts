@@ -58,9 +58,10 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
   return tours.filter((t) => {
     if (f.precioActivo) {
       if (t.precio_adulto < f.precio[0] || t.precio_adulto > f.precio[1]) return false;
-      // Con el filtro de niños activo, también filtra precio_nino
-      if (f.aptoNinos && t.precio_nino != null) {
-        if (t.precio_nino < f.precio[0] || t.precio_nino > f.precio[1]) return false;
+      // Con el filtro de niños activo, también filtra por alguna tarifa de menor de edad
+      if (f.aptoNinos) {
+        const tarifaNino = t.tarifas.find((tar) => tar.max_edad != null && tar.max_edad < 18);
+        if (tarifaNino && (tarifaNino.rack < f.precio[0] || tarifaNino.rack > f.precio[1])) return false;
       }
     }
     if (f.zonas.length > 0 && !f.zonas.includes(t.zona)) return false;
@@ -74,7 +75,10 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
         : d > 8;
       if (!ok) return false;
     }
-    if (f.horarios.length > 0 && !f.horarios.includes(horarioBucket(t.hora_salida))) return false;
+    if (f.horarios.length > 0) {
+      const buckets = new Set(t.horarios.map((h) => horarioBucket(h.hora_salida)));
+      if (!f.horarios.some((h) => buckets.has(h))) return false;
+    }
     if (f.incluye.length > 0 && !f.incluye.every((k) => t.incluye.includes(k))) return false;
     if (f.aptoNinos && !t.apto_ninos) return false;
     if (f.operadores.length > 0 && !f.operadores.includes(t.operador.id)) return false;

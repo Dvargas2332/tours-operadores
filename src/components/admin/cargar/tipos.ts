@@ -20,6 +20,19 @@ export function metodoDeArchivo(archivo: ArchivoSubido): MetodoExtraccion {
   return 'imagen';
 }
 
+/** Tarifa por rango de edad dentro de la fila de revisión editable. */
+export interface TarifaRevision {
+  minEdad: number;
+  maxEdad: number | null;
+  rack: string; // string porque se edita inline; se parsea al confirmar
+  neta: string; // vacío = no aplica
+}
+
+export interface HorarioRevision {
+  salida: string; // "07:30"
+  llegada: string; // "12:30"
+}
+
 export interface FilaRevision {
   key: string;
   operador: string; // nombre del operador (hoja del catálogo)
@@ -27,12 +40,9 @@ export interface FilaRevision {
   nombre: string;
   zona: string;
   categoria: Categoria;
-  precioAdulto: string; // tarifa RACK (público) — se edita como texto; se valida/parsea al confirmar
-  precioNino: string; // rack niño — vacío permitido = "no aplica"
-  precioNetoAdulto: string; // tarifa NETA (uso interno) — requerida
-  precioNetoNino: string; // neta niño — vacío permitido
+  tarifas: TarifaRevision[];
   duracionHoras: string;
-  horaSalida: string; // "07:30"
+  horarios: HorarioRevision[];
   incluye: string[];
   noIncluye: string[];
   minimoPersonas: string;
@@ -43,50 +53,62 @@ export interface FilaRevision {
   advertencias: string[];
 }
 
-export type ErroresFila = Partial<Record<'nombre' | 'zona' | 'precioAdulto' | 'precioNino' | 'precioNetoAdulto' | 'precioNetoNino' | 'duracion' | 'salida', string>>;
+export type ErroresFila = Partial<Record<'nombre' | 'zona' | 'tarifas' | 'duracion' | 'horarios', string>>;
+
+function tarifaRackValida(t: TarifaRevision): boolean {
+  const rack = Number(t.rack);
+  return t.rack.trim() !== '' && Number.isFinite(rack) && rack > 0;
+}
 
 export function validarFila(f: FilaRevision): ErroresFila {
   const errores: ErroresFila = {};
   if (!f.nombre.trim()) errores.nombre = 'Falta nombre';
   if (!f.zona.trim()) errores.zona = 'Falta zona';
 
-  const pa = Number(f.precioAdulto);
-  if (f.precioAdulto.trim() === '' || !Number.isFinite(pa) || pa <= 0) {
-    errores.precioAdulto = 'Precio requerido, mayor que 0';
+  const validas = f.tarifas.filter(tarifaRackValida);
+  if (validas.length === 0) {
+    errores.tarifas = 'Al menos una tarifa rack requerida';
+  } else {
+    for (const t of f.tarifas) {
+      if (t.rack.trim() === '') continue;
+      const rack = Number(t.rack);
+      if (!Number.isFinite(rack) || rack < 0) {
+        errores.tarifas = 'Rack inválido';
+        break;
+      }
+      if (t.neta.trim() !== '') {
+        const neta = Number(t.neta);
+        if (!Number.isFinite(neta) || neta < 0) {
+          errores.tarifas = 'Neta inválida';
+          break;
+        }
+      }
+      if (!Number.isFinite(t.minEdad) || t.minEdad < 0 || (t.maxEdad != null && (t.maxEdad < t.minEdad || !Number.isFinite(t.maxEdad)))) {
+        errores.tarifas = 'Rango de edad inválido';
+        break;
+      }
+    }
   }
-  if (f.precioNino.trim() !== '') {
-    const pn = Number(f.precioNino);
-    if (!Number.isFinite(pn) || pn <= 0) errores.precioNino = 'Precio inválido';
-  }
-  const pna = Number(f.precioNetoAdulto);
-  if (f.precioNetoAdulto.trim() === '' || !Number.isFinite(pna) || pna <= 0) {
-    errores.precioNetoAdulto = 'Neta requerida, mayor que 0';
-  }
-  if (f.precioNetoNino.trim() !== '') {
-    const pnn = Number(f.precioNetoNino);
-    if (!Number.isFinite(pnn) || pnn <= 0) errores.precioNetoNino = 'Neta inválida';
-  }
+
   const d = Number(f.duracionHoras);
   if (f.duracionHoras.trim() === '' || !Number.isFinite(d) || d < 0.5 || d > 24) {
     errores.duracion = 'Entre 0.5 y 24 h';
   }
-  if (!/^\d{2}:\d{2}$/.test(f.horaSalida)) errores.salida = 'Hora requerida';
+  if (f.horarios.length === 0 || f.horarios.some((h) => !/^\d{2}:\d{2}$/.test(h.salida) || !/^\d{2}:\d{2}$/.test(h.llegada))) {
+    errores.horarios = 'Horario requerido (HH:MM)';
+  }
   return errores;
 }
 
 /** Advertencia (no bloqueante) si la neta supera a la rack — revisar digitación. */
 export function advertenciasNeta(f: FilaRevision): string[] {
   const out: string[] = [];
-  const pa = Number(f.precioAdulto);
-  const pna = Number(f.precioNetoAdulto);
-  if (Number.isFinite(pa) && pa > 0 && Number.isFinite(pna) && pna > pa) {
-    out.push('Neta adulto mayor que la rack — revisar');
-  }
-  if (f.precioNino.trim() !== '' && f.precioNetoNino.trim() !== '') {
-    const pn = Number(f.precioNino);
-    const pnn = Number(f.precioNetoNino);
-    if (Number.isFinite(pn) && Number.isFinite(pnn) && pnn > pn) {
-      out.push('Neta niño mayor que la rack — revisar');
+  for (const t of f.tarifas) {
+    const rack = Number(t.rack);
+    const neta = Number(t.neta);
+    if (Number.isFinite(rack) && rack > 0 && Number.isFinite(neta) && neta > rack) {
+      const label = t.maxEdad != null ? `${t.minEdad}-${t.maxEdad}` : `+${t.minEdad}`;
+      out.push(`Neta mayor que rack en ${label} años — revisar`);
     }
   }
   return out;
@@ -110,12 +132,9 @@ export function filaVacia(operador = '', moneda: Moneda = 'usd'): FilaRevision {
     nombre: '',
     zona: 'Arenal',
     categoria: 'aventura',
-    precioAdulto: '',
-    precioNino: '',
-    precioNetoAdulto: '',
-    precioNetoNino: '',
+    tarifas: [{ minEdad: 12, maxEdad: 64, rack: '', neta: '' }],
     duracionHoras: '',
-    horaSalida: '08:00',
+    horarios: [{ salida: '08:00', llegada: '12:00' }],
     incluye: [],
     noIncluye: [],
     minimoPersonas: '2',
@@ -141,21 +160,39 @@ export function formatBytes(bytes: number): string {
 
 /** Convierte el lote confirmado al input zod de `tours.cargarTarifario` (api/tours.ts). */
 export function filaAInput(f: FilaRevision) {
+  const tarifasBackend = f.tarifas
+    .filter((t) => t.rack.trim() !== '' && t.rack.trim() !== '0')
+    .map((t) => ({
+      minEdad: t.minEdad,
+      maxEdad: t.maxEdad,
+      rack: Number(t.rack),
+      neta: t.neta.trim() === '' || t.neta.trim() === '0' ? null : Number(t.neta),
+      orden: 0,
+    }))
+    .sort((a, b) => a.minEdad - b.minEdad);
+
+  const tarifaAdulto = tarifasBackend.find((t) => t.minEdad === 12 && t.maxEdad === 64)
+    ?? tarifasBackend.find((t) => t.maxEdad == null || t.maxEdad >= 18)
+    ?? tarifasBackend[0];
+
+  const tarifaNino = tarifasBackend.find((t) => t.maxEdad != null && t.maxEdad < 18 && t.minEdad < 12);
+
   return {
     nombre: f.nombre.trim(),
     zona: f.zona.trim(),
     categoria: f.categoria,
     moneda: f.moneda,
-    precioAdulto: Number(f.precioAdulto),
-    precioNino: f.precioNino.trim() === '' ? null : Number(f.precioNino),
-    precioNetoAdulto: Number(f.precioNetoAdulto),
-    precioNetoNino: f.precioNetoNino.trim() === '' ? null : Number(f.precioNetoNino),
+    precioAdulto: tarifaAdulto?.rack ?? Number(f.tarifas[0]?.rack || 0),
+    precioNino: tarifaNino?.rack ?? null,
+    precioNetoAdulto: tarifaAdulto?.neta ?? null,
+    tarifas: tarifasBackend.map((t, i) => ({ ...t, orden: i })),
+    precioNetoNino: tarifaNino?.neta ?? null,
     duracionHoras: Number(f.duracionHoras),
-    horaSalida: f.horaSalida,
+    horarios: f.horarios.map((h, i) => ({ horaSalida: h.salida, horaLlegada: h.llegada, orden: i })),
     incluye: f.incluye,
     noIncluye: f.noIncluye,
     minimoPersonas: Math.max(1, Math.round(Number(f.minimoPersonas) || 2)),
-    aptoNinos: f.aptoNinos,
+    aptoNinos: f.aptoNinos || tarifasBackend.some((t) => t.maxEdad != null && t.maxEdad < 18),
     politicaCancelacion: f.politicaCancelacion,
     observaciones: f.observaciones,
   };

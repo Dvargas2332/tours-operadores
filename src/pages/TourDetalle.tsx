@@ -107,8 +107,8 @@ export default function TourDetalle() {
             Volver
           </button>
           <nav aria-label="breadcrumb" className="hidden min-w-0 items-center gap-1 text-caption md:flex">
-            <Link to="/" className="shrink-0 font-medium text-brand hover:underline">
-              Buscador
+            <Link to="/buscar" className="shrink-0 font-medium text-brand hover:underline">
+              Buscar
             </Link>
             <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />
             <span className="truncate text-ink-muted">{tour?.nombre ?? 'Detalle de tour'}</span>
@@ -133,10 +133,10 @@ export default function TourDetalle() {
               Puede haber sido reemplazado por una carga más reciente del operador.
             </p>
             <Link
-              to="/"
+              to="/buscar"
               className="mt-5 flex h-10 items-center rounded-r-sm bg-brand px-5 text-sm font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover active:scale-[0.98]"
             >
-              Volver al buscador
+              Volver a buscar
             </Link>
           </div>
         ) : (

@@ -15,6 +15,10 @@ export interface ToursData {
 let cache: ToursData | null = null;
 let inflight: Promise<ToursData> | null = null;
 
+export function clearToursCache() {
+  cache = null;
+}
+
 function load(): Promise<ToursData> {
   if (cache) return Promise.resolve(cache);
   if (!inflight) {

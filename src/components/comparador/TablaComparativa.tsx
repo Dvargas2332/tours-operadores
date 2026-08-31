@@ -5,13 +5,14 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Baby, Check, ChevronDown, Copy, MapPin, Minus, Trophy, X } from 'lucide-react';
+import { Baby, Check, ChevronDown, Copy, Flag, MapPin, Minus, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
-import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
-import type { Tour } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs, salidasTour } from '@/data/mock-tours';
+import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -67,6 +68,25 @@ function TextoExpandible({ texto, muted = false }: { texto: string; muted?: bool
   );
 }
 
+/* ---------- utilidades de tarifas ---------- */
+
+function tarifaBase(tour: Tour): Tarifa | undefined {
+  const activas = tarifasActivas(tour);
+  return (
+    activas.find((t) => t.min_edad === 12 && t.max_edad === 64) ??
+    activas.find((t) => t.max_edad == null || t.max_edad >= 18) ??
+    activas[0]
+  );
+}
+
+function tarifaNino(tour: Tour): Tarifa | undefined {
+  return tarifasActivas(tour).find((t) => t.max_edad != null && t.max_edad < 18 && t.min_edad < 12);
+}
+
+function precioDesde(tour: Tour): number {
+  return precioActivoDesde(tour);
+}
+
 /* ---------- modelo de filas ---------- */
 
 interface FilaDef {
@@ -79,66 +99,104 @@ interface FilaDef {
   claseCelda?: (tour: Tour) => string | undefined;
 }
 
-function usarFilas(tours: Tour[]): FilaDef[] {
+function useFilas(tours: Tour[]): FilaDef[] {
   return useMemo(() => {
-    const mejorAdulto = Math.min(...tours.map((t) => t.precio_adulto));
-    const conNino = tours.filter((t) => t.precio_nino != null);
-    const mejorNino = conNino.length >= 2 ? Math.min(...conNino.map((t) => t.precio_nino as number)) : null;
+    const desde = tours.map(precioDesde);
+    const mejorDesde = Math.min(...desde);
+    const bases = tours.map(tarifaBase);
+    const adultos = bases.map((t) => t?.rack ?? 0);
+    const mejorAdulto = Math.min(...adultos);
+    const ninos = tours.map(tarifaNino);
+    const conNino = ninos.filter(Boolean);
+    const mejorNino = conNino.length >= 2 ? Math.min(...(conNino.map((t) => t!.rack) as number[])) : null;
     const masCorta = Math.min(...tours.map((t) => t.duracion_horas));
     const hayCortaDistinta = !todosIguales(tours.map((t) => t.duracion_horas));
 
     const filas: FilaDef[] = [
       {
-        key: 'precio-adulto',
-        label: 'Tarifa rack adulto',
-        valores: tours.map((t) => t.precio_adulto),
-        claseCelda: (t) => (t.precio_adulto === mejorAdulto ? 'bg-volcan-soft/60' : undefined),
+        key: 'precio-desde',
+        label: 'Desde (rack)',
+        valores: desde,
+        claseCelda: (t) => (precioDesde(t) === mejorDesde ? 'bg-volcan-soft/60' : undefined),
         render: (t) => (
           <div>
-            <span className="font-display text-xl font-bold text-ink tnum">{formatPrecio(t.precio_adulto, t.moneda)}</span>
-            {t.precio_adulto === mejorAdulto && <PillMejorPrecio />}
+            <span className="font-display text-xl font-bold text-ink tnum">{formatPrecio(precioDesde(t), t.moneda)}</span>
+            {precioDesde(t) === mejorDesde && <PillMejorPrecio />}
           </div>
         ),
+      },
+      {
+        key: 'precio-adulto',
+        label: 'Tarifa rack adulto',
+        valores: adultos,
+        claseCelda: (t) => {
+          const base = tarifaBase(t)?.rack ?? 0;
+          return base === mejorAdulto ? 'bg-volcan-soft/60' : undefined;
+        },
+        render: (t) => {
+          const base = tarifaBase(t);
+          return (
+            <div>
+              <span className="font-display text-xl font-bold text-ink tnum">
+                {base ? formatPrecio(base.rack, t.moneda) : '—'}
+              </span>
+              {base && base.rack === mejorAdulto && <PillMejorPrecio />}
+            </div>
+          );
+        },
       },
       {
         key: 'precio-nino',
         label: 'Tarifa rack niño',
-        valores: tours.map((t) => t.precio_nino),
-        claseCelda: (t) =>
-          mejorNino != null && t.precio_nino === mejorNino ? 'bg-volcan-soft/60' : undefined,
-        render: (t) => (
-          <div>
-            <span className="font-display text-xl font-bold text-ink tnum">
-              {t.precio_nino != null ? formatPrecio(t.precio_nino, t.moneda) : '—'}
-            </span>
-            {mejorNino != null && t.precio_nino === mejorNino && <PillMejorPrecio />}
-          </div>
-        ),
+        valores: ninos.map((t) => t?.rack ?? null),
+        claseCelda: (t) => {
+          const n = tarifaNino(t);
+          return mejorNino != null && n?.rack === mejorNino ? 'bg-volcan-soft/60' : undefined;
+        },
+        render: (t) => {
+          const n = tarifaNino(t);
+          return (
+            <div>
+              <span className="font-display text-xl font-bold text-ink tnum">
+                {n ? formatPrecio(n.rack, t.moneda) : '—'}
+              </span>
+              {mejorNino != null && n?.rack === mejorNino && <PillMejorPrecio />}
+            </div>
+          );
+        },
       },
       {
         key: 'neta-adulto',
         label: 'Tarifa neta adulto',
-        valores: tours.map((t) => t.precio_neto_adulto),
-        render: (t) => (
-          <div>
-            <span className="font-display text-[17px] font-semibold text-brand tnum">
-              {formatPrecio(t.precio_neto_adulto, t.moneda)}
-            </span>
-            <span className="ml-2 text-caption text-ink-faint">
-              margen {formatPrecio(t.precio_adulto - t.precio_neto_adulto, t.moneda)}
-            </span>
-          </div>
-        ),
+        valores: bases.map((t) => t?.neta ?? null),
+        render: (t) => {
+          const base = tarifaBase(t);
+          return (
+            <div>
+              <span className="font-display text-[17px] font-semibold text-brand tnum">
+                {base?.neta != null ? formatPrecio(base.neta, t.moneda) : '—'}
+              </span>
+              {base?.neta != null && (
+                <span className="ml-2 text-caption text-ink-faint">
+                  margen {formatPrecio(base.rack - base.neta, t.moneda)}
+                </span>
+              )}
+            </div>
+          );
+        },
       },
       {
         key: 'neta-nino',
         label: 'Tarifa neta niño',
-        valores: tours.map((t) => t.precio_neto_nino),
-        render: (t) => (
-          <span className="font-display text-[17px] font-semibold text-brand tnum">
-            {t.precio_neto_nino != null ? formatPrecio(t.precio_neto_nino, t.moneda) : '—'}
-          </span>
-        ),
+        valores: ninos.map((t) => t?.neta ?? null),
+        render: (t) => {
+          const n = tarifaNino(t);
+          return (
+            <span className="font-display text-[17px] font-semibold text-brand tnum">
+              {n?.neta != null ? formatPrecio(n.neta, t.moneda) : '—'}
+            </span>
+          );
+        },
       },
       {
         key: 'duracion',
@@ -156,8 +214,19 @@ function usarFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'salida',
         label: 'Hora de salida',
-        valores: tours.map((t) => t.hora_salida),
-        render: (t) => <span className="text-[15px] font-semibold text-ink tnum">{t.hora_salida}</span>,
+        valores: tours.map((t) => salidasTour(t)),
+        render: (t) => <span className="text-[15px] font-semibold text-ink tnum">{salidasTour(t)}</span>,
+      },
+      {
+        key: 'llegada',
+        label: 'Hora de llegada',
+        valores: tours.map((t) => t.horarios.map((h) => h.hora_llegada).join(', ')),
+        render: (t) => (
+          <span className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-ink">
+            <Flag className="h-3.5 w-3.5 text-ink-muted" />
+            <span className="tnum">{t.horarios.map((h) => h.hora_llegada).join(', ') || '—'}</span>
+          </span>
+        ),
       },
       {
         key: 'zona',
@@ -260,7 +329,7 @@ interface TablaComparativaProps {
 }
 
 export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar, onVerDetalle }: TablaComparativaProps) {
-  const filas = usarFilas(tours);
+  const filas = useFilas(tours);
 
   const copiarResumen = async (tour: Tour) => {
     const ok = await copiarTexto(buildResumenTour(tour));
@@ -441,7 +510,7 @@ function AcordeonTour({
               {tour.nombre}
             </div>
             <div className="mt-0.5 text-caption text-ink-faint">
-              {tour.operador.nombre} · <span className="tnum">{formatPrecio(tour.precio_adulto, tour.moneda)}</span> adulto
+              {tour.operador.nombre} · <span className="tnum">{formatPrecio(precioDesde(tour), tour.moneda)}</span> desde
             </div>
           </div>
           <ChevronDown

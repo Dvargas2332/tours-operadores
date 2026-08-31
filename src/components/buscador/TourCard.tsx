@@ -6,11 +6,12 @@
  */
 import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Baby, Bus, Clock, Users } from 'lucide-react';
+import { AlertTriangle, Baby, Bus, Clock, Flag, ImageIcon, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 
 const DOT_FRESCURA: Record<string, string> = {
@@ -43,6 +44,10 @@ function CheckComparar({ checked }: { checked: boolean }) {
       </svg>
     </span>
   );
+}
+
+function precioDesde(tour: Tour): number {
+  return precioActivoDesde(tour);
 }
 
 function FilaIncluye({ tour, compact = false }: { tour: Tour; compact?: boolean }) {
@@ -99,6 +104,8 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
   const cat = CATEGORIA_META[tour.categoria];
   const fresh = freshness(tour.fecha_actualizacion);
   const tooltipFrescura = `${fresh.label}: ${formatDateEs(tour.fecha_actualizacion)} · Fuente: ${tour.fuente}`;
+  const horario = horarioRepresentativo(tour);
+  const masHorarios = tour.horarios.length > 1;
   const delay = Math.min(index, 11) * 0.04;
 
   const animEntrada = {
@@ -162,7 +169,21 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
             {dotFrescura}
           </div>
           <div className="mt-1 truncate text-h3 text-ink">{tour.nombre}</div>
-          <div className="truncate text-small text-ink-muted">{tour.operador.nombre}</div>
+          <div className="flex items-center gap-1.5 truncate text-small text-ink-muted">
+            {tour.operador.logo_url ? (
+              <img
+                src={tour.operador.logo_url}
+                alt=""
+                className="h-5 w-5 object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-soft text-[9px] font-bold text-brand">
+                {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
+              </span>
+            )}
+            {tour.operador.nombre}
+          </div>
         </div>
         <div className="hidden shrink-0 items-center gap-4 text-small text-ink-muted tnum md:flex">
           <span className="flex items-center gap-1">
@@ -171,13 +192,21 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
           </span>
           <span className="flex items-center gap-1">
             <Bus className="h-3.5 w-3.5" />
-            {tour.hora_salida}
+            {horario?.hora_salida ?? '—'}
+          </span>
+          <span className="flex items-center gap-1">
+            <Flag className="h-3.5 w-3.5" />
+            {horario?.hora_llegada ?? '—'}
           </span>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-precio text-ink">{formatPrecio(tour.precio_adulto, tour.moneda)}</div>
-          <div className="text-caption text-ink-faint">rack adulto</div>
-          <div className="text-caption text-ink-muted tnum">Neta: {formatPrecio(tour.precio_neto_adulto, tour.moneda)}</div>
+          <div className="text-precio text-ink">{formatPrecio(precioDesde(tour), tour.moneda)}</div>
+          <div className="text-caption text-ink-faint">
+            {tour.tarifas.length > 1 ? `${tour.tarifas.length} tarifas` : 'rack adulto'}
+          </div>
+          <div className="text-caption text-ink-muted tnum">
+            {tour.tarifas.length > 1 ? 'desde' : 'una tarifa'}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -229,28 +258,41 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
 
       {/* Título + operador */}
       <h3 className="mt-2.5 line-clamp-2 min-h-[2.6em] text-h3 text-ink">{tour.nombre}</h3>
-      <div className="truncate text-small text-ink-muted">{tour.operador.nombre}</div>
+      <div className="flex items-center gap-1.5 truncate text-small text-ink-muted">
+        {tour.operador.logo_url ? (
+          <img
+            src={tour.operador.logo_url}
+            alt=""
+            className="h-4 w-4 object-contain"
+            loading="lazy"
+          />
+        ) : (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-soft text-[8px] font-bold text-brand">
+            {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
+          </span>
+        )}
+        {tour.operador.nombre}
+      </div>
 
       {/* Precios */}
       <div className="mt-3 flex gap-6 border-t border-border pt-3">
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="cursor-default">
-              <div className="text-precio text-ink">{formatPrecio(tour.precio_adulto, tour.moneda)}</div>
-              <div className="text-caption text-ink-faint">rack adulto</div>
-              <div className="text-caption text-ink-muted tnum">Neta: {formatPrecio(tour.precio_neto_adulto, tour.moneda)}</div>
+              <div className="text-precio text-ink">{formatPrecio(precioDesde(tour), tour.moneda)}</div>
+              <div className="text-caption text-ink-faint">
+                {tour.tarifas.length > 1 ? `${tour.tarifas.length} tarifas` : 'rack adulto'}
+              </div>
+              <div className="text-caption text-ink-muted tnum">
+                {tour.tarifas.length > 1 ? 'desde' : 'una tarifa'}
+              </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent>Tarifa rack por adulto en USD · la neta es el costo del operador (uso interno)</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="cursor-default">
-              <div className="text-precio text-ink">{tour.precio_nino != null ? formatPrecio(tour.precio_nino, tour.moneda) : '—'}</div>
-              <div className="text-caption text-ink-faint">{tour.precio_nino != null ? 'niño' : 'niño no aplica'}</div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>Precio por persona en USD</TooltipContent>
+          <TooltipContent>
+            {tour.tarifas.length > 1
+              ? `Precio más bajo por persona · ${tour.tarifas.length} rangos de edad`
+              : 'Tarifa rack por adulto · la neta es el costo del operador (uso interno)'}
+          </TooltipContent>
         </Tooltip>
       </div>
 
@@ -262,7 +304,12 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
         </span>
         <span className="flex items-center gap-1.5">
           <Bus className="h-3.5 w-3.5" />
-          {tour.hora_salida}
+          {horario?.hora_salida ?? '—'}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Flag className="h-3.5 w-3.5" />
+          {horario?.hora_llegada ?? '—'}
+          {masHorarios && <span className="text-caption text-ink-faint">+{tour.horarios.length - 1}</span>}
         </span>
         <span className="flex items-center gap-1.5">
           <Users className="h-3.5 w-3.5" />

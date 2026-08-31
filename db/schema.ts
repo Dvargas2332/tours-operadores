@@ -25,8 +25,12 @@ export const monedaEnum = pgEnum("moneda", ["usd", "crc"]);
 export const operadores = pgTable("operadores", {
   id: serial("id").primaryKey(),
   nombre: varchar("nombre", { length: 255 }).notNull(),
-  contacto: varchar("contacto", { length: 255 }).notNull().default(""),
+  telefono: varchar("telefono", { length: 50 }).notNull().default(""),
+  email: varchar("email", { length: 255 }),
   comision: numeric("comision", { precision: 5, scale: 2, mode: "number" }),
+  logoUrl: varchar("logo_url", { length: 500 }),
+  polizaUrl: varchar("poliza_url", { length: 500 }),
+  politicaCancelacion: text("politica_cancelacion").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -40,12 +44,11 @@ export const tours = pgTable("tours", {
   categoria: categoriaEnum("categoria").notNull(),
   // Tarifa neta = costo del operador para el hotel (uso interno).
   // precio_adulto / precio_nino = tarifa RACK (precio público al huésped).
-  precioAdulto: numeric("precio_adulto", { precision: 7, scale: 2, mode: "number" }).notNull(),
-  precioNino: numeric("precio_nino", { precision: 7, scale: 2, mode: "number" }),
-  precioNetoAdulto: numeric("precio_neto_adulto", { precision: 7, scale: 2, mode: "number" }).notNull(),
-  precioNetoNino: numeric("precio_neto_nino", { precision: 7, scale: 2, mode: "number" }),
+  precioAdulto: numeric("precio_adulto", { precision: 10, scale: 2, mode: "number" }).notNull(),
+  precioNino: numeric("precio_nino", { precision: 10, scale: 2, mode: "number" }),
+  precioNetoAdulto: numeric("precio_neto_adulto", { precision: 10, scale: 2, mode: "number" }),
+  precioNetoNino: numeric("precio_neto_nino", { precision: 10, scale: 2, mode: "number" }),
   duracionHoras: numeric("duracion_horas", { precision: 4, scale: 1, mode: "number" }).notNull(),
-  horaSalida: varchar("hora_salida", { length: 5 }).notNull(), // "07:30"
   incluye: jsonb("incluye").$type<string[]>().notNull(),
   noIncluye: jsonb("no_incluye").$type<string[]>().notNull(),
   minimoPersonas: integer("minimo_personas").notNull().default(2),
@@ -58,5 +61,32 @@ export const tours = pgTable("tours", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const tourHorarios = pgTable("tour_horarios", {
+  id: serial("id").primaryKey(),
+  tourId: integer("tour_id")
+    .notNull()
+    .references(() => tours.id, { onDelete: "cascade" }),
+  horaSalida: varchar("hora_salida", { length: 5 }).notNull(), // "07:30"
+  horaLlegada: varchar("hora_llegada", { length: 5 }).notNull(), // "12:30"
+  orden: integer("orden").notNull().default(0),
+});
+
+export const tourTarifas = pgTable("tour_tarifas", {
+  id: serial("id").primaryKey(),
+  tourId: integer("tour_id")
+    .notNull()
+    .references(() => tours.id, { onDelete: "cascade" }),
+  nombre: varchar("nombre", { length: 120 }).notNull().default(""),
+  minEdad: integer("min_edad").notNull(),
+  maxEdad: integer("max_edad"),
+  rack: numeric("rack", { precision: 10, scale: 2, mode: "number" }).notNull(),
+  neta: numeric("neta", { precision: 10, scale: 2, mode: "number" }),
+  horaDesde: varchar("hora_desde", { length: 5 }), // HH:MM inicio del rango (legacy)
+  horaHasta: varchar("hora_hasta", { length: 5 }), // HH:MM fin del rango (legacy)
+  orden: integer("orden").notNull().default(0),
+});
+
 export type Operador = typeof operadores.$inferSelect;
 export type Tour = typeof tours.$inferSelect;
+export type TourHorario = typeof tourHorarios.$inferSelect;
+export type TourTarifa = typeof tourTarifas.$inferSelect;

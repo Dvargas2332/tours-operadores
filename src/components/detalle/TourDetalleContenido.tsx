@@ -12,12 +12,14 @@ import {
   Building2,
   Bus,
   CalendarClock,
+  Calendar,
   Check,
   CheckCircle2,
   Clock,
   Copy,
   FileSpreadsheet,
   FileText,
+  Flag,
   MapPin,
   Minus,
   Scale,
@@ -30,11 +32,13 @@ import {
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, DotFrescura, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detalle/resumen';
+import ReservaDrawer from '@/components/reserva/ReservaDrawer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
-import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs, horarioRepresentativo, salidasTour } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { tarifasActivas } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -67,15 +71,6 @@ function ValorCountUp({ valor, formato }: { valor: number; formato: (n: number) 
   }, [mv, valor]);
 
   return <motion.span className="tnum">{texto}</motion.span>;
-}
-
-/** "08:00" + 3h → "11:00" */
-function regresoEstimado(horaSalida: string, duracionHoras: number): string {
-  const [h, m] = horaSalida.split(':').map(Number);
-  const total = (h * 60 + m + Math.round(duracionHoras * 60)) % (24 * 60);
-  const hh = String(Math.floor(total / 60)).padStart(2, '0');
-  const mm = String(total % 60).padStart(2, '0');
-  return `${hh}:${mm}`;
 }
 
 function horasTexto(horas: number): string {
@@ -176,6 +171,7 @@ export interface TourDetalleContenidoProps {
 
 export default function TourDetalleContenido({ tour, variante, scrolled = false, onCerrar }: TourDetalleContenidoProps) {
   const { toggle, estaSeleccionado } = useCompare();
+  const [reservaAbierta, setReservaAbierta] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -183,6 +179,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const seleccionado = estaSeleccionado(tour.id);
   const operaDiario = OPERA_DIARIO.test(tour.observaciones);
   const esDrawer = variante === 'drawer';
+  const horario = horarioRepresentativo(tour);
+  const horariosOrdenados = tour.horarios.slice().sort((a, b) => a.orden - b.orden);
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -282,21 +280,20 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Franja de datos clave ===== */}
         <motion.section variants={seccion} aria-label="Datos clave">
           <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-            <StatCelda icon={User} caption="rack · adulto" index={0}>
+            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas por edad' : 'rack · adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
-            <StatCelda icon={Baby} caption={tour.precio_nino != null ? 'rack · niño' : 'niño no aplica'} index={1}>
-              {tour.precio_nino != null ? (
-                <ValorCountUp valor={tour.precio_nino} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
-              ) : (
-                '—'
-              )}
-            </StatCelda>
-            <StatCelda icon={Clock} caption="duración total" index={2}>
+            <StatCelda icon={Clock} caption="duración total" index={1}>
               <ValorCountUp valor={tour.duracion_horas} formato={(v) => formatDuracion(Math.round(v * 10) / 10)} />
             </StatCelda>
-            <StatCelda icon={Bus} caption="hora de salida" index={3}>
-              <span className="tnum">{tour.hora_salida}</span>
+            <StatCelda icon={Bus} caption="hora de salida" index={2}>
+              <span className="tnum">{horario?.hora_salida ?? '—'}</span>
+              {tour.horarios.length > 1 && (
+                <span className="ml-1 text-caption text-ink-faint">+{tour.horarios.length - 1}</span>
+              )}
+            </StatCelda>
+            <StatCelda icon={Flag} caption="hora de llegada" index={3}>
+              <span className="tnum">{horario?.hora_llegada ?? '—'}</span>
             </StatCelda>
           </div>
 
@@ -326,61 +323,58 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           </div>
         </motion.section>
 
-        {/* ===== Tarifas: rack (público) y neta (uso interno) ===== */}
+        {/* ===== Tarifas por rango de edad ===== */}
         <motion.section variants={seccion} aria-label="Tarifas">
-          <h2 className="mb-2 text-h3 text-ink">Tarifas</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {/* Rack — precio público */}
-            <div className="rounded-r-md border border-border bg-surface p-4">
-              <p className="text-label text-ink-muted">Tarifa rack · público</p>
-              <div className="mt-2 flex items-baseline gap-4">
-                <div>
-                  <span className="tnum font-sora text-[24px] font-bold leading-none tracking-tight text-ink">
-                    {formatPrecio(tour.precio_adulto, tour.moneda)}
-                  </span>
-                  <p className="mt-1 text-caption text-ink-faint">adulto</p>
-                </div>
-                <div>
-                  {tour.precio_nino != null ? (
-                    <>
-                      <span className="tnum font-sora text-[17px] font-semibold leading-none text-ink">
-                        {formatPrecio(tour.precio_nino, tour.moneda)}
-                      </span>
-                      <p className="mt-1 text-caption text-ink-faint">niño</p>
-                    </>
-                  ) : (
-                    <span className="text-caption text-ink-faint">niño no aplica</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Neta — costo operador (uso interno) */}
-            <div className="rounded-r-md border border-border bg-surface-2 p-4">
-              <p className="text-label text-ink-muted">Tarifa neta · uso interno</p>
-              <div className="mt-2 flex items-baseline gap-4">
-                <div>
-                  <span className="tnum font-sora text-[24px] font-bold leading-none tracking-tight text-brand">
-                    {formatPrecio(tour.precio_neto_adulto, tour.moneda)}
-                  </span>
-                  <p className="mt-1 text-caption text-ink-faint">adulto</p>
-                </div>
-                <div>
-                  {tour.precio_neto_nino != null ? (
-                    <>
-                      <span className="tnum font-sora text-[17px] font-semibold leading-none text-brand">
-                        {formatPrecio(tour.precio_neto_nino, tour.moneda)}
-                      </span>
-                      <p className="mt-1 text-caption text-ink-faint">niño</p>
-                    </>
-                  ) : (
-                    <span className="text-caption text-ink-faint">niño no aplica</span>
-                  )}
-                </div>
-              </div>
-              <p className="mt-2 text-caption text-ink-faint">
-                Margen por adulto: {formatPrecio(tour.precio_adulto - tour.precio_neto_adulto, tour.moneda)} · No mostrar al huésped
-              </p>
-            </div>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-h3 text-ink">Tarifas por edad</h2>
+            <button
+              type="button"
+              onClick={() => setReservaAbierta(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
+            >
+              <Calendar className="h-4 w-4" />
+              Reservar
+            </button>
+          </div>
+          <div className="overflow-hidden rounded-r-md border border-border bg-surface">
+            <table className="w-full text-left text-small">
+              <thead className="bg-surface-2 text-label uppercase tracking-wide text-ink-muted">
+                <tr>
+                  <th className="px-4 py-2">Edad</th>
+                  <th className="px-4 py-2">Rack (público)</th>
+                  <th className="px-4 py-2">Neta (interno)</th>
+                  <th className="px-4 py-2">Margen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tour.tarifas.map((t) => {
+                  const activa = tarifasActivas(tour).some((a) => a.id === t.id);
+                  return (
+                    <tr
+                      key={t.id}
+                      className={cn(
+                        'border-t border-border',
+                        activa ? 'bg-brand-soft/30' : 'text-ink-muted/70',
+                      )}
+                    >
+                      <td className="px-4 py-2.5">
+                        {t.max_edad != null ? `${t.min_edad} - ${t.max_edad} años` : `+${t.min_edad} años`}
+                      </td>
+                      <td className="px-4 py-2.5 tnum font-medium text-ink">{formatPrecio(t.rack, tour.moneda)}</td>
+                      <td className="px-4 py-2.5 tnum text-brand">{t.neta != null ? formatPrecio(t.neta, tour.moneda) : '—'}</td>
+                      <td className="px-4 py-2.5 tnum text-ink-muted">
+                        {t.neta != null ? formatPrecio(t.rack - t.neta, tour.moneda) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {tour.tarifas.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </motion.section>
 
@@ -460,14 +454,22 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           <h2 className="text-h3 text-ink">Horarios y logística</h2>
           <dl className="mt-3 divide-y divide-border">
             {[
-              { label: 'Salida', valor: <span className="tnum text-base">{tour.hora_salida}</span> },
               {
-                label: 'Regreso estimado',
-                valor: (
-                  <>
-                    <span className="tnum">{regresoEstimado(tour.hora_salida, tour.duracion_horas)}</span>{' '}
-                    <span className="text-caption text-ink-faint">aprox.</span>
-                  </>
+                label: 'Salidas',
+                valor: tour.horarios.length ? (
+                  <span className="tnum text-base">{salidasTour(tour)}</span>
+                ) : (
+                  <span className="text-base text-ink-faint">No especificado</span>
+                ),
+              },
+              {
+                label: 'Llegadas',
+                valor: tour.horarios.length ? (
+                  <span className="tnum text-base">
+                    {horariosOrdenados.map((h) => h.hora_llegada).join(', ')}
+                  </span>
+                ) : (
+                  <span className="text-base text-ink-faint">No especificado</span>
                 ),
               },
               { label: 'Duración total', valor: horasTexto(tour.duracion_horas) },
@@ -596,6 +598,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           </motion.div>
         </motion.section>
 
+        <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
+
         {/* ===== Copiar resumen (killer feature) ===== */}
         <motion.section variants={seccion}>
           <motion.button
@@ -616,8 +620,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* En página, link discreto de regreso al final */}
         {!esDrawer && (
           <motion.div variants={seccion} className="pb-2 text-center">
-            <Link to="/" className="text-small font-medium text-brand hover:underline">
-              ← Volver al buscador
+            <Link to="/buscar" className="text-small font-medium text-brand hover:underline">
+              ← Volver a buscar
             </Link>
           </motion.div>
         )}

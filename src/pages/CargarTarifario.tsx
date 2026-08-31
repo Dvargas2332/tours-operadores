@@ -15,6 +15,7 @@ import type { ArchivoSubido, FilaRevision } from '@/components/admin/cargar/tipo
 import { filaAInput } from '@/components/admin/cargar/tipos';
 import type { OperadorCatalogo } from '@/components/admin/cargar/tarifario-excel';
 import { trpc } from '@/providers/trpc';
+import { clearToursCache } from '@/hooks/useToursData';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const BORRADOR_KEY = 'tourhub-borrador-catalogo';
@@ -53,6 +54,7 @@ export default function CargarTarifario() {
 
   const mutacion = trpc.tours.importarCatalogo.useMutation({
     onSuccess: (res) => {
+      clearToursCache();
       window.sessionStorage.removeItem(BORRADOR_KEY);
       setHayBorrador(false);
       setResultado({
@@ -119,7 +121,8 @@ export default function CargarTarifario() {
     }
     const operadores = [...porOperador.entries()].map(([nombre, tours]) => ({
       nombre,
-      contacto: '',
+      telefono: '',
+      email: null,
       comision: comisiones[nombre] ?? null,
       tours: tours.map(filaAInput),
     }));

@@ -5,7 +5,10 @@ import Layout from '@/components/Layout';
 import RequireAuth from '@/components/RequireAuth';
 import { CompareProvider } from '@/context/CompareContext';
 import Buscador from '@/pages/Buscador';
+import Dashboard from '@/pages/Dashboard';
 import TourDetalle from '@/pages/TourDetalle';
+import OperadorDetalle from '@/pages/OperadorDetalle';
+import Reservar from '@/pages/Reservar';
 import Comparador from '@/pages/Comparador';
 import Admin from '@/pages/Admin';
 import CargarTarifario from '@/pages/CargarTarifario';
@@ -25,8 +28,11 @@ export default function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<Buscador />} />
+            <Route index element={<Dashboard />} />
+            <Route path="buscar" element={<Buscador />} />
             <Route path="tour/:id" element={<TourDetalle />} />
+            <Route path="operador/:id" element={<OperadorDetalle />} />
+            <Route path="reservar/:id" element={<Reservar />} />
             <Route path="comparar" element={<Comparador />} />
             <Route path="admin" element={<Admin />} />
             <Route path="admin/cargar" element={<CargarTarifario />} />

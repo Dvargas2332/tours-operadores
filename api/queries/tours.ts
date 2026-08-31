@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import { getDb } from "./connection";
-import { operadores, tours } from "@db/schema";
+import { operadores, tourHorarios, tourTarifas, tours } from "@db/schema";
 
 export interface FiltrosTours {
   q?: string; // texto libre (nombre, zona, observaciones)
@@ -10,7 +10,6 @@ export interface FiltrosTours {
   precioMin?: number;
   precioMax?: number;
   duracionMax?: number; // horas
-  horaSalidaMax?: string; // "08:00"
   incluye?: string[]; // todos deben estar presentes
   aptoNinos?: boolean;
 }
@@ -51,7 +50,6 @@ export async function findTours(f: FiltrosTours = {}) {
   if (f.precioMin != null) conds.push(gte(tours.precioAdulto, f.precioMin));
   if (f.precioMax != null) conds.push(lte(tours.precioAdulto, f.precioMax));
   if (f.duracionMax != null) conds.push(lte(tours.duracionHoras, f.duracionMax));
-  if (f.horaSalidaMax) conds.push(lte(tours.horaSalida, f.horaSalidaMax));
   if (f.aptoNinos) conds.push(eq(tours.aptoNinos, true));
   if (f.incluye?.length) {
     for (const item of f.incluye) {
@@ -60,12 +58,39 @@ export async function findTours(f: FiltrosTours = {}) {
   }
 
   const db = getDb();
-  return db
+  const rows = await db
     .select({ tour: tours, operador: operadores })
     .from(tours)
     .innerJoin(operadores, eq(tours.operadorId, operadores.id))
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(asc(tours.precioAdulto));
+
+  const tourIds = rows.map((r) => r.tour.id);
+  const tarifas = tourIds.length
+    ? await db.select().from(tourTarifas).where(sql`${tourTarifas.tourId} IN (${sql.join(tourIds.map((id) => sql`${id}`), sql`, `)})`)
+    : [];
+  const tarifasPorTour = new Map<number, typeof tarifas>();
+  for (const t of tarifas) {
+    const lista = tarifasPorTour.get(t.tourId) ?? [];
+    lista.push(t);
+    tarifasPorTour.set(t.tourId, lista);
+  }
+
+  const horarios = tourIds.length
+    ? await db.select().from(tourHorarios).where(sql`${tourHorarios.tourId} IN (${sql.join(tourIds.map((id) => sql`${id}`), sql`, `)})`)
+    : [];
+  const horariosPorTour = new Map<number, typeof horarios>();
+  for (const h of horarios) {
+    const lista = horariosPorTour.get(h.tourId) ?? [];
+    lista.push(h);
+    horariosPorTour.set(h.tourId, lista);
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    horarios: (horariosPorTour.get(r.tour.id) ?? []).sort((a, b) => a.orden - b.orden),
+    tarifas: (tarifasPorTour.get(r.tour.id) ?? []).sort((a, b) => a.orden - b.orden),
+  }));
 }
 
 export async function findTourById(id: number) {
@@ -76,7 +101,18 @@ export async function findTourById(id: number) {
     .innerJoin(operadores, eq(tours.operadorId, operadores.id))
     .where(eq(tours.id, id))
     .limit(1);
-  return rows[0] ?? null;
+  if (!rows.length) return null;
+  const tarifas = await db
+    .select()
+    .from(tourTarifas)
+    .where(eq(tourTarifas.tourId, id))
+    .orderBy(asc(tourTarifas.orden));
+  const horarios = await db
+    .select()
+    .from(tourHorarios)
+    .where(eq(tourHorarios.tourId, id))
+    .orderBy(asc(tourHorarios.orden));
+  return { ...rows[0], horarios, tarifas };
 }
 
 export async function findOperadores() {
@@ -126,13 +162,17 @@ export async function findFacetas() {
 
 export interface OperadorNuevo {
   nombre: string;
-  contacto: string;
+  telefono: string;
+  email?: string | null;
   comision?: number | null;
+  logoUrl?: string | null;
+  polizaUrl?: string | null;
+  politicaCancelacion?: string;
 }
 
 /**
  * Inserta operadores en lote con upsert por nombre exacto:
- * si el nombre ya existe, actualiza contacto/comisión en vez de duplicar.
+ * si el nombre ya existe, actualiza teléfono/email/comisión en vez de duplicar.
  */
 export async function insertOperadores(nuevos: OperadorNuevo[]) {
   const db = getDb();
@@ -150,11 +190,18 @@ export async function insertOperadores(nuevos: OperadorNuevo[]) {
     if (existente) {
       await db
         .update(operadores)
-        .set({ contacto: n.contacto, comision })
+        .set({
+          telefono: n.telefono,
+          email: n.email ?? existente.email,
+          comision,
+          logoUrl: n.logoUrl ?? existente.logoUrl,
+          polizaUrl: n.polizaUrl ?? existente.polizaUrl,
+          politicaCancelacion: n.politicaCancelacion ?? existente.politicaCancelacion,
+        })
         .where(eq(operadores.id, existente.id));
       actualizados++;
     } else {
-      await db.insert(operadores).values({ nombre, contacto: n.contacto, comision });
+      await db.insert(operadores).values({ nombre, telefono: n.telefono, email: n.email ?? null, comision, logoUrl: n.logoUrl, polizaUrl: n.polizaUrl, politicaCancelacion: n.politicaCancelacion });
       creados++;
     }
   }
@@ -169,31 +216,82 @@ export async function deleteOperadorConTours(id: number) {
   return { ok: true as const };
 }
 
+export interface TarifaInput {
+  nombre?: string;
+  minEdad: number;
+  maxEdad?: number | null;
+  rack: number;
+  neta?: number | null;
+  orden?: number;
+}
+
+export interface HorarioInput {
+  horaSalida: string;
+  horaLlegada: string;
+  orden?: number;
+}
+
+export type TourConTarifasInput = Omit<
+  typeof tours.$inferInsert,
+  "operadorId" | "fuente" | "fechaActualizacion"
+> & {
+  tarifas?: TarifaInput[];
+  horarios?: HorarioInput[];
+};
+
 export async function replaceToursDeOperador(
   operadorId: number,
-  nuevos: Array<
-    Omit<typeof tours.$inferInsert, "operadorId" | "fuente" | "fechaActualizacion">
-  >,
+  nuevos: TourConTarifasInput[],
   fuente: string,
   fechaActualizacion: string
 ) {
   const db = getDb();
+  const [op] = await db
+    .select({ politicaCancelacion: operadores.politicaCancelacion })
+    .from(operadores)
+    .where(eq(operadores.id, operadorId))
+    .limit(1);
+  const politicaOperador = op?.politicaCancelacion ?? '';
   await db.delete(tours).where(eq(tours.operadorId, operadorId));
   if (nuevos.length) {
-    await db.insert(tours).values(
-      nuevos.map((t) => ({ ...t, operadorId, fuente, fechaActualizacion }))
-    );
+    const insertados = await db
+      .insert(tours)
+      .values(nuevos.map((t) => ({
+        ...t,
+        politicaCancelacion: t.politicaCancelacion || politicaOperador,
+        operadorId,
+        fuente,
+        fechaActualizacion,
+      })))
+      .returning({ id: tours.id });
+    for (let i = 0; i < insertados.length; i++) {
+      const tourId = insertados[i].id;
+      const tarifas = nuevos[i]?.tarifas ?? [];
+      if (tarifas.length) {
+        await db.insert(tourTarifas).values(
+          tarifas.map((ta) => ({ ...ta, tourId }))
+        );
+      }
+      const horarios = nuevos[i]?.horarios ?? [];
+      if (horarios.length) {
+        await db.insert(tourHorarios).values(
+          horarios.map((h, idx) => ({ ...h, orden: h.orden ?? idx, tourId }))
+        );
+      }
+    }
   }
   return { insertados: nuevos.length };
 }
 
 export interface OperadorCatalogoInput {
   nombre: string;
-  contacto: string;
+  telefono: string;
+  email?: string | null;
   comision?: number | null;
-  tours: Array<
-    Omit<typeof tours.$inferInsert, "operadorId" | "fuente" | "fechaActualizacion">
-  >;
+  logoUrl?: string | null;
+  polizaUrl?: string | null;
+  politicaCancelacion?: string;
+  tours: TourConTarifasInput[];
 }
 
 /**
@@ -221,35 +319,161 @@ export async function importarCatalogo(catalogo: {
       .limit(1);
 
     let operadorId: number;
+    let politicaOperador = op.politicaCancelacion ?? '';
     if (existentes.length) {
       operadorId = existentes[0].id;
+      const [existente] = await db
+        .select({ logoUrl: operadores.logoUrl, polizaUrl: operadores.polizaUrl, politicaCancelacion: operadores.politicaCancelacion, email: operadores.email })
+        .from(operadores)
+        .where(eq(operadores.id, operadorId))
+        .limit(1);
+      politicaOperador = op.politicaCancelacion ?? existente?.politicaCancelacion ?? '';
       await db
         .update(operadores)
-        .set({ contacto: op.contacto, comision: op.comision ?? null })
+        .set({
+          telefono: op.telefono,
+          email: op.email ?? existente?.email,
+          comision: op.comision ?? null,
+          logoUrl: op.logoUrl ?? existente?.logoUrl,
+          polizaUrl: op.polizaUrl ?? existente?.polizaUrl,
+          politicaCancelacion: politicaOperador,
+        })
         .where(eq(operadores.id, operadorId));
       operadoresActualizados++;
     } else {
       const [res] = await db
         .insert(operadores)
-        .values({ nombre, contacto: op.contacto, comision: op.comision ?? null })
+        .values({ nombre, telefono: op.telefono, email: op.email ?? null, comision: op.comision ?? null, logoUrl: op.logoUrl, polizaUrl: op.polizaUrl, politicaCancelacion: politicaOperador })
         .returning({ id: operadores.id });
       operadorId = res.id;
       operadoresCreados++;
     }
-
     await db.delete(tours).where(eq(tours.operadorId, operadorId));
     if (op.tours.length) {
-      await db.insert(tours).values(
-        op.tours.map((t) => ({
-          ...t,
-          operadorId,
-          fuente: catalogo.fuente,
-          fechaActualizacion: catalogo.fechaActualizacion,
-        }))
-      );
+      const insertados = await db
+        .insert(tours)
+        .values(
+          op.tours.map((t) => ({
+            ...t,
+            politicaCancelacion: t.politicaCancelacion || politicaOperador,
+            operadorId,
+            fuente: catalogo.fuente,
+            fechaActualizacion: catalogo.fechaActualizacion,
+          }))
+        )
+        .returning({ id: tours.id });
+      for (let i = 0; i < insertados.length; i++) {
+        const tourId = insertados[i].id;
+        const tarifas = op.tours[i]?.tarifas ?? [];
+        if (tarifas.length) {
+          await db.insert(tourTarifas).values(
+            tarifas.map((ta) => ({ ...ta, tourId }))
+          );
+        }
+        const horarios = op.tours[i]?.horarios ?? [];
+        if (horarios.length) {
+          await db.insert(tourHorarios).values(
+            horarios.map((h, idx) => ({ ...h, orden: h.orden ?? idx, tourId }))
+          );
+        }
+      }
       toursInsertados += op.tours.length;
     }
   }
 
   return { operadoresCreados, operadoresActualizados, toursInsertados };
+}
+
+/* ------------------------------------------------------------------ */
+/* Edición individual de tours y operadores                          */
+/* ------------------------------------------------------------------ */
+
+export type TourActualizarInput = Partial<
+  Omit<typeof tours.$inferInsert, "id" | "operadorId">
+> & {
+  tarifas?: TarifaInput[];
+  horarios?: HorarioInput[];
+};
+
+export type TourCrearInput = Omit<typeof tours.$inferInsert, "id" | "createdAt"> & {
+  tarifas?: TarifaInput[];
+  horarios?: HorarioInput[];
+};
+
+export async function insertTour(input: TourCrearInput) {
+  const db = getDb();
+  const { tarifas, horarios, ...resto } = input;
+
+  if (!resto.politicaCancelacion) {
+    const [op] = await db
+      .select({ politicaCancelacion: operadores.politicaCancelacion })
+      .from(operadores)
+      .where(eq(operadores.id, resto.operadorId))
+      .limit(1);
+    if (op) resto.politicaCancelacion = op.politicaCancelacion;
+  }
+
+  const [creado] = await db.insert(tours).values(resto).returning({ id: tours.id });
+  const tourId = creado.id;
+
+  if (tarifas?.length) {
+    await db
+      .insert(tourTarifas)
+      .values(tarifas.map((t, i) => ({ ...t, orden: t.orden ?? i, tourId })));
+  }
+
+  if (horarios?.length) {
+    await db
+      .insert(tourHorarios)
+      .values(horarios.map((h, i) => ({ ...h, orden: h.orden ?? i, tourId })));
+  }
+
+  return findTourById(tourId);
+}
+
+export async function updateTour(id: number, input: TourActualizarInput) {
+  const db = getDb();
+  const { tarifas, horarios, ...resto } = input;
+
+  await db.update(tours).set(resto).where(eq(tours.id, id));
+
+  if (tarifas) {
+    await db.delete(tourTarifas).where(eq(tourTarifas.tourId, id));
+    if (tarifas.length) {
+      await db
+        .insert(tourTarifas)
+        .values(tarifas.map((t, i) => ({ ...t, orden: t.orden ?? i, tourId: id })));
+    }
+  }
+
+  if (horarios) {
+    await db.delete(tourHorarios).where(eq(tourHorarios.tourId, id));
+    if (horarios.length) {
+      await db
+        .insert(tourHorarios)
+        .values(horarios.map((h, i) => ({ ...h, orden: h.orden ?? i, tourId: id })));
+    }
+  }
+
+  return findTourById(id);
+}
+
+export async function deleteTour(id: number) {
+  const db = getDb();
+  await db.delete(tours).where(eq(tours.id, id));
+  return { ok: true as const };
+}
+
+export type OperadorActualizarInput = Partial<
+  Omit<typeof operadores.$inferInsert, "id">
+> & { polizaUrl?: string | null };
+
+export async function updateOperador(id: number, input: OperadorActualizarInput) {
+  const db = getDb();
+  await db.update(operadores).set(input).where(eq(operadores.id, id));
+  if (input.politicaCancelacion !== undefined) {
+    await db.update(tours).set({ politicaCancelacion: input.politicaCancelacion }).where(eq(tours.operadorId, id));
+  }
+  const row = await db.select().from(operadores).where(eq(operadores.id, id)).limit(1);
+  return row[0] ?? null;
 }

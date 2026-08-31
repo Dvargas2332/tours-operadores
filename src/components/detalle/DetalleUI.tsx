@@ -1,11 +1,11 @@
 /**
  * Piezas compartidas del detalle de tour: badge de categoría, dot de
- * frescura y popover de operador (contacto + comisión "uso interno").
+ * frescura y popover de operador (teléfono/email + comisión "uso interno").
  * Usadas por la página /tour/:id y por el drawer de escritorio.
  */
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Building2, EyeOff, MessageCircle } from 'lucide-react';
+import { AlertTriangle, Building2, Check, EyeOff, MessageCircle, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { freshness, formatDateEs } from '@/data/mock-tours';
@@ -18,6 +18,12 @@ export const DOT_FRESCURA: Record<string, string> = {
   ok: 'bg-ok',
   warn: 'bg-warn',
   danger: 'bg-danger',
+};
+
+const ICONO_ESTADO = {
+  ok: Check,
+  warn: AlertTriangle,
+  danger: X,
 };
 
 /** Badge pill de categoría con ícono (design.md §2) */
@@ -40,12 +46,13 @@ export function BadgeCategoria({ tour, className }: { tour: Tour; className?: st
 /** Dot de frescura + caption relativo, tooltip con fecha exacta y fuente */
 export function DotFrescura({ tour, conLabel = false }: { tour: Tour; conLabel?: boolean }) {
   const fresh = freshness(tour.fecha_actualizacion);
+  const Icon = ICONO_ESTADO[fresh.estado];
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="inline-flex cursor-default items-center gap-1.5 text-caption text-ink-muted">
           <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_FRESCURA[fresh.estado])} />
-          {conLabel ? `${fresh.label} ${fresh.relativo}` : fresh.relativo}
+          {conLabel ? <Icon className="h-3 w-3" /> : fresh.relativo}
         </span>
       </TooltipTrigger>
       <TooltipContent>
@@ -75,7 +82,7 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
     onOpenChange?.(v);
   };
 
-  const telefono = tour ? telefonoDeContacto(operador.contacto) : null;
+  const telefono = tour ? telefonoDeContacto(operador.telefono) : null;
   const hrefWhatsApp = tour && telefono ? urlWhatsApp(telefono, buildResumenTour(tour)) : null;
 
   return (
@@ -93,7 +100,15 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
         </div>
         <div className="mt-3 border-t border-border pt-3">
           <div className="text-label text-ink-muted">Contacto</div>
-          <div className="mt-0.5 text-small text-ink">{operador.contacto}</div>
+          {operador.telefono && (
+            <div className="mt-0.5 text-small text-ink">{operador.telefono}</div>
+          )}
+          {operador.email && (
+            <div className="mt-0.5 text-small text-ink">{operador.email}</div>
+          )}
+          {!operador.telefono && !operador.email && (
+            <div className="mt-0.5 text-small text-ink-faint">Sin datos de contacto</div>
+          )}
         </div>
         {hrefWhatsApp && (
           <a

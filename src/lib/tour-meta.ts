@@ -3,10 +3,14 @@
  * Mapea design.md §2 (colores de categoría) y buscador.md §5 (íconos Lucide).
  */
 import {
+  Apple,
   Backpack,
+  Bath,
   Bus,
   Compass,
+  Cookie,
   Flower2,
+  GlassWater,
   Landmark,
   Leaf,
   ShieldCheck,
@@ -53,6 +57,10 @@ export const INCLUYE_META: Record<string, IncluyeMeta> = {
   entradas: { label: 'Entradas/parques', icon: Ticket },
   equipo: { label: 'Equipo', icon: Backpack },
   seguro: { label: 'Seguro', icon: ShieldCheck },
+  toallas: { label: 'Toallas', icon: Bath },
+  hidratacion: { label: 'Hidratación', icon: GlassWater },
+  frutas: { label: 'Frutas', icon: Apple },
+  snacks: { label: 'Snacks', icon: Cookie },
 };
 
 export const INCLUYE_KEYS = Object.keys(INCLUYE_META);

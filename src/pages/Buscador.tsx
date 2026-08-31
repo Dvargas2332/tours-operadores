@@ -1,5 +1,5 @@
 /**
- * Página principal: Buscador de tours (`/`) — buscador.md completo.
+ * Página de búsqueda de tours (`/buscar`) — buscador.md completo.
  * Barra IA + panel de filtros (sticky, scroll propio) + chips activos +
  * barra de resultados + grid/lista de TourCard + barra flotante de
  * comparación + atajos de teclado. Datos: mock-tours (futuro tRPC).
@@ -19,7 +19,7 @@ import SearchBar, { ChipsSugerencias } from '@/components/buscador/SearchBar';
 import type { Sugerencia } from '@/components/buscador/SearchBar';
 import TourCard, { TourCardSkeleton } from '@/components/buscador/TourCard';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { useCompare } from '@/context/CompareContext';
+
 import { useToursData } from '@/hooks/useToursData';
 import {
   FILTROS_INICIALES,
@@ -30,6 +30,8 @@ import {
   ordenar,
   quitarChip,
 } from '@/lib/filtros';
+import { cn } from '@/lib/utils';
+import { useCompare } from '@/context/CompareContext';
 import type { Filtros, Orden } from '@/lib/filtros';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -38,23 +40,21 @@ const VISTA_KEY = 'tourhub-vista';
 export default function Buscador() {
   const data = useToursData();
   const navigate = useNavigate();
-  const { toggle, estaSeleccionado } = useCompare();
+
 
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const [query, setQuery] = useState('');
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES);
   const [filtrosAplicados, setFiltrosAplicados] = useState<Filtros>(FILTROS_INICIALES);
   const [interpretando, setInterpretando] = useState(false);
-  const [hasBuscado, setHasBuscado] = useState(false);
+  const [hasBuscado, setHasBuscado] = useState(true);
   const [orden, setOrden] = useState<Orden>('precio-asc');
   const [vista, setVista] = useState<Vista>(() =>
     typeof window !== 'undefined' && window.localStorage.getItem(VISTA_KEY) === 'lista' ? 'lista' : 'grid',
   );
   const [sheetFiltros, setSheetFiltros] = useState(false);
-  const [focusIdx, setFocusIdx] = useState(-1);
   const esMobile = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
     [],
@@ -105,7 +105,6 @@ export default function Buscador() {
   // Al cambiar filtros, el scroll del grid vuelve arriba (instantáneo)
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-    setFocusIdx(-1);
   }, [filtrosAplicados, orden]);
 
   /* ---------------- búsqueda libre ---------------- */
@@ -170,24 +169,7 @@ export default function Buscador() {
       : `Prueba quitar ${mejor}.`;
   }, [data, resultados.length, activos, filtrosAplicados, tours]);
 
-  /* ---------------- navegación por teclado en tarjetas ---------------- */
-
-  const onGridKeyDown = (e: React.KeyboardEvent) => {
-    if (resultados.length === 0) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const delta = e.key === 'ArrowDown' ? 1 : -1;
-      const actual = cardRefs.current.findIndex((el) => el === document.activeElement);
-      const base = actual >= 0 ? actual : focusIdx;
-      const siguiente = Math.max(0, Math.min(resultados.length - 1, base + delta));
-      setFocusIdx(siguiente);
-      cardRefs.current[siguiente]?.focus();
-    }
-  };
-
-  cardRefs.current = [];
-
-  const verDetalle = (id: number) => navigate(`/tour/${id}`);
+  const { toggle, estaSeleccionado } = useCompare();
   const mostrarSkeletons = !data || interpretando;
 
   /* ---------------- render ---------------- */
@@ -220,7 +202,7 @@ export default function Buscador() {
           transition={{ duration: 0.28, ease: EASE }}
           className="shrink-0 space-y-3 px-5 pt-5"
         >
-          <h1 className="hidden text-display text-ink lg:block">Buscador de tours</h1>
+          <h1 className="hidden text-display text-ink lg:block">Buscar tours</h1>
           <SearchBar ref={inputRef} valor={query} onCambio={setQuery} onBuscar={() => ejecutarBusqueda()} interpretando={interpretando} />
           <ChipsSugerencias onElegir={elegirSugerencia} />
           <ActiveChips
@@ -240,7 +222,7 @@ export default function Buscador() {
         </motion.div>
 
         {/* Área con scroll interno: barra de resultados sticky + grid */}
-        <div ref={scrollRef} className="mt-2 min-h-0 flex-1 overflow-y-auto px-5 pb-28" onKeyDown={onGridKeyDown}>
+        <div ref={scrollRef} className="mt-2 min-h-0 flex-1 overflow-y-auto px-5 pb-28">
           {mostrarResultados && !mostrarSkeletons && resultados.length > 0 && (
             <div className="sticky top-0 z-10 -mx-5 bg-bg/90 px-5 py-1 backdrop-blur-[4px]">
               <ResultsBar orden={orden} onCambioOrden={setOrden} vista={vista} onCambioVista={setVista} />
@@ -269,25 +251,21 @@ export default function Buscador() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={
-                  vista === 'grid'
-                    ? 'grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4 pt-3'
-                    : 'flex flex-col gap-3 pt-3'
-                }
+                className={cn(
+                  'pt-3',
+                  vista === 'lista' ? 'flex flex-col gap-3' : 'grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4',
+                )}
               >
                 <AnimatePresence initial={false}>
                   {resultados.map((tour, i) => (
                     <TourCard
                       key={tour.id}
-                      ref={(el) => {
-                        cardRefs.current[i] = el;
-                      }}
                       tour={tour}
                       index={i}
                       vista={vista}
                       seleccionado={estaSeleccionado(tour.id)}
                       onToggleComparar={() => toggle(tour.id)}
-                      onVerDetalle={() => verDetalle(tour.id)}
+                      onVerDetalle={() => navigate(`/tour/${tour.id}`)}
                     />
                   ))}
                 </AnimatePresence>

@@ -1,15 +1,17 @@
 /**
  * Parseo y validación del Excel/CSV de operadores (Administración →
  * "Agregar operadores (Excel)"). Lógica pura, sin React, para poder probarla.
- * Columnas esperadas (primera hoja): nombre (req.), contacto, comision (0–100),
- * con encabezados tolerantes a variantes en español.
+ * Columnas esperadas (primera hoja): nombre (req.), telefono, email,
+ * comision (0–100). También se acepta la columna legacy "contacto".
+ * Encabezados tolerantes a variantes en español.
  */
 import * as XLSX from 'xlsx';
 
 export interface FilaExcel {
   key: number;
   nombre: string;
-  contacto: string;
+  telefono: string;
+  email: string;
   comision: string; // texto crudo editable; '' = sin comisión
 }
 
@@ -28,13 +30,23 @@ function normalizarEncabezado(h: string): string {
     .trim();
 }
 
-function columnaDe(encabezado: string): 'nombre' | 'contacto' | 'comision' | null {
+function columnaDe(encabezado: string): 'nombre' | 'telefono' | 'email' | 'contacto' | 'comision' | null {
   const h = normalizarEncabezado(encabezado);
   if (!h) return null;
   if (h === 'nombre' || h === 'operador' || h === 'agencia' || h.includes('nombre')) return 'nombre';
-  if (h.includes('contacto') || h.includes('telefono') || h.includes('email') || h.includes('correo')) return 'contacto';
+  if (h.includes('telefono') || h.includes('celular') || h === 'tel') return 'telefono';
+  if (h.includes('email') || h.includes('correo') || h.includes('e mail') || h === 'mail') return 'email';
+  if (h.includes('contacto')) return 'contacto';
   if (h.includes('comision') || h.includes('porcentaje') || h === '%') return 'comision';
   return null;
+}
+
+/** Extrae email y teléfono de una cadena legacy tipo "tel · email" o "email". */
+function parseContactoLegacy(raw: string): { telefono: string; email: string } {
+  const partes = raw.split('·').map((p) => p.trim());
+  const email = partes.find((p) => p.includes('@')) ?? '';
+  const telefono = partes.find((p) => p && !p.includes('@')) ?? '';
+  return { telefono, email };
 }
 
 /** '' → null; "15", "15%", "15,5" → número. NaN si no se puede parsear. */
@@ -45,10 +57,15 @@ export function parseComision(raw: unknown): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function validar(fila: FilaExcel): FilaValidada {
   const errores: string[] = [];
   const nombre = fila.nombre.trim();
   if (!nombre) errores.push('Falta el nombre');
+  const telefono = fila.telefono.trim();
+  const email = fila.email.trim();
+  if (email && !EMAIL_RE.test(email)) errores.push('Email inválido');
   const comisionNum = parseComision(fila.comision);
   if (comisionNum !== null && (Number.isNaN(comisionNum) || comisionNum < 0 || comisionNum > 100)) {
     errores.push('Comisión fuera de rango (0–100)');
@@ -56,7 +73,8 @@ export function validar(fila: FilaExcel): FilaValidada {
   return {
     ...fila,
     nombre,
-    contacto: fila.contacto.trim(),
+    telefono,
+    email,
     comisionNum: Number.isNaN(comisionNum) ? null : comisionNum,
     errores,
   };
@@ -73,7 +91,7 @@ export function parsearArchivo(data: ArrayBuffer | string): { filas: FilaExcel[]
   if (crudas.length === 0) return { filas: [], error: 'La primera hoja está vacía.' };
 
   // Mapeo de columnas por encabezado tolerante
-  const mapa = new Map<string, 'nombre' | 'contacto' | 'comision'>();
+  const mapa = new Map<string, 'nombre' | 'telefono' | 'email' | 'contacto' | 'comision'>();
   for (const enc of Object.keys(crudas[0])) {
     const col = columnaDe(enc);
     if (col && ![...mapa.values()].includes(col)) mapa.set(enc, col);
@@ -81,21 +99,30 @@ export function parsearArchivo(data: ArrayBuffer | string): { filas: FilaExcel[]
   if (![...mapa.values()].includes('nombre')) {
     return {
       filas: [],
-      error: 'No encontramos la columna «nombre» en la primera fila. Usa la plantilla: nombre, contacto, comision.',
+      error: 'No encontramos la columna «nombre» en la primera fila. Usa la plantilla: nombre, telefono, email, comision.',
     };
   }
 
   const filas: FilaExcel[] = [];
   for (const cruda of crudas) {
-    const fila: FilaExcel = { key: nextKey++, nombre: '', contacto: '', comision: '' };
+    const fila: FilaExcel = { key: nextKey++, nombre: '', telefono: '', email: '', comision: '' };
+    let contactoLegacy = '';
     for (const [enc, col] of mapa) {
       const v = String(cruda[enc] ?? '').trim();
       if (col === 'nombre') fila.nombre = v;
-      else if (col === 'contacto') fila.contacto = v;
+      else if (col === 'telefono') fila.telefono = v;
+      else if (col === 'email') fila.email = v;
+      else if (col === 'contacto') contactoLegacy = v;
       else fila.comision = v;
     }
-    // Ignora filas completamente vacías (sin nombre ni datos)
-    if (!fila.nombre && !fila.contacto && !fila.comision) continue;
+    // Si hay columna legacy "contacto", la distribuimos entre teléfono/email
+    if (contactoLegacy) {
+      const parsed = parseContactoLegacy(contactoLegacy);
+      if (!fila.telefono) fila.telefono = parsed.telefono;
+      if (!fila.email) fila.email = parsed.email;
+    }
+    // Ignora filas completamente vacías
+    if (!fila.nombre && !fila.telefono && !fila.email && !fila.comision) continue;
     filas.push(fila);
   }
   if (filas.length === 0) return { filas: [], error: 'No encontramos filas con datos.' };

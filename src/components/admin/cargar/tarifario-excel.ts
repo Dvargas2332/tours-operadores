@@ -8,12 +8,13 @@
  */
 import * as XLSX from 'xlsx';
 import type { Moneda } from '@/data/mock-tours';
-import type { FilaRevision } from './tipos';
+import type { FilaRevision, TarifaRevision } from './tipos';
 import { nuevaKey } from './tipos';
 
 export interface OperadorCatalogo {
   nombre: string;
-  contacto: string;
+  telefono: string;
+  email: string | null;
   comision: number | null;
   moneda: Moneda;
   tours: FilaRevision[];
@@ -82,6 +83,20 @@ const ALIASES_INCLUYE: Record<string, string> = {
   equipamiento: 'equipo',
   seguro: 'seguro',
   insurance: 'seguro',
+  toallas: 'toallas',
+  towel: 'toallas',
+  towels: 'toallas',
+  hidratacion: 'hidratacion',
+  hidratación: 'hidratacion',
+  agua: 'hidratacion',
+  water: 'hidratacion',
+  bebidas: 'hidratacion',
+  frutas: 'frutas',
+  fruit: 'frutas',
+  snacks: 'snacks',
+  snack: 'snacks',
+  botana: 'snacks',
+  bocadillos: 'snacks',
 };
 
 function parsearIncluye(raw: string): string[] {
@@ -95,38 +110,80 @@ function parsearIncluye(raw: string): string[] {
   return out;
 }
 
-type Campo =
-  | 'nombre'
-  | 'rackAdulto'
-  | 'netaAdulto'
-  | 'rackNino'
-  | 'netaNino'
-  | 'horario'
-  | 'incluye'
-  | 'detalles'
-  | 'comision';
+interface TarifaColumna {
+  minEdad: number;
+  maxEdad: number | null;
+  tipo: 'rack' | 'neta';
+}
 
-function campoDe(h: string): Campo | null {
+interface ColumnaDetectada {
+  tipo: 'nombre' | 'tarifa' | 'horario' | 'horarioLlegada' | 'incluye' | 'detalles' | 'comision';
+  tarifa?: TarifaColumna;
+}
+
+/** Extrae un rango de edad de un header de columna. Ej: "niños 6-11", "+65", "adulto mayor". */
+function extraerRango(header: string): { minEdad: number; maxEdad: number | null } | null {
+  const n = normalizar(header);
+
+  // Rangos explícitos: 0-5, 6-11, 12-64, 11-18
+  const rango = n.match(/(\d+)\s*[-a]\s*(\d+)/);
+  if (rango) {
+    const min = Number(rango[1]);
+    const max = Number(rango[2]);
+    if (min >= 0 && max >= min) return { minEdad: min, maxEdad: max };
+  }
+
+  // "+65", "65+", "mayor 65", "adulto mayor"
+  const mayor = n.match(/(?:\+|mayor\s*|adulto\s*mayor\s*|tercera\s*edad\s*)(\d+)/);
+  if (mayor) {
+    const min = Number(mayor[1]);
+    if (min > 0) return { minEdad: min, maxEdad: null };
+  }
+
+  // Palabras clave sin número
+  if (n.includes('nino') || n.includes('nin') || n.includes('child') || n.includes('kid')) {
+    return { minEdad: 0, maxEdad: 11 };
+  }
+  if (n.includes('adulto mayor') || n.includes('tercera edad') || n.includes('senior') || n.includes('jubilado')) {
+    return { minEdad: 65, maxEdad: null };
+  }
+  if (n.includes('adulto') || n.includes('adult')) {
+    return { minEdad: 12, maxEdad: 64 };
+  }
+
+  return null;
+}
+
+function campoDe(h: string): ColumnaDetectada | null {
   const n = normalizar(h);
   if (!n) return null;
 
-  // Ignorar rangos de edad que el modelo no maneja (+65, 11-18)
-  if (n.includes('65') || n.includes('11-18') || n.includes('11 18')) return null;
+  if (n === 'tour' || n === 'detalle' || n === 'actividad' || n === 'zonas') return { tipo: 'nombre' };
 
-  if (n === 'tour' || n === 'detalle' || n === 'actividad' || n === 'zonas') return 'nombre';
+  const rango = extraerRango(h);
+  if (rango) {
+    const esRack = n.includes('rack') || n.includes('publico') || n.includes('público');
+    const esNeta = n.includes('net') || n.includes('neta') || n.includes('operador') || n.includes('costo') || n.includes('mayorista');
+    // Si no dice rack ni neta, asumimos rack por defecto (es lo más común en tarifarios)
+    const tipo: 'rack' | 'neta' = esNeta && !esRack ? 'neta' : 'rack';
+    return { tipo: 'tarifa', tarifa: { ...rango, tipo } };
+  }
 
-  const esRack = n.includes('rack');
-  const esNeta = n.includes('net');
-  const esNino = n.includes('nin') || n.includes('nino');
-  if (esRack && esNino) return 'rackNino';
-  if (esRack) return 'rackAdulto';
-  if (esNeta && esNino) return 'netaNino';
-  if (esNeta) return 'netaAdulto';
+  // Headers genéricos de precio sin rango explícito
+  const esRack = n.includes('rack') || n.includes('publico') || n.includes('público');
+  const esNeta = n.includes('net') || n.includes('neta') || n.includes('operador') || n.includes('costo');
+  if (esRack || esNeta) {
+    return {
+      tipo: 'tarifa',
+      tarifa: { minEdad: 12, maxEdad: 64, tipo: esNeta && !esRack ? 'neta' : 'rack' },
+    };
+  }
 
-  if (n === 'pick up' || n === 'manana' || n === 'diurno' || n === 'horarios' || n === 'horario' || n === 'hora') return 'horario';
-  if (n === 'incluye' || n.includes('incluye')) return 'incluye';
-  if (n === 'detalles' || n === 'recomendaciones' || n.includes('recomendacion') || n.includes('restriccion')) return 'detalles';
-  if (n === 'comision' || n.includes('comision')) return 'comision';
+  if (n === 'pick up' || n === 'manana' || n === 'diurno' || n === 'horarios' || n === 'horario' || n === 'hora') return { tipo: 'horario' };
+  if (n === 'drop off' || n === 'regreso' || n === 'retorno' || n === 'llegada' || n === 'hora llegada' || n === 'horario llegada') return { tipo: 'horarioLlegada' };
+  if (n === 'incluye' || n.includes('incluye')) return { tipo: 'incluye' };
+  if (n === 'detalles' || n === 'recomendaciones' || n.includes('recomendacion') || n.includes('restriccion')) return { tipo: 'detalles' };
+  if (n === 'comision' || n.includes('comision')) return { tipo: 'comision' };
   return null;
 }
 
@@ -135,19 +192,17 @@ const NOMBRES_HEADER = ['TOUR', 'DETALLE', 'ACTIVIDAD', 'ZONAS'];
 function esFilaHeader(celdas: string[]): boolean {
   const tieneNombre = celdas.some((c) => NOMBRES_HEADER.includes(c.toUpperCase()));
   const tienePrecio = celdas.some((c) => {
-    const n = normalizar(c);
-    return n.includes('rack') || n.includes('net');
+    const col = campoDe(c);
+    return col?.tipo === 'tarifa';
   });
   return tieneNombre && tienePrecio;
 }
 
 interface MapaColumnas {
   nombre: number | null;
-  rackAdulto: number | null;
-  netaAdulto: number | null;
-  rackNino: number | null;
-  netaNino: number | null;
+  tarifas: { col: number; tarifa: TarifaColumna }[];
   horario: number | null;
+  horarioLlegada: number | null;
   incluye: number | null;
   detalles: number | null;
   comision: number | null;
@@ -156,11 +211,9 @@ interface MapaColumnas {
 function construirMapa(celdas: string[]): MapaColumnas {
   const mapa: MapaColumnas = {
     nombre: null,
-    rackAdulto: null,
-    netaAdulto: null,
-    rackNino: null,
-    netaNino: null,
+    tarifas: [],
     horario: null,
+    horarioLlegada: null,
     incluye: null,
     detalles: null,
     comision: null,
@@ -168,17 +221,47 @@ function construirMapa(celdas: string[]): MapaColumnas {
   celdas.forEach((c, ci) => {
     const campo = campoDe(c);
     if (!campo) return;
-    if (campo === 'nombre' && mapa.nombre == null) mapa.nombre = ci;
-    else if (campo === 'rackAdulto' && mapa.rackAdulto == null) mapa.rackAdulto = ci;
-    else if (campo === 'netaAdulto' && mapa.netaAdulto == null) mapa.netaAdulto = ci;
-    else if (campo === 'rackNino' && mapa.rackNino == null) mapa.rackNino = ci;
-    else if (campo === 'netaNino' && mapa.netaNino == null) mapa.netaNino = ci;
-    else if (campo === 'horario' && mapa.horario == null) mapa.horario = ci;
-    else if (campo === 'incluye' && mapa.incluye == null) mapa.incluye = ci;
-    else if (campo === 'detalles' && mapa.detalles == null) mapa.detalles = ci;
-    else if (campo === 'comision' && mapa.comision == null) mapa.comision = ci;
+    if (campo.tipo === 'nombre' && mapa.nombre == null) mapa.nombre = ci;
+    else if (campo.tipo === 'tarifa' && campo.tarifa) mapa.tarifas.push({ col: ci, tarifa: campo.tarifa });
+    else if (campo.tipo === 'horario' && mapa.horario == null) mapa.horario = ci;
+    else if (campo.tipo === 'horarioLlegada' && mapa.horarioLlegada == null) mapa.horarioLlegada = ci;
+    else if (campo.tipo === 'incluye' && mapa.incluye == null) mapa.incluye = ci;
+    else if (campo.tipo === 'detalles' && mapa.detalles == null) mapa.detalles = ci;
+    else if (campo.tipo === 'comision' && mapa.comision == null) mapa.comision = ci;
   });
   return mapa;
+}
+
+function tarifasPorFila(mapa: MapaColumnas, celdas: string[]): TarifaRevision[] {
+  const porRango = new Map<string, Partial<TarifaRevision> & { minEdad: number; maxEdad: number | null }>();
+
+  for (const { col, tarifa } of mapa.tarifas) {
+    const valor = limpiarNumero(celdas[col] ?? '');
+    if (!valor) continue;
+    const key = `${tarifa.minEdad}-${tarifa.maxEdad ?? '+'}`;
+    const entry = porRango.get(key);
+    if (entry) {
+      if (tarifa.tipo === 'rack') entry.rack = valor;
+      else entry.neta = valor;
+    } else {
+      porRango.set(key, {
+        minEdad: tarifa.minEdad,
+        maxEdad: tarifa.maxEdad,
+        rack: tarifa.tipo === 'rack' ? valor : '',
+        neta: tarifa.tipo === 'neta' ? valor : '',
+      });
+    }
+  }
+
+  return [...porRango.values()]
+    .filter((t) => t.rack || t.neta)
+    .sort((a, b) => a.minEdad - b.minEdad)
+    .map((t) => ({
+      minEdad: t.minEdad,
+      maxEdad: t.maxEdad,
+      rack: t.rack ?? '',
+      neta: t.neta ?? '',
+    }));
 }
 
 function nuevaFila(
@@ -194,12 +277,9 @@ function nuevaFila(
     nombre,
     zona: 'Arenal',
     categoria: 'aventura',
-    precioAdulto: '',
-    precioNino: '',
-    precioNetoAdulto: '',
-    precioNetoNino: '',
+    tarifas: [],
     duracionHoras: '1',
-    horaSalida: '08:00',
+    horarios: [{ salida: '08:00', llegada: '12:00' }],
     incluye: [],
     noIncluye: [],
     minimoPersonas: '2',
@@ -217,10 +297,11 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
   const nombre = hojaNombre.trim();
   if (!nombre) return null;
 
-  // Moneda: si hay algún ₡, toda la hoja es colones
+  // Moneda: si hay algún indicador de colones, toda la hoja es colones
   let moneda: Moneda = 'usd';
+  const indicadorColones = /₡|\bcrc\b|\bcolones\b/;
   for (const row of rows) {
-    if (row.some((c) => c.includes('₡'))) {
+    if (row.some((c) => indicadorColones.test(c.toLowerCase()))) {
       moneda = 'crc';
       break;
     }
@@ -274,27 +355,29 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
 
     if (primerNumero && mapa.nombre != null && celdas[mapa.nombre]) {
       const detalle = mapa.detalles != null ? celdas[mapa.detalles] : '';
-      const rackAdulto = mapa.rackAdulto != null ? limpiarNumero(celdas[mapa.rackAdulto]) : '';
-      const netaAdulto = mapa.netaAdulto != null ? limpiarNumero(celdas[mapa.netaAdulto]) : '';
-      const rackNino = mapa.rackNino != null ? limpiarNumero(celdas[mapa.rackNino]) : '';
-      const netaNino = mapa.netaNino != null ? limpiarNumero(celdas[mapa.netaNino]) : '';
+      const tarifas = tarifasPorFila(mapa, celdas);
       const horario = mapa.horario != null ? celdas[mapa.horario] : '';
+      const horarioLlegada = mapa.horarioLlegada != null ? celdas[mapa.horarioLlegada] : '';
       const duracion = extraerDuracion(detalle);
 
       const advertencias: string[] = [];
-      if (rackNino === '' ) advertencias.push('Sin precio de niño');
-      if (netaAdulto === '' && rackAdulto !== '') advertencias.push('Sin tarifa neta');
+      const hayNino = tarifas.some((t) => t.maxEdad != null && t.maxEdad < 18);
+      if (!hayNino) advertencias.push('Sin tarifa de niño');
+      if (!tarifas.some((t) => t.neta !== '')) advertencias.push('Sin tarifa neta');
       if (moneda === 'crc') advertencias.push('Precio en colones');
 
       actual = nuevaFila(nombre, moneda, limpiarTexto(celdas[mapa.nombre]), {
-        precioAdulto: rackAdulto,
-        precioNino: rackNino,
-        precioNetoAdulto: netaAdulto,
-        precioNetoNino: netaNino,
+        tarifas,
         duracionHoras: duracion || '1',
-        horaSalida: horario ? primeraHora(horario) : '08:00',
+        horarios: [
+          {
+            salida: horario ? primeraHora(horario) : '08:00',
+            llegada: horarioLlegada ? primeraHora(horarioLlegada) : '12:00',
+          },
+        ],
         incluye: mapa.incluye != null ? parsearIncluye(celdas[mapa.incluye]) : [],
         observaciones: detalle,
+        aptoNinos: hayNino,
         advertencias,
       });
       tours.push(actual);
@@ -312,14 +395,19 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
           actual.observaciones = d;
         }
       }
-      if (mapa.rackAdulto != null && !actual.precioAdulto) {
-        const r = limpiarNumero(celdas[mapa.rackAdulto]);
-        if (r) actual.precioAdulto = r;
+      // Si hay precios en la continuación, tratar de sumarlos
+      const continuacionTarifas = tarifasPorFila(mapa, celdas);
+      for (const nueva of continuacionTarifas) {
+        const key = `${nueva.minEdad}-${nueva.maxEdad ?? '+'}`;
+        const existente = actual.tarifas.find((t) => `${t.minEdad}-${t.maxEdad ?? '+'}` === key);
+        if (existente) {
+          if (nueva.rack && !existente.rack) existente.rack = nueva.rack;
+          if (nueva.neta && !existente.neta) existente.neta = nueva.neta;
+        } else if (nueva.rack || nueva.neta) {
+          actual.tarifas.push(nueva);
+        }
       }
-      if (mapa.netaAdulto != null && !actual.precioNetoAdulto) {
-        const n = limpiarNumero(celdas[mapa.netaAdulto]);
-        if (n) actual.precioNetoAdulto = n;
-      }
+      actual.tarifas.sort((a, b) => a.minEdad - b.minEdad);
     }
 
     // Tabla lateral: extraer productos con precio
@@ -329,8 +417,8 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       if (rack || neta) {
         tours.push(
           nuevaFila(nombre, moneda, limpiarTexto(celdas[lado.nombre]), {
-            precioAdulto: rack,
-            precioNetoAdulto: neta,
+            tarifas: [{ minEdad: 12, maxEdad: 64, rack, neta }],
+            aptoNinos: false,
             advertencias: moneda === 'crc' ? ['Precio en colones'] : [],
           }),
         );
@@ -338,12 +426,13 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
     }
   }
 
-  const conPrecio = tours.filter((t) => t.precioAdulto !== '' || t.precioNetoAdulto !== '');
+  const conPrecio = tours.filter((t) => t.tarifas.some((tar) => tar.rack !== '' || tar.neta !== ''));
   if (conPrecio.length === 0) return null;
 
   return {
     nombre,
-    contacto: '',
+    telefono: '',
+    email: null,
     comision: comisiones.length ? comisiones[0] : null,
     moneda,
     tours: conPrecio,

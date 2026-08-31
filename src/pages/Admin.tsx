@@ -9,9 +9,11 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
-import { AlertTriangle, Building2, FileSpreadsheet, MapPinned, Trash2, Upload, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Building2, FileSpreadsheet, MapPinned, Plus, Trash2, Upload, UploadCloud } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AgregarOperadoresModal from '@/components/admin/AgregarOperadoresModal';
+import EditarOperadorModal from '@/components/admin/EditarOperadorModal';
+import EditarTourModal from '@/components/admin/EditarTourModal';
 import OperadoresTable from '@/components/admin/OperadoresTable';
 import type { FilaOperador } from '@/components/admin/OperadoresTable';
 import ToursTable from '@/components/admin/ToursTable';
@@ -153,6 +155,10 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('operadores');
   const [filtroOperador, setFiltroOperador] = useState<number | null>(null);
   const [modalOperadores, setModalOperadores] = useState(false);
+  const [operadorAEditar, setOperadorAEditar] = useState<FilaOperador | null>(null);
+  const [tourAEditar, setTourAEditar] = useState<Tour | null>(null);
+  const [modalTourOpen, setModalTourOpen] = useState(false);
+  const [tourAEliminar, setTourAEliminar] = useState<Tour | null>(null);
   const [operadorAEliminar, setOperadorAEliminar] = useState<FilaOperador | null>(null);
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
   const tablaRef = useRef<HTMLDivElement>(null);
@@ -179,9 +185,18 @@ export default function Admin() {
       .catch(() => setEstado('error'));
   }, []);
 
-  const eliminarMutacion = trpc.tours.eliminarOperador.useMutation({
+  const eliminarOperadorMutacion = trpc.tours.eliminarOperador.useMutation({
     onSuccess: () => {
       setOperadorAEliminar(null);
+      setErrorEliminar(null);
+      refrescar();
+    },
+    onError: (err) => setErrorEliminar(err.message),
+  });
+
+  const eliminarTourMutacion = trpc.tours.eliminarTour.useMutation({
+    onSuccess: () => {
+      setTourAEliminar(null);
       setErrorEliminar(null);
       refrescar();
     },
@@ -252,6 +267,17 @@ export default function Admin() {
               <Upload className="h-4 w-4" />
               Cargar tarifario
             </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setTourAEditar(null);
+                setModalTourOpen(true);
+              }}
+              className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover"
+            >
+              <Plus className="h-4 w-4" />
+              Crear tour
+            </button>
           </div>
         </div>
 
@@ -284,7 +310,7 @@ export default function Admin() {
             <img src="/upload-drop.svg" alt="" className="h-[180px] w-[240px] object-contain" />
             <h2 className="mt-4 text-h3 text-ink">Aún no hay operadores</h2>
             <p className="mt-2 max-w-[420px] text-small text-ink-muted">
-              Empieza agregando tus operadores (manual o desde Excel) con nombre, contacto y comisión.
+              Empieza agregando tus operadores (manual o desde Excel) con nombre, teléfono, email y comisión.
               Después podrás cargar sus tarifarios.
             </p>
             <button
@@ -449,6 +475,7 @@ export default function Admin() {
                     <OperadoresTable
                       filas={filasOperadores}
                       onVerTours={verToursDeOperador}
+                      onEditar={(fila) => setOperadorAEditar(fila)}
                       onEliminar={(fila) => {
                         setErrorEliminar(null);
                         setOperadorAEliminar(fila);
@@ -460,6 +487,14 @@ export default function Admin() {
                       operadores={operadores}
                       filtroOperador={filtroOperador}
                       onFiltroOperadorChange={setFiltroOperador}
+                      onEditar={(tour) => {
+                        setTourAEditar(tour);
+                        setModalTourOpen(true);
+                      }}
+                      onEliminar={(tour) => {
+                        setErrorEliminar(null);
+                        setTourAEliminar(tour);
+                      }}
                     />
                   )}
                 </motion.div>
@@ -476,6 +511,27 @@ export default function Admin() {
         onGuardado={refrescar}
       />
 
+      {/* Modal: editar operador */}
+      <EditarOperadorModal
+        operador={operadorAEditar?.operador ?? null}
+        open={operadorAEditar != null}
+        onClose={() => setOperadorAEditar(null)}
+        onGuardado={refrescar}
+      />
+
+      {/* Modal: crear / editar tour */}
+      <EditarTourModal
+        key={tourAEditar?.id ?? 'crear'}
+        tour={tourAEditar}
+        operadores={operadores}
+        open={modalTourOpen}
+        onClose={() => {
+          setModalTourOpen(false);
+          setTourAEditar(null);
+        }}
+        onGuardado={refrescar}
+      />
+
       {/* Confirmación: eliminar operador + sus tours */}
       <AnimatePresence>
         {operadorAEliminar && (
@@ -486,7 +542,7 @@ export default function Admin() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              onClick={() => !eliminarMutacion.isPending && setOperadorAEliminar(null)}
+              onClick={() => !eliminarOperadorMutacion.isPending && setOperadorAEliminar(null)}
               className="fixed inset-0 z-40 bg-[rgba(27,36,30,0.35)]"
               aria-hidden
             />
@@ -516,18 +572,77 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => setOperadorAEliminar(null)}
-                    disabled={eliminarMutacion.isPending}
+                    disabled={eliminarOperadorMutacion.isPending}
                     className="h-10 rounded-r-sm px-4 text-[14px] font-semibold text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink disabled:opacity-50"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
-                    onClick={() => eliminarMutacion.mutate({ id: operadorAEliminar.operador.id })}
-                    disabled={eliminarMutacion.isPending}
+                    onClick={() => eliminarOperadorMutacion.mutate({ id: operadorAEliminar.operador.id })}
+                    disabled={eliminarOperadorMutacion.isPending}
                     className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-danger px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                   >
-                    {eliminarMutacion.isPending ? 'Eliminando…' : 'Eliminar'}
+                    {eliminarOperadorMutacion.isPending ? 'Eliminando…' : 'Eliminar'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmación: eliminar tour */}
+      <AnimatePresence>
+        {tourAEliminar && (
+          <>
+            <motion.div
+              key="backdrop-eliminar-tour"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => !eliminarTourMutacion.isPending && setTourAEliminar(null)}
+              className="fixed inset-0 z-40 bg-[rgba(27,36,30,0.35)]"
+              aria-hidden
+            />
+            <div className="pointer-events-none fixed inset-0 z-50 flex items-start justify-center p-4 pt-[18vh]">
+              <motion.div
+                role="alertdialog"
+                aria-modal="true"
+                aria-label={`Eliminar ${tourAEliminar.nombre}`}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: EASE }}
+                className="pointer-events-auto w-full max-w-[420px] rounded-r-lg border border-border bg-surface p-5 shadow-overlay"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-danger/10">
+                  <Trash2 className="h-5 w-5 text-danger" />
+                </div>
+                <h3 className="mt-3 text-h3 text-ink">¿Eliminar {tourAEliminar.nombre}?</h3>
+                <p className="mt-1.5 text-small text-ink-muted">
+                  Esta acción elimina el tour de {tourAEliminar.operador.nombre} y no se puede deshacer.
+                </p>
+                {errorEliminar && (
+                  <p className="mt-2 text-caption text-danger">No pudimos eliminar: {errorEliminar}</p>
+                )}
+                <div className="mt-5 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTourAEliminar(null)}
+                    disabled={eliminarTourMutacion.isPending}
+                    className="h-10 rounded-r-sm px-4 text-[14px] font-semibold text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => eliminarTourMutacion.mutate({ id: tourAEliminar.id })}
+                    disabled={eliminarTourMutacion.isPending}
+                    className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-danger px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    {eliminarTourMutacion.isPending ? 'Eliminando…' : 'Eliminar'}
                   </button>
                 </div>
               </motion.div>

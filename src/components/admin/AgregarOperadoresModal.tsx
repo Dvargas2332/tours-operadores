@@ -4,11 +4,11 @@
  *   1) Subida: dropzone .xlsx/.xls/.csv, parseo en el cliente con SheetJS.
  *   2) Vista previa: tabla editable mínima con validación por fila.
  *   3) Confirmación: resumen de creados/actualizados (upsert por nombre).
- * Columnas esperadas (primera hoja): nombre (req.), contacto, comision (0–100).
+ * Columnas esperadas (primera hoja): nombre (req.), telefono, email, comision (0–100).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Building2, CheckCircle2, Download, FileSpreadsheet, Trash2, UploadCloud, X } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, Download, Eye, FileSpreadsheet, FileText, ImageIcon, Trash2, UploadCloud, X } from 'lucide-react';
 import { parsearArchivo, parseComision, validar } from '@/components/admin/operadores-excel';
 import type { FilaExcel } from '@/components/admin/operadores-excel';
 import { trpc } from '@/providers/trpc';
@@ -25,11 +25,11 @@ type Paso = 'subida' | 'preview' | 'exito';
 
 function descargarPlantilla() {
   const csv = [
-    'nombre,contacto,comision',
-    'Sunset Tours,+506 2479-9800,15',
-    'Ecoterra Costa Rica,reservas@ecoterracr.com,',
+    'nombre,telefono,email,comision',
+    'Sunset Tours,+506 2479-9800,reservas@sunset.cr,15',
+    'Ecoterra Costa Rica,+506 2479-1234,reservas@ecoterracr.com,',
   ].join('\n');
-  const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -60,8 +60,16 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
   // Modo manual (uno a uno) vs Excel
   const [modo, setModo] = useState<'manual' | 'excel'>('manual');
   const [nuevoNombre, setNuevoNombre] = useState('');
-  const [nuevoContacto, setNuevoContacto] = useState('');
+  const [nuevoTelefono, setNuevoTelefono] = useState('');
+  const [nuevoEmail, setNuevoEmail] = useState('');
   const [nuevaComision, setNuevaComision] = useState('');
+  const [nuevaPolitica, setNuevaPolitica] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
+  const [polizaFile, setPolizaFile] = useState<File | null>(null);
+  const [polizaPreview, setPolizaPreview] = useState<string | null>(null);
+  const [subiendoPoliza, setSubiendoPoliza] = useState(false);
 
   const mutacion = trpc.tours.crearOperadores.useMutation({
     onSuccess: (res) => {
@@ -82,8 +90,16 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     setResultado(null);
     setDragActivo(false);
     setNuevoNombre('');
-    setNuevoContacto('');
+    setNuevoTelefono('');
+    setNuevoEmail('');
     setNuevaComision('');
+    setNuevaPolitica('');
+    setLogoFile(null);
+    setLogoPreview(null);
+    setSubiendoLogo(false);
+    setPolizaFile(null);
+    setPolizaPreview(null);
+    setSubiendoPoliza(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -116,7 +132,7 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
   const validadas = filas.map(validar);
   const validas = validadas.filter((f) => f.errores.length === 0);
 
-  const editarFila = (key: number, campo: 'nombre' | 'contacto' | 'comision', valor: string) => {
+  const editarFila = (key: number, campo: 'nombre' | 'telefono' | 'email' | 'comision', valor: string) => {
     setFilas((prev) => prev.map((f) => (f.key === key ? { ...f, [campo]: valor } : f)));
   };
 
@@ -130,7 +146,8 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     mutacion.mutate({
       operadores: validas.map((f) => ({
         nombre: f.nombre,
-        contacto: f.contacto,
+        telefono: f.telefono,
+        email: f.email || null,
         comision: f.comisionNum,
       })),
     });
@@ -142,7 +159,49 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     exito: 'Operadores guardados',
   };
 
-  const crearManual = () => {
+  const handleSeleccionarLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorEnvio('Seleccioná un archivo de imagen (JPEG, PNG, WebP, GIF o SVG).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorEnvio('La imagen no debe superar los 2 MB.');
+      return;
+    }
+    setErrorEnvio(null);
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleQuitarLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
+  const handleSeleccionarPoliza = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setErrorEnvio('Seleccioná un PDF o una imagen (JPEG, PNG, WebP, GIF).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorEnvio('La póliza no debe superar los 10 MB.');
+      return;
+    }
+    setErrorEnvio(null);
+    setPolizaFile(file);
+    setPolizaPreview(URL.createObjectURL(file));
+  };
+
+  const handleQuitarPoliza = () => {
+    setPolizaFile(null);
+    setPolizaPreview(null);
+  };
+
+  const crearManual = async () => {
     const nombre = nuevoNombre.trim();
     if (!nombre) {
       setErrorEnvio('Escribe el nombre del operador');
@@ -154,12 +213,61 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
       return;
     }
     setErrorEnvio(null);
+
+    let logoUrl: string | null = null;
+    if (logoFile) {
+      setSubiendoLogo(true);
+      try {
+        const formData = new FormData();
+        formData.append('logo', logoFile);
+        const res = await fetch('/api/upload/operador-logo', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al subir el logo');
+        logoUrl = data.logoUrl;
+      } catch (err) {
+        setErrorEnvio(err instanceof Error ? err.message : 'Error al subir el logo');
+        setSubiendoLogo(false);
+        return;
+      }
+      setSubiendoLogo(false);
+    }
+
+    let polizaUrl: string | null = null;
+    if (polizaFile) {
+      setSubiendoPoliza(true);
+      try {
+        const formData = new FormData();
+        formData.append('poliza', polizaFile);
+        const res = await fetch('/api/upload/operador-poliza', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al subir la póliza');
+        polizaUrl = data.polizaUrl;
+      } catch (err) {
+        setErrorEnvio(err instanceof Error ? err.message : 'Error al subir la póliza');
+        setSubiendoPoliza(false);
+        return;
+      }
+      setSubiendoPoliza(false);
+    }
+
     mutacion.mutate({
       operadores: [
         {
           nombre,
-          contacto: nuevoContacto.trim(),
+          telefono: nuevoTelefono.trim(),
+          email: nuevoEmail.trim() || null,
           comision: comision !== null && !Number.isNaN(comision) ? comision : null,
+          politicaCancelacion: nuevaPolitica.trim(),
+          logoUrl,
+          polizaUrl,
         },
       ],
     });
@@ -250,12 +358,22 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                       />
                     </div>
                     <div>
-                      <label className="text-label uppercase tracking-wide text-ink-muted">Contacto</label>
+                      <label className="text-label uppercase tracking-wide text-ink-muted">Teléfono</label>
                       <input
                         type="text"
-                        value={nuevoContacto}
-                        onChange={(e) => setNuevoContacto(e.target.value)}
-                        placeholder="Teléfono o email"
+                        value={nuevoTelefono}
+                        onChange={(e) => setNuevoTelefono(e.target.value)}
+                        placeholder="+506 2479-9800"
+                        className="mt-1 h-10 w-full rounded-r-sm border border-border bg-surface px-3 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-label uppercase tracking-wide text-ink-muted">Email</label>
+                      <input
+                        type="email"
+                        value={nuevoEmail}
+                        onChange={(e) => setNuevoEmail(e.target.value)}
+                        placeholder="reservas@operador.com"
                         className="mt-1 h-10 w-full rounded-r-sm border border-border bg-surface px-3 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand"
                       />
                     </div>
@@ -269,6 +387,109 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                         placeholder="Ej. 15"
                         className="mt-1 h-10 w-full rounded-r-sm border border-border bg-surface px-3 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand tnum"
                       />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-label uppercase tracking-wide text-ink-muted">Política de cancelación</label>
+                      <p className="text-caption text-ink-muted">Se comparte con todos los tours de este operador.</p>
+                      <textarea
+                        value={nuevaPolitica}
+                        onChange={(e) => setNuevaPolitica(e.target.value)}
+                        placeholder="Ej: Cancelación gratuita hasta 24 horas antes..."
+                        rows={3}
+                        className="mt-1 w-full rounded-r-sm border border-border bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand"
+                      />
+                    </div>
+
+                    {/* Logo */}
+                    <div>
+                      <label className="text-label uppercase tracking-wide text-ink-muted">Logo</label>
+                      <div className="mt-2 flex items-center gap-4">
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-r-md border border-border bg-surface-2">
+                          {logoPreview ? (
+                            <img
+                              src={logoPreview}
+                              alt="Vista previa del logo"
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <ImageIcon className="h-8 w-8 text-ink-faint" />
+                          )}
+                        </div>
+                        <div className="flex flex-1 flex-col gap-2">
+                          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand">
+                            <ImageIcon className="h-4 w-4" />
+                            {logoPreview ? 'Cambiar imagen' : 'Subir logo'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleSeleccionarLogo}
+                              disabled={mutacion.isPending || subiendoLogo}
+                            />
+                          </label>
+                          {logoPreview && (
+                            <button
+                              type="button"
+                              onClick={handleQuitarLogo}
+                              disabled={mutacion.isPending || subiendoLogo}
+                              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-r-sm text-caption font-semibold text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Quitar logo
+                            </button>
+                          )}
+                          <p className="text-caption text-ink-faint">JPEG, PNG, WebP, GIF o SVG · máx. 2 MB</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Póliza */}
+                    <div>
+                      <label className="text-label uppercase tracking-wide text-ink-muted">Póliza de seguro</label>
+                      <div className="mt-2 flex items-center gap-4">
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-r-md border border-border bg-surface-2">
+                          <FileText className="h-8 w-8 text-ink-faint" />
+                        </div>
+                        <div className="flex flex-1 flex-col gap-2">
+                          {polizaPreview ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <a
+                                href={polizaPreview}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver póliza
+                              </a>
+                              <button
+                                type="button"
+                                onClick={handleQuitarPoliza}
+                                disabled={mutacion.isPending || subiendoLogo || subiendoPoliza}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-caption font-semibold text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Quitar
+                              </button>
+                            </div>
+                          ) : null}
+                          <label className={cn(
+                            'inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand',
+                            polizaPreview ? 'w-fit' : 'w-full',
+                          )}>
+                            <FileText className="h-4 w-4" />
+                            {polizaPreview ? 'Cambiar póliza' : 'Subir póliza'}
+                            <input
+                              type="file"
+                              accept=".pdf,image/*"
+                              className="hidden"
+                              onChange={handleSeleccionarPoliza}
+                              disabled={mutacion.isPending || subiendoLogo || subiendoPoliza}
+                            />
+                          </label>
+                          <p className="text-caption text-ink-faint">PDF o imagen · máx. 10 MB</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -290,10 +511,10 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                     <button
                       type="button"
                       onClick={crearManual}
-                      disabled={mutacion.isPending}
+                      disabled={mutacion.isPending || subiendoLogo || subiendoPoliza}
                       className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover disabled:opacity-50"
                     >
-                      {mutacion.isPending ? 'Guardando…' : 'Guardar operador'}
+                      {mutacion.isPending || subiendoLogo || subiendoPoliza ? 'Guardando…' : 'Guardar operador'}
                     </button>
                   </div>
                 </div>
@@ -356,9 +577,9 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                   <div className="mt-4 rounded-r-sm bg-surface-2 px-4 py-3">
                     <p className="text-caption text-ink-muted">
                       Formato esperado (primera fila = encabezados): <strong className="text-ink">nombre</strong> (requerido),{' '}
-                      <strong className="text-ink">contacto</strong> (opcional) y{' '}
-                      <strong className="text-ink">comision</strong> (opcional, 0–100). Si un operador ya existe, se
-                      actualiza en vez de duplicarse.
+                      <strong className="text-ink">telefono</strong>, <strong className="text-ink">email</strong> y{' '}
+                      <strong className="text-ink">comision</strong> (opcionales, 0–100). También se acepta la columna legacy{' '}
+                      <strong className="text-ink">contacto</strong>. Si un operador ya existe, se actualiza en vez de duplicarse.
                     </p>
                     <button
                       type="button"
@@ -389,8 +610,9 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                         <thead>
                           <tr className="border-b border-border bg-surface">
                             <th className="px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Nombre</th>
-                            <th className="w-[190px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Contacto</th>
-                            <th className="w-[110px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Comisión %</th>
+                            <th className="w-[140px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Teléfono</th>
+                            <th className="w-[160px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Email</th>
+                            <th className="w-[90px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Comisión %</th>
                             <th className="w-[44px] px-2 py-2" aria-label="Quitar" />
                           </tr>
                         </thead>
@@ -420,9 +642,18 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                               <td className="px-2 py-1.5">
                                 <input
                                   type="text"
-                                  value={f.contacto}
-                                  onChange={(e) => editarFila(f.key, 'contacto', e.target.value)}
-                                  placeholder="Teléfono o email"
+                                  value={f.telefono}
+                                  onChange={(e) => editarFila(f.key, 'telefono', e.target.value)}
+                                  placeholder="Teléfono"
+                                  className="h-8 w-full rounded-r-sm border border-transparent bg-transparent px-1.5 text-[14px] text-ink outline-none transition-colors duration-fast hover:border-border focus:border-brand focus:bg-surface"
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <input
+                                  type="email"
+                                  value={f.email}
+                                  onChange={(e) => editarFila(f.key, 'email', e.target.value)}
+                                  placeholder="Email"
                                   className="h-8 w-full rounded-r-sm border border-transparent bg-transparent px-1.5 text-[14px] text-ink outline-none transition-colors duration-fast hover:border-border focus:border-brand focus:bg-surface"
                                 />
                               </td>

@@ -213,7 +213,7 @@ export default function Comparador() {
               transition={{ duration: 0.25, delay: 0.18, ease: EASE }}
               className="mt-2 max-w-md text-small text-ink-muted"
             >
-              Marca la casilla “Comparar” en cualquier tarjeta del buscador, o agrégalos aquí mismo.
+              Marca la casilla “Comparar” en cualquier tarjeta de tour, o agrégalos aquí mismo.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -223,11 +223,11 @@ export default function Comparador() {
             >
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/buscar')}
                 className="flex h-10 items-center gap-2 rounded-r-sm bg-brand px-5 text-sm font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover active:scale-[0.98]"
               >
                 <Search className="h-4 w-4" />
-                Ir al buscador
+                Ir a buscar
               </button>
               <button
                 type="button"

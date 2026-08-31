@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Categoria } from '@/data/mock-tours';
-import type { FilaRevision } from '@/components/admin/cargar/tipos';
+import type { FilaRevision, TarifaRevision } from '@/components/admin/cargar/tipos';
 import { ZONAS_BASE, advertenciasNeta, filaVacia, validarFila } from '@/components/admin/cargar/tipos';
 import { CATEGORIA_META, CATEGORIAS, INCLUYE_META, INCLUYE_KEYS } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -65,6 +65,30 @@ export default function PasoRevision({
     setFlash(`${key}:${campo}`);
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => setFlash(null), 600);
+  };
+
+  const actualizarTarifa = (key: string, index: number, patch: Partial<TarifaRevision>) => {
+    const f = filas.find((x) => x.key === key);
+    if (!f) return;
+    const nuevas = [...f.tarifas];
+    nuevas[index] = { ...nuevas[index], ...patch };
+    actualizar(key, 'tarifas', { tarifas: nuevas });
+  };
+
+  const agregarTarifa = (key: string) => {
+    const f = filas.find((x) => x.key === key);
+    if (!f) return;
+    const ultima = f.tarifas[f.tarifas.length - 1];
+    const siguienteMin = ultima?.maxEdad != null ? ultima.maxEdad + 1 : (ultima?.minEdad ?? 0) + 1;
+    actualizar(key, 'tarifas', {
+      tarifas: [...f.tarifas, { minEdad: siguienteMin, maxEdad: null, rack: '', neta: '' }],
+    });
+  };
+
+  const eliminarTarifa = (key: string, index: number) => {
+    const f = filas.find((x) => x.key === key);
+    if (!f) return;
+    actualizar(key, 'tarifas', { tarifas: f.tarifas.filter((_, i) => i !== index) });
   };
 
   const erroresPorFila = useMemo(() => {
@@ -128,15 +152,68 @@ export default function PasoRevision({
             {conAdvertencias.length} con advertencias
           </span>
         )}
+        {conError.length > 0 && (
+          <span className="rounded-full bg-danger/15 px-3 py-1.5 text-caption font-medium text-danger tnum">
+            {conError.length} con errores
+          </span>
+        )}
         <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-caption font-medium text-ink tnum">
           {totalOperadores} operadores
         </span>
       </div>
 
       {/* Banner persistente */}
-      <div className="mt-3 rounded-r-sm bg-volcan-soft px-4 py-3 text-small text-ink">
-        Nada se guarda hasta que confirmes abajo. Corrige cualquier dato directamente en la tabla.
+      <div
+        className={cn(
+          'mt-3 rounded-r-sm px-4 py-3 text-small',
+          conError.length > 0
+            ? 'border border-danger/30 bg-danger/[0.08] text-danger'
+            : 'bg-volcan-soft text-ink',
+        )}
+      >
+        {conError.length > 0 ? (
+          <>
+            Corregí {conError.length} {conError.length === 1 ? 'fila' : 'filas'} con errores antes de
+            confirmar. Las advertencias (⚠) no bloquean el guardado.
+          </>
+        ) : conAdvertencias.length > 0 ? (
+          <>
+            Las advertencias (⚠) son solo informativas: podés confirmar y guardar el tarifario.
+          </>
+        ) : (
+          <>Nada se guarda hasta que confirmes abajo. Corregí cualquier dato directamente en la tabla.</>
+        )}
       </div>
+
+      {/* Listado de errores */}
+      {conError.length > 0 && (
+        <div className="mt-3 rounded-r-sm border border-danger/30 bg-danger/[0.04] px-4 py-3">
+          <p className="mb-2 text-caption font-semibold text-danger">Errores por corregir:</p>
+          <ul className="max-h-[180px] space-y-1.5 overflow-y-auto text-small text-ink">
+            {conError.map((f) => {
+              const err = erroresPorFila.get(f.key) ?? {};
+              return (
+                <li key={f.key} className="flex flex-wrap gap-x-3 gap-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document
+                        .querySelector(`[data-fila="${f.key}"]`)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                    className="text-left font-medium text-danger hover:underline"
+                  >
+                    {f.nombre || 'Sin nombre'}
+                  </button>
+                  <span className="text-ink-muted">
+                    {Object.values(err).join(' · ')}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Toolbar de tabla */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -172,19 +249,17 @@ export default function PasoRevision({
       {/* Tabla editable */}
       <div className="mt-3 overflow-hidden rounded-r-md border border-border bg-surface shadow-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1240px] border-collapse text-left">
+          <table className="w-full min-w-[1340px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border bg-surface">
                 <th className="w-[52px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">#</th>
                 <th className="min-w-[180px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Nombre del tour</th>
                 <th className="w-[150px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Zona</th>
                 <th className="w-[140px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Categoría</th>
-                <th className="w-[90px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">$ Rack ad.</th>
-                <th className="w-[90px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">$ Rack ni.</th>
-                <th className="w-[90px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">$ Neta ad.</th>
-                <th className="w-[90px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">$ Neta ni.</th>
+                <th className="w-[160px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Tarifas por edad</th>
                 <th className="w-[80px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Durac. (h)</th>
                 <th className="w-[96px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Salida</th>
+                <th className="w-[96px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Llegada</th>
                 <th className="w-[120px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Incluye</th>
                 <th className="w-[76px] px-2 py-2.5 text-center text-label uppercase tracking-wide text-ink-muted">Apto niños</th>
                 <th className="w-[56px] px-2 py-2.5 text-center text-label uppercase tracking-wide text-ink-muted">Adv.</th>
@@ -195,7 +270,7 @@ export default function PasoRevision({
               <AnimatePresence initial={false}>
                 {visibles.map((fila) => {
                   const idx = filas.indexOf(fila);
-                  const errores = erroresPorFila.get(fila.key)!;
+                  const errores = erroresPorFila.get(fila.key) ?? {};
                   const expandida = expandidas.has(fila.key);
                   const cat = CATEGORIA_META[fila.categoria];
                   return [
@@ -333,74 +408,26 @@ export default function PasoRevision({
                         </Popover>
                       </td>
 
-                      {/* $ Adulto */}
-                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'precioAdulto'))}>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">$</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.5"
-                            value={fila.precioAdulto}
-                            disabled={fila.excluida}
-                            onChange={(e) => actualizar(fila.key, 'precioAdulto', { precioAdulto: e.target.value })}
-                            className={cn(INPUT_BASE, 'pl-5 tnum', errores.precioAdulto ? INPUT_ERR : INPUT_OK)}
-                          />
-                        </div>
-                        {errores.precioAdulto && <p className="mt-0.5 text-caption text-danger">Inválido</p>}
-                      </td>
-
-                      {/* $ Niño */}
-                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'precioNino'))}>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">$</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.5"
-                            value={fila.precioNino}
-                            disabled={fila.excluida}
-                            placeholder="—"
-                            onChange={(e) => actualizar(fila.key, 'precioNino', { precioNino: e.target.value })}
-                            className={cn(INPUT_BASE, 'pl-5 tnum placeholder:text-ink-faint', errores.precioNino ? INPUT_ERR : INPUT_OK)}
-                          />
-                        </div>
-                        {errores.precioNino && <p className="mt-0.5 text-caption text-danger">Inválido</p>}
-                      </td>
-
-                      {/* $ Neta adulto (uso interno) */}
-                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'precioNetoAdulto'))}>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">$</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.5"
-                            value={fila.precioNetoAdulto}
-                            disabled={fila.excluida}
-                            onChange={(e) => actualizar(fila.key, 'precioNetoAdulto', { precioNetoAdulto: e.target.value })}
-                            className={cn(INPUT_BASE, 'pl-5 tnum', errores.precioNetoAdulto ? INPUT_ERR : INPUT_OK)}
-                          />
-                        </div>
-                        {errores.precioNetoAdulto && <p className="mt-0.5 text-caption text-danger">Inválido</p>}
-                      </td>
-
-                      {/* $ Neta niño (uso interno) */}
-                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'precioNetoNino'))}>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">$</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.5"
-                            value={fila.precioNetoNino}
-                            disabled={fila.excluida}
-                            placeholder="—"
-                            onChange={(e) => actualizar(fila.key, 'precioNetoNino', { precioNetoNino: e.target.value })}
-                            className={cn(INPUT_BASE, 'pl-5 tnum placeholder:text-ink-faint', errores.precioNetoNino ? INPUT_ERR : INPUT_OK)}
-                          />
-                        </div>
-                        {errores.precioNetoNino && <p className="mt-0.5 text-caption text-danger">Inválido</p>}
+                      {/* Tarifas por edad */}
+                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'tarifas'))}>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandir(fila.key)}
+                          disabled={fila.excluida}
+                          className={cn(
+                            'flex h-8 w-full items-center justify-between rounded-r-sm border px-2 text-small transition-colors duration-fast',
+                            errores.tarifas ? 'border-danger text-danger' : 'border-transparent text-ink-muted hover:border-border',
+                            fila.excluida && 'line-through',
+                          )}
+                        >
+                          <span className="tnum">
+                            {fila.tarifas.length === 0
+                              ? 'Sin tarifas'
+                              : `${fila.tarifas.length} rango${fila.tarifas.length === 1 ? '' : 's'}`}
+                          </span>
+                          <ChevronDown className={cn('h-3 w-3 transition-transform duration-med', expandida && 'rotate-180')} />
+                        </button>
+                        {errores.tarifas && <p className="mt-0.5 text-caption text-danger">{errores.tarifas}</p>}
                       </td>
 
                       {/* Duración */}
@@ -419,13 +446,32 @@ export default function PasoRevision({
                       </td>
 
                       {/* Salida */}
-                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'salida'))}>
+                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'horarios'))}>
                         <input
                           type="time"
-                          value={fila.horaSalida}
+                          value={fila.horarios[0]?.salida ?? '08:00'}
                           disabled={fila.excluida}
-                          onChange={(e) => actualizar(fila.key, 'salida', { horaSalida: e.target.value })}
-                          className={cn(INPUT_BASE, 'tnum', errores.salida ? INPUT_ERR : INPUT_OK)}
+                          onChange={(e) =>
+                            actualizar(fila.key, 'horarios', {
+                              horarios: [{ salida: e.target.value, llegada: fila.horarios[0]?.llegada ?? '12:00' }],
+                            })
+                          }
+                          className={cn(INPUT_BASE, 'tnum', errores.horarios ? INPUT_ERR : INPUT_OK)}
+                        />
+                      </td>
+
+                      {/* Llegada */}
+                      <td className={cn('px-2 py-2.5 transition-colors duration-500', flashClase(fila.key, 'horarios'))}>
+                        <input
+                          type="time"
+                          value={fila.horarios[0]?.llegada ?? '12:00'}
+                          disabled={fila.excluida}
+                          onChange={(e) =>
+                            actualizar(fila.key, 'horarios', {
+                              horarios: [{ salida: fila.horarios[0]?.salida ?? '08:00', llegada: e.target.value }],
+                            })
+                          }
+                          className={cn(INPUT_BASE, 'tnum', errores.horarios ? INPUT_ERR : INPUT_OK)}
                         />
                       </td>
 
@@ -533,14 +579,95 @@ export default function PasoRevision({
                     /* Panel expandible: campos largos */
                     expandida && (
                       <tr key={`${fila.key}-exp`} className="border-b border-border bg-surface-2/40">
-                        <td colSpan={14} className="px-4 py-3">
+                        <td colSpan={12} className="px-4 py-3">
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25, ease: EASE }}
-                            className="grid gap-3 overflow-hidden md:grid-cols-3"
+                            className="grid gap-4 overflow-hidden md:grid-cols-2"
                           >
+                            {/* Tarifas por rango de edad */}
+                            <div className="md:col-span-2">
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="text-label uppercase tracking-wide text-ink-muted">Tarifas por rango de edad</span>
+                                <button
+                                  type="button"
+                                  onClick={() => agregarTarifa(fila.key)}
+                                  disabled={fila.excluida}
+                                  className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft disabled:opacity-50"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Agregar rango
+                                </button>
+                              </div>
+                              <div className="space-y-2">
+                                {fila.tarifas.map((t, i) => (
+                                  <div key={i} className="grid grid-cols-[80px_80px_1fr_1fr_auto] items-center gap-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={t.minEdad}
+                                      disabled={fila.excluida}
+                                      onChange={(e) => actualizarTarifa(fila.key, i, { minEdad: Number(e.target.value) })}
+                                      className={cn(INPUT_BASE, 'tnum')}
+                                      placeholder="Min"
+                                    />
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={t.maxEdad ?? ''}
+                                      disabled={fila.excluida}
+                                      onChange={(e) =>
+                                        actualizarTarifa(fila.key, i, {
+                                          maxEdad: e.target.value === '' ? null : Number(e.target.value),
+                                        })
+                                      }
+                                      className={cn(INPUT_BASE, 'tnum')}
+                                      placeholder="Max"
+                                    />
+                                    <div className="relative">
+                                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">{fila.moneda === 'crc' ? '₡' : '$'}</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        step="0.5"
+                                        value={t.rack}
+                                        disabled={fila.excluida}
+                                        placeholder="Rack"
+                                        onChange={(e) => actualizarTarifa(fila.key, i, { rack: e.target.value })}
+                                        className={cn(INPUT_BASE, 'pl-5 tnum')}
+                                      />
+                                    </div>
+                                    <div className="relative">
+                                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-small text-ink-faint">{fila.moneda === 'crc' ? '₡' : '$'}</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        step="0.5"
+                                        value={t.neta}
+                                        disabled={fila.excluida}
+                                        placeholder="Neta"
+                                        onChange={(e) => actualizarTarifa(fila.key, i, { neta: e.target.value })}
+                                        className={cn(INPUT_BASE, 'pl-5 tnum')}
+                                      />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => eliminarTarifa(fila.key, i)}
+                                      disabled={fila.excluida || fila.tarifas.length <= 1}
+                                      className="inline-flex h-7 w-7 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                                {fila.tarifas.length === 0 && (
+                                  <p className="text-small text-ink-muted">Agregá al menos un rango de edad con precio rack.</p>
+                                )}
+                              </div>
+                            </div>
+
                             <label className="block">
                               <span className="text-label uppercase tracking-wide text-ink-muted">Política de cancelación</span>
                               <textarea
@@ -561,7 +688,7 @@ export default function PasoRevision({
                                 className="mt-1 w-full rounded-r-sm border border-border bg-surface px-2 py-1.5 text-small text-ink focus:border-brand focus:outline-none"
                               />
                             </label>
-                            <label className="block">
+                            <label className="block md:col-span-2">
                               <span className="text-label uppercase tracking-wide text-ink-muted">No incluye (separado por comas)</span>
                               <textarea
                                 rows={2}
@@ -587,7 +714,7 @@ export default function PasoRevision({
               </AnimatePresence>
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-8 text-center text-small text-ink-muted">
+                  <td colSpan={12} className="px-4 py-8 text-center text-small text-ink-muted">
                     Ningún tour del lote coincide con la búsqueda.
                   </td>
                 </tr>
@@ -634,14 +761,32 @@ export default function PasoRevision({
           ← Volver
         </button>
         <p className="flex-1 text-caption text-ink-muted">
-          Se importará el catálogo completo ({totalOperadores} operadores)
+          {conError.length > 0 ? (
+            <span className="text-danger">
+              Faltan corregir {conError.length} {conError.length === 1 ? 'fila' : 'filas'} para guardar
+            </span>
+          ) : activas.length === 0 ? (
+            <span className="text-danger">No hay tours seleccionados para guardar</span>
+          ) : confirmando ? (
+            'Guardando el tarifario…'
+          ) : (
+            `Se importará el catálogo completo (${totalOperadores} operadores)`
+          )}
         </p>
         <motion.span
           key={intentoInvalido}
           animate={intentoInvalido > 0 ? { x: [0, -3, 3, -3, 3, 0] } : undefined}
           transition={{ duration: 0.3 }}
           onClick={conError.length > 0 ? intentarConfirmarInvalido : undefined}
-          title={conError.length > 0 ? `Corrige ${conError.length} ${conError.length === 1 ? 'fila' : 'filas'} con errores para confirmar` : undefined}
+          title={
+            conError.length > 0
+              ? `Corrige ${conError.length} ${conError.length === 1 ? 'fila' : 'filas'} con errores para confirmar`
+              : activas.length === 0
+                ? 'No hay tours seleccionados para guardar'
+                : confirmando
+                  ? 'Guardando…'
+                  : 'Confirmar y guardar'
+          }
         >
           <button
             type="button"

@@ -84,17 +84,17 @@ export default function PasoExito({ operadores, tours, fecha, fuente, onCargarOt
         </ul>
       </motion.div>
 
-      <p className="mt-3 text-caption text-ink-muted">El buscador ya está usando estos datos.</p>
+      <p className="mt-3 text-caption text-ink-muted">La búsqueda de tours ya está usando estos datos.</p>
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
         {[
           <Link
             key="buscador"
-            to="/"
+            to="/buscar"
             className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover"
           >
             <Search className="h-4 w-4" />
-            Ir al buscador
+            Ir a buscar
           </Link>,
           <Link
             key="admin"

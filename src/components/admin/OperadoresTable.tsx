@@ -6,11 +6,11 @@
  */
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Eye, Phone, Trash2, Upload } from 'lucide-react';
+import { Edit2, Eye, FileText, Mail, Phone, Trash2, Upload } from 'lucide-react';
 import FreshnessPill from '@/components/admin/FreshnessPill';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
-import { formatDateEs, freshness } from '@/data/mock-tours';
+import { freshness } from '@/data/mock-tours';
 import type { InfoFrescura, Operador } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 
@@ -23,9 +23,9 @@ export interface FilaOperador {
   frescura: InfoFrescura | null;
 }
 
-type ColOrden = 'operador' | 'tours' | 'comision' | 'ultima' | 'estado';
+type ColOrden = 'operador' | 'tours' | 'comision' | 'estado';
 
-const ORDEN_DEFAULT: OrdenColumna<ColOrden> = { key: 'ultima', dir: 'asc' };
+const ORDEN_DEFAULT: OrdenColumna<ColOrden> = { key: 'estado', dir: 'asc' };
 
 const RANGO_ESTADO: Record<string, number> = { danger: 0, warn: 1, ok: 2 };
 
@@ -39,25 +39,23 @@ function comparar(a: FilaOperador, b: FilaOperador, orden: OrdenColumna<ColOrden
     case 'comision':
       return dir * ((a.operador.comision ?? -1) - (b.operador.comision ?? -1));
     case 'estado':
+    default:
       return (
         dir *
         ((a.frescura ? RANGO_ESTADO[a.frescura.estado] : -1) -
           (b.frescura ? RANGO_ESTADO[b.frescura.estado] : -1))
       );
-    case 'ultima':
-    default:
-      // null = sin tarifario: se considera lo más viejo (primero en asc)
-      return dir * ((a.ultimaFecha ?? '').localeCompare(b.ultimaFecha ?? ''));
   }
 }
 
 interface OperadoresTableProps {
   filas: FilaOperador[];
   onVerTours: (operadorId: number) => void;
+  onEditar: (fila: FilaOperador) => void;
   onEliminar: (fila: FilaOperador) => void;
 }
 
-export default function OperadoresTable({ filas, onVerTours, onEliminar }: OperadoresTableProps) {
+export default function OperadoresTable({ filas, onVerTours, onEditar, onEliminar }: OperadoresTableProps) {
   const { orden, ciclar } = useOrdenColumna<ColOrden>(ORDEN_DEFAULT);
 
   const ordenadas = [...filas].sort((a, b) => comparar(a, b, orden ?? ORDEN_DEFAULT));
@@ -71,7 +69,6 @@ export default function OperadoresTable({ filas, onVerTours, onEliminar }: Opera
               <SortTh colKey="operador" label="Operador" orden={orden} onCiclar={ciclar} />
               <SortTh colKey="tours" label="Tours" orden={orden} onCiclar={ciclar} center className="w-[90px]" />
               <SortTh colKey="comision" label="Comisión" orden={orden} onCiclar={ciclar} className="w-[110px]" />
-              <SortTh colKey="ultima" label="Última actualización" orden={orden} onCiclar={ciclar} className="w-[200px]" />
               <SortTh colKey="estado" label="Estado" orden={orden} onCiclar={ciclar} className="w-[150px]" />
               <th scope="col" className="w-[250px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                 Acciones
@@ -96,10 +93,22 @@ export default function OperadoresTable({ filas, onVerTours, onEliminar }: Opera
                 >
                   <td className="px-3 py-3">
                     <div className="text-[15px] font-semibold leading-snug text-ink">{operador.nombre}</div>
-                    <div className="mt-0.5 flex items-center gap-1 text-caption text-ink-faint">
-                      <Phone className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{operador.contacto}</span>
-                    </div>
+                    {(operador.telefono || operador.email) && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 text-caption text-ink-faint">
+                        {operador.telefono && (
+                          <span className="flex items-center gap-1 truncate">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            {operador.telefono}
+                          </span>
+                        )}
+                        {operador.email && (
+                          <span className="flex items-center gap-1 truncate">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            {operador.email}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <div className="text-[15px] font-medium text-ink tnum">{fila.numTours}</div>
@@ -110,18 +119,6 @@ export default function OperadoresTable({ filas, onVerTours, onEliminar }: Opera
                       <>
                         <div className="text-[15px] font-medium text-ink tnum">{operador.comision}%</div>
                         <div className="text-caption text-ink-faint">uso interno</div>
-                      </>
-                    ) : (
-                      <span className="text-ink-faint">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    {fila.ultimaFecha && fila.frescura ? (
-                      <>
-                        <div className="text-[14px] font-medium text-ink tnum">
-                          {formatDateEs(fila.ultimaFecha)}
-                        </div>
-                        <div className="text-caption text-ink-muted">{fila.frescura.relativo}</div>
                       </>
                     ) : (
                       <span className="text-ink-faint">—</span>
@@ -144,6 +141,14 @@ export default function OperadoresTable({ filas, onVerTours, onEliminar }: Opera
                         <Eye className="h-3.5 w-3.5" />
                         Ver tours
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => onEditar(fila)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-2.5 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        Editar
+                      </button>
                       <Link
                         to={`/admin/cargar?operador=${operador.id}`}
                         className="inline-flex h-8 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-2.5 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
@@ -151,6 +156,17 @@ export default function OperadoresTable({ filas, onVerTours, onEliminar }: Opera
                         <Upload className="h-3.5 w-3.5" />
                         Actualizar
                       </Link>
+                      {operador.poliza_url && (
+                        <a
+                          href={operador.poliza_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Ver póliza de seguro"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm border border-border bg-surface text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </a>
+                      )}
                       <button
                         type="button"
                         onClick={() => onEliminar(fila)}
