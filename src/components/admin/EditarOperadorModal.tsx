@@ -182,15 +182,15 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-border bg-surface text-ink sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden border-border bg-surface text-ink sm:max-w-lg">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-h3 text-ink">Editar operador</DialogTitle>
           <DialogDescription className="text-small text-ink-muted">
             Actualizá el teléfono, el email, la comisión de uso interno y el logo.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2">
           <div>
             <Label htmlFor="op-nombre">Nombre</Label>
             <Input
@@ -346,7 +346,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
           {error && <p className="text-caption text-danger">{error}</p>}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="shrink-0 gap-2">
           <button
             type="button"
             onClick={onClose}
