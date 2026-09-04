@@ -1,13 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, protectedQuery, publicQuery } from "./middleware";
-import { env } from "./lib/env";
-import {
-  firmarSesion,
-  leerSesion,
-  limpiarCookieSesion,
-  setCookieSesion,
-} from "./lib/auth";
+import { firmarSesion, leerSesion, limpiarCookieSesion, setCookieSesion } from "./lib/auth";
+import { verifyPassword } from "./lib/password";
+import { findUsuario } from "./queries/usuarios";
 
 export const authRouter = createRouter({
   /** Estado actual de la sesión (público: nunca lanza 401). */
@@ -18,8 +14,9 @@ export const authRouter = createRouter({
 
   login: publicQuery
     .input(z.object({ usuario: z.string().min(1), contrasena: z.string().min(1) }))
-    .mutation(({ input, ctx }) => {
-      if (input.usuario !== env.adminUser || input.contrasena !== env.adminPassword) {
+    .mutation(async ({ input, ctx }) => {
+      const user = await findUsuario(input.usuario);
+      if (!user || !verifyPassword(input.contrasena, user.passwordHash)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
       }
       setCookieSesion(ctx.resHeaders, firmarSesion(input.usuario));

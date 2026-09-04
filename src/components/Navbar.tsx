@@ -6,7 +6,6 @@
  *   que se desliza entre ítems con layoutId (spring).
  * - Badges: conteo de tours (Buscador), seleccionados (Comparador),
  *   tarifarios por revisar (Administración).
- * - Pie: tarjeta "Estado de datos" (Footer.tsx).
  */
 import { NavLink } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';

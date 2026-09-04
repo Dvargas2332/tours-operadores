@@ -86,7 +86,15 @@ export const tourTarifas = pgTable("tour_tarifas", {
   orden: integer("orden").notNull().default(0),
 });
 
+export const usuarios = pgTable("usuarios", {
+  id: serial("id").primaryKey(),
+  usuario: varchar("usuario", { length: 100 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type Operador = typeof operadores.$inferSelect;
 export type Tour = typeof tours.$inferSelect;
 export type TourHorario = typeof tourHorarios.$inferSelect;
 export type TourTarifa = typeof tourTarifas.$inferSelect;
+export type Usuario = typeof usuarios.$inferSelect;
