@@ -44,10 +44,10 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         <div className="mb-6 flex items-center gap-3">
-          <img src="/logo/logo.png" alt="Tours Operadores" className="h-10 w-10" />
+          <img src="/logo/logo.png" alt="Tours Operadores" className="h-16 w-16 object-contain" />
           <div>
-            <h1 className="font-display text-xl font-bold text-ink">Tours Operadores</h1>
-            <p className="text-caption text-ink-faint">La Fortuna · Uso interno</p>
+            <h1 className="font-display text-xl font-bold text-[#6F4E37]">Tours Operadores</h1>
+            <p className="text-caption text-[#8B7355]">La Fortuna · Uso interno</p>
           </div>
         </div>
 

@@ -79,7 +79,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
     <div className="flex h-full flex-col bg-surface">
       {/* Logo */}
       <div className={cn('flex h-16 shrink-0 items-center gap-3 border-b border-border', collapsed ? 'justify-center px-2' : 'px-4')}>
-        <img src="/logo/logo.png" alt="Tours Operadores" className="h-8 w-8 shrink-0" />
+        <img src="/logo/logo.png" alt="Tours Operadores" className="h-12 w-12 shrink-0 object-contain" />
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div
@@ -89,8 +89,8 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
               transition={{ duration: 0.15 }}
               className="min-w-0"
             >
-              <div className="font-display text-[17px] font-bold leading-tight text-ink">Tours Operadores</div>
-              <div className="text-caption text-ink-faint">La Fortuna</div>
+              <div className="font-display text-[19px] font-bold leading-tight text-[#6F4E37]">Tours Operadores</div>
+              <div className="text-caption text-[#8B7355]">La Fortuna</div>
             </motion.div>
           )}
         </AnimatePresence>
