@@ -47,7 +47,7 @@ export default function Login() {
           <img src="/logo/volcan.png" alt="Tours Operadores" className="h-24 w-24 object-contain" />
           <div>
             <h1 className="font-display text-2xl font-bold text-[#6F4E37]">Tours Operadores</h1>
-            <p className="text-small text-[#8B7355]">Lavas Tacotal · Uso interno</p>
+            <p className="text-small text-[#8B7355]">Lavas Tacotal</p>
           </div>
         </div>
 

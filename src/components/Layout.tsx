@@ -151,11 +151,6 @@ export default function Layout() {
             <LogOut className="h-[18px] w-[18px]" />
             <span className="hidden sm:inline">Salir</span>
           </button>
-
-          {/* Badge USO INTERNO */}
-          <span className="hidden rounded-full border border-border bg-surface-2 px-2.5 py-1 text-caption font-semibold uppercase tracking-wider text-ink-muted md:inline-block">
-            Uso interno
-          </span>
         </header>
 
         {/* Slot de contenido: cada vista maneja su scroll interno */}
