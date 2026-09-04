@@ -90,7 +90,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
               className="min-w-0"
             >
               <div className="font-display text-[22px] font-bold leading-tight text-[#6F4E37]">Tours Operadores</div>
-              <div className="text-small text-[#8B7355]">La Fortuna</div>
+              <div className="text-small text-[#8B7355]">Lavas Tacotal</div>
             </motion.div>
           )}
         </AnimatePresence>

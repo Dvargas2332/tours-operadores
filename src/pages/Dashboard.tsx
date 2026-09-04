@@ -63,7 +63,7 @@ export default function Dashboard() {
           transition={{ duration: 0.25, ease: EASE }}
         >
           <h1 className="text-display text-ink">Dashboard</h1>
-          <p className="mt-1 text-small text-ink-muted">Resumen de Tours Operadores — La Fortuna</p>
+          <p className="mt-1 text-small text-ink-muted">Resumen de Tours Operadores — Lavas Tacotal</p>
         </motion.div>
 
         {/* KPIs */}
