@@ -12,7 +12,7 @@ import { AlertTriangle, Building2, CheckCircle2, Download, Eye, FileSpreadsheet,
 import { parsearArchivo, parseComision, validar } from '@/components/admin/operadores-excel';
 import type { FilaExcel } from '@/components/admin/operadores-excel';
 import { trpc } from '@/providers/trpc';
-import { cn } from '@/lib/utils';
+import { cn, polizaPreviewUrl } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -454,7 +454,7 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                           {polizaPreview ? (
                             <div className="flex flex-wrap items-center gap-2">
                               <a
-                                href={polizaPreview}
+                                href={polizaPreviewUrl(polizaPreview)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"

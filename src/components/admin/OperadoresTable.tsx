@@ -12,7 +12,7 @@ import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
 import { freshness } from '@/data/mock-tours';
 import type { InfoFrescura, Operador } from '@/data/mock-tours';
-import { cn } from '@/lib/utils';
+import { cn, polizaPreviewUrl } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -158,7 +158,7 @@ export default function OperadoresTable({ filas, onVerTours, onEditar, onElimina
                       </Link>
                       {operador.poliza_url && (
                         <a
-                          href={operador.poliza_url}
+                          href={polizaPreviewUrl(operador.poliza_url)}
                           target="_blank"
                           rel="noreferrer"
                           title="Ver póliza de seguro"

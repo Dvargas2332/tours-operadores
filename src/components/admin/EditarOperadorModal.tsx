@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PdfPreview from '@/components/PdfPreview';
 import { trpc } from '@/providers/trpc';
 import type { Operador } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
@@ -386,11 +387,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
           </DialogHeader>
           <div className="min-h-0 flex-1">
             {previewUrl ? (
-              <iframe
-                src={previewUrl}
-                title="Vista previa de la póliza"
-                className="h-[70vh] w-full rounded-r-sm border border-border bg-white"
-              />
+              <PdfPreview url={previewUrl} />
             ) : (
               <p className="text-small text-ink-muted">No hay póliza para mostrar.</p>
             )}
