@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { HttpBindings } from "@hono/node-server";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
@@ -48,6 +50,39 @@ app.post("/api/upload/operador-poliza", async (c) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error al guardar la póliza";
     return c.json({ error: message }, 400);
+  }
+});
+
+// Vista previa de la póliza (PDF/imagen servido inline para el navegador)
+app.get("/api/poliza-preview/:name", async (c) => {
+  const sesion = leerSesion(c.req.raw);
+  if (!sesion) {
+    return c.json({ error: "Sesión requerida" }, 401);
+  }
+  const name = c.req.param("name");
+  if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+    return c.json({ error: "Nombre inválido" }, 400);
+  }
+  try {
+    const filePath = path.join(process.cwd(), "public", "uploads", "operadores", "polizas", name);
+    const data = await readFile(filePath);
+    const ext = path.extname(name).toLowerCase();
+    const contentType =
+      ext === ".pdf" ? "application/pdf"
+      : ext === ".png" ? "image/png"
+      : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg"
+      : ext === ".webp" ? "image/webp"
+      : ext === ".gif" ? "image/gif"
+      : "application/octet-stream";
+    return new Response(data, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": "inline",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch {
+    return c.json({ error: "Archivo no encontrado" }, 404);
   }
 });
 
