@@ -241,8 +241,8 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-surface text-ink sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden border-border bg-surface text-ink sm:max-w-2xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-h3 text-ink">{esCrear ? 'Crear tour' : 'Editar tour'}</DialogTitle>
           <DialogDescription className="text-small text-ink-muted">
             {esCrear
@@ -251,7 +251,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-2">
           {/* Datos generales */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -510,7 +510,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
           {error && <p className="text-caption text-danger">{error}</p>}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="shrink-0 gap-2">
           <button
             type="button"
             onClick={onClose}
