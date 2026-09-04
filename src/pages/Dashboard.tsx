@@ -1,14 +1,9 @@
 /**
- * Dashboard principal (`/`): landing con KPIs,
- * tours recientes y gráfico simple por categoría.
+ * Dashboard principal (`/`): landing con KPIs y listado de operadores.
  */
-import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, MapPinned, TrendingUp } from 'lucide-react';
+import { Building2, MapPinned } from 'lucide-react';
 import { useToursData } from '@/hooks/useToursData';
-import { formatDateEs } from '@/data/mock-tours';
-import type { Categoria } from '@/data/mock-tours';
-import { CATEGORIA_META, CATEGORIAS } from '@/lib/tour-meta';
 import OperadorCard from '@/components/buscador/OperadorCard';
 import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
@@ -58,23 +53,6 @@ export default function Dashboard() {
   const tours = data?.tours ?? [];
   const operadores = data?.operadores ?? [];
 
-  // Últimos 5 tours actualizados
-  const recientes = [...tours]
-    .sort((a, b) => b.fecha_actualizacion.localeCompare(a.fecha_actualizacion))
-    .slice(0, 5);
-
-  // Tours por categoría para el gráfico simple
-  const conteoCategorias = tours.reduce<Record<Categoria, number>>((acc, t) => {
-    acc[t.categoria] = (acc[t.categoria] ?? 0) + 1;
-    return acc;
-  }, {} as Record<Categoria, number>);
-
-  const porCategoria = CATEGORIAS.map((key) => ({ key, count: conteoCategorias[key] ?? 0, meta: CATEGORIA_META[key] }))
-    .filter((c) => c.count > 0)
-    .sort((a, b) => b.count - a.count);
-
-  const maxCount = Math.max(1, ...porCategoria.map((c) => c.count));
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-6">
@@ -94,13 +72,12 @@ export default function Dashboard() {
           <KpiCard icon={Building2} label="Operadores" valor={operadores.length} caption="registrados" tone="brand" />
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          {/* Columna 1: Operadores */}
+        {/* Operadores */}
+        <div className="mt-6">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
-            className="lg:col-span-1"
           >
             <div className="mb-3 flex items-center gap-2">
               <Building2 className="h-[18px] w-[18px] text-brand" />
@@ -117,74 +94,6 @@ export default function Dashboard() {
                     tours={tours.filter((t) => t.operador.id === op.id)}
                     onVerOperador={() => navigate(`/operador/${op.id}`)}
                   />
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Columna 2: Actualizaciones recientes */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: 0.2, ease: EASE }}
-            className="rounded-r-md border border-border bg-surface p-5 shadow-card"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="h-[18px] w-[18px] text-brand" />
-              <h2 className="text-h3 text-ink">Actualizaciones recientes</h2>
-            </div>
-            {recientes.length === 0 ? (
-              <p className="mt-4 text-small text-ink-muted">No hay tours cargados.</p>
-            ) : (
-              <ul className="mt-4 space-y-2">
-                {recientes.map((tour) => (
-                  <li key={tour.id}>
-                    <Link
-                      to={`/tour/${tour.id}`}
-                      className="flex items-center justify-between rounded-r-sm border border-border px-3 py-2 transition-colors duration-fast hover:bg-surface-2"
-                    >
-                      <span className="min-w-0 truncate text-small font-medium text-ink">{tour.nombre}</span>
-                      <span className="shrink-0 text-caption text-ink-muted tnum">{formatDateEs(tour.fecha_actualizacion)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </motion.div>
-
-          {/* Columna 3: Tours por categoría */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: 0.3, ease: EASE }}
-            className="rounded-r-md border border-border bg-surface p-5 shadow-card lg:col-span-1"
-          >
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-[18px] w-[18px] text-brand" />
-              <h2 className="text-h3 text-ink">Tours por categoría</h2>
-            </div>
-            {porCategoria.length === 0 ? (
-              <p className="mt-4 text-small text-ink-muted">No hay tours cargados.</p>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {porCategoria.map(({ key, count, meta }) => (
-                  <div key={key} className="space-y-1">
-                    <div className="flex items-center justify-between text-small">
-                      <span className="flex items-center gap-1.5">
-                        <meta.icon className={cn('h-3.5 w-3.5', meta.clases.split(' ').find((c) => c.startsWith('text-')) ?? 'text-brand')} />
-                        {meta.label}
-                      </span>
-                      <span className="tnum font-medium text-ink">{count}</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(count / maxCount) * 100}%` }}
-                        transition={{ duration: 0.5, ease: EASE }}
-                        className={cn('h-full rounded-full', meta.clases.split(' ').find((c) => c.startsWith('bg-')) ?? 'bg-brand')}
-                      />
-                    </div>
-                  </div>
                 ))}
               </div>
             )}
