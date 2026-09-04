@@ -79,7 +79,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
     <div className="flex h-full flex-col bg-surface">
       {/* Logo */}
       <div className={cn('flex h-20 shrink-0 items-center gap-3 border-b border-border', collapsed ? 'justify-center px-2' : 'px-4')}>
-        <img src="/logo/logo.png" alt="Tours Operadores" className="h-16 w-16 shrink-0 object-contain" />
+        <img src="/logo.svg" alt="Tours Operadores" className="h-16 w-16 shrink-0" />
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div

@@ -44,7 +44,7 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         <div className="mb-6 flex items-center gap-3">
-          <img src="/logo/logo.png" alt="Tours Operadores" className="h-24 w-24 object-contain" />
+          <img src="/logo.svg" alt="Tours Operadores" className="h-24 w-24" />
           <div>
             <h1 className="font-display text-2xl font-bold text-[#6F4E37]">Tours Operadores</h1>
             <p className="text-small text-[#8B7355]">La Fortuna · Uso interno</p>
