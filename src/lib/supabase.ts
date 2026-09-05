@@ -1,16 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL ?? '';
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+// Valores públicos de Supabase (la anon key es pública por diseño, no es un secreto).
+const url = 'https://ssmnjrofhkfaklbftdbl.supabase.co';
+const anonKey = 'sb_publishable_EqGwwEth1OJaxeJCmVLOdg_W4nq4Tz7';
 
-export const supabase = createClient(
-  url || 'https://placeholder.supabase.co',
-  anonKey || 'placeholder-anon-key',
-  { auth: { persistSession: true, autoRefreshToken: true } },
-);
-
-if (!url || !anonKey) {
-  console.warn(
-    '[supabase] Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY (GitHub → Settings → Secrets → Actions).',
-  );
-}
+export const supabase = createClient(url, anonKey, {
+  auth: { persistSession: true, autoRefreshToken: true },
+});

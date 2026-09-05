@@ -1,8 +1,8 @@
 /**
  * Página de búsqueda de tours (`/buscar`) — buscador.md completo.
- * Barra IA + panel de filtros (sticky, scroll propio) + chips activos +
+ * Barra de búsqueda + panel de filtros (sticky, scroll propio) + chips activos +
  * barra de resultados + grid/lista de TourCard + barra flotante de
- * comparación + atajos de teclado. Datos: mock-tours (futuro tRPC).
+ * comparación + atajos de teclado.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -114,7 +114,7 @@ export default function Buscador() {
     if (!texto || interpretando) return;
     setInterpretando(true);
     setHasBuscado(true);
-    // Simula la llamada IA del backend (texto → filtros)
+    // Interpreta el texto libre y lo convierte en filtros
     setTimeout(() => {
       const interp = interpretarBusqueda(texto);
       setInterpretando(false);

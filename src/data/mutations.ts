@@ -1,7 +1,6 @@
 /**
  * Mutaciones y subidas de archivos contra Supabase (PostgREST + Storage).
- * Los inputs conservan la forma camelCase que usaban las páginas con tRPC;
- * aquí se convierten a las columnas snake_case de la base de datos.
+ * Los inputs usan camelCase; aquí se convierten a las columnas snake_case de la base.
  */
 import { supabase } from '@/lib/supabase';
 

@@ -1,5 +1,5 @@
 /**
- * Capa de acceso a datos de Tours Operadores (design.md §8).
+ * Capa de acceso a datos de Tours Operadores.
  *
  * Todas las páginas consumen los fetchers async de este archivo
  * (fetchTours, fetchOperadores, fetchTourById). La implementación habla

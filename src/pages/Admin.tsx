@@ -2,8 +2,7 @@
  * Página: Administración (`/admin`) — administracion.md completo.
  * KPIs con count-up (solo primera visita por sesión), banner de
  * tarifarios desactualizados, tabs pill Operadores / Tours cargados
- * con tablas ordenables (lo más viejo arriba). Datos: fetchTours /
- * fetchOperadores de mock-tours (futuro tRPC, mismas firmas).
+ * con tablas ordenables (lo más viejo arriba).
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';

@@ -1,8 +1,8 @@
 /**
  * Página: Cargar catálogo (`/admin/cargar`) — importación masiva.
  * Wizard de 4 pasos: subir Excel → extracción real → revisión editable
- * (agrupada por operador) → confirmación. El botón final llama a la
- * mutación tRPC real `tours.importarCatalogo`.
+ * (agrupada por operador) → confirmación. El botón final importa el catálogo
+ * en Supabase.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';

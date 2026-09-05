@@ -1,6 +1,6 @@
 /**
  * Hook de acceso a datos con caché en módulo.
- * Consume los fetchers async de mock-tours (futuro: tRPC) una sola vez
+ * Consume los fetchers async una sola vez
  * por sesión y comparte el resultado entre componentes (sidebar, páginas).
  */
 import { useEffect, useState } from 'react';

@@ -1,7 +1,6 @@
 /**
- * Estado de filtros del buscador + motor de filtrado + intérprete mock
- * de búsqueda libre (buscador.md §1-2). El intérprete simula lo que luego
- * hará el backend (texto libre → filtros estructurados).
+ * Estado de filtros del buscador + motor de filtrado + intérprete de
+ * búsqueda libre (texto libre → filtros estructurados).
  */
 import type { Categoria, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, HORARIO_META, INCLUYE_META, horarioBucket } from '@/lib/tour-meta';
@@ -175,7 +174,7 @@ export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour
     case 'nombre':
       return arr.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     case 'relevancia': {
-      // Mock de relevancia: coincidencias del texto en nombre/zona/categoría primero
+      // Relevancia: coincidencias del texto en nombre/zona/categoría primero
       if (!texto) return arr.sort((a, b) => a.precio_adulto - b.precio_adulto);
       const q = texto.toLowerCase();
       const score = (t: Tour) => {
@@ -194,8 +193,7 @@ export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour
 }
 
 /* ------------------------------------------------------------------ */
-/* Intérprete mock de búsqueda libre (buscador.md §1)                  */
-/* Futuro: endpoint tRPC que traduce texto → filtros.                  */
+/* Intérprete de búsqueda libre                                        */
 /* ------------------------------------------------------------------ */
 
 export interface Interpretacion {

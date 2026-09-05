@@ -1,5 +1,5 @@
 /**
- * Pantalla de inicio de sesión (`/login`). Valida contra el backend y al
+ * Pantalla de inicio de sesión (`/login`). Valida contra Supabase Auth y al
  * entrar redirige a la ruta de origen (o al buscador por defecto).
  */
 import { useState } from 'react';
