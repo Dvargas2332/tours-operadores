@@ -11,6 +11,6 @@ export const supabase = createClient(
 
 if (!url || !anonKey) {
   console.warn(
-    '[supabase] Faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. Configúralas para conectar.',
+    '[supabase] Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY (GitHub → Settings → Secrets → Actions).',
   );
 }
