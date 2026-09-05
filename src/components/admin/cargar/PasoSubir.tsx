@@ -113,7 +113,7 @@ export default function PasoSubir({
         {!archivo ? (
           <>
             <motion.img
-              src="/upload-drop.svg"
+              src="./upload-drop.svg"
               alt=""
               animate={{ scale: dragActivo ? 1.05 : 1 }}
               transition={{ type: 'spring', stiffness: 380, damping: 30 }}

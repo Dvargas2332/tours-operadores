@@ -1,41 +1,67 @@
 /**
- * Estado de sesión global. Consulta `auth.session` (público) para saber si
- * hay una cookie válida y expone `iniciarSesion` / `cerrarSesion`.
+ * Estado de sesión global basado en Supabase Auth.
+ * Expone `iniciarSesion` / `cerrarSesion` y el estado actual de la sesión.
  */
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { trpc } from '@/providers/trpc';
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextValue {
   autenticado: boolean;
   usuario: string | null;
   cargando: boolean;
-  iniciarSesion: (usuario: string, contrasena: string) => Promise<void>;
+  iniciarSesion: (email: string, contrasena: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const utils = trpc.useUtils();
-  const sesion = trpc.auth.session.useQuery();
-  const login = trpc.auth.login.useMutation();
-  const logout = trpc.auth.logout.useMutation();
+  const [autenticado, setAutenticado] = useState(false);
+  const [usuario, setUsuario] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
 
-  const iniciarSesion = async (usuario: string, contrasena: string) => {
-    await login.mutateAsync({ usuario, contrasena });
-    await utils.auth.session.invalidate();
+  useEffect(() => {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        const sesion = data.session;
+        setAutenticado(sesion != null);
+        setUsuario(sesion?.user?.email ?? null);
+        setCargando(false);
+      })
+      .catch(() => setCargando(false));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sesion) => {
+      setAutenticado(sesion != null);
+      setUsuario(sesion?.user?.email ?? null);
+      setCargando(false);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const iniciarSesion = async (email: string, contrasena: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: contrasena,
+    });
+    if (error) {
+      if (error.message.toLowerCase().includes('invalid login credentials')) {
+        throw new Error('Credenciales inválidas');
+      }
+      throw new Error(error.message);
+    }
   };
 
   const cerrarSesion = async () => {
-    await logout.mutateAsync();
-    await utils.auth.session.invalidate();
+    await supabase.auth.signOut();
   };
 
   const value: AuthContextValue = {
-    autenticado: sesion.data?.autenticado ?? false,
-    usuario: sesion.data?.usuario ?? null,
-    cargando: sesion.isLoading,
+    autenticado,
+    usuario,
+    cargando,
     iniciarSesion,
     cerrarSesion,
   };

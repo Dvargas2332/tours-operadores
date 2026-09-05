@@ -15,7 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { trpc } from '@/providers/trpc';
+import { useMutation } from '@tanstack/react-query';
+import { actualizarTour, crearTour } from '@/data/mutations';
 import type { Categoria, Moneda, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, CATEGORIAS, INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -92,7 +93,8 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
   const [operadorId, setOperadorId] = useState<number | ''>(() => tour?.operador.id ?? operadores[0]?.id ?? '');
   const [error, setError] = useState<string | null>(null);
 
-  const mutacionActualizar = trpc.tours.actualizarTour.useMutation({
+  const mutacionActualizar = useMutation({
+    mutationFn: (input: Parameters<typeof actualizarTour>[0]) => actualizarTour(input),
     onSuccess: () => {
       onGuardado();
       onClose();
@@ -100,7 +102,8 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
     onError: (err) => setError(err.message),
   });
 
-  const mutacionCrear = trpc.tours.crearTour.useMutation({
+  const mutacionCrear = useMutation({
+    mutationFn: (input: Parameters<typeof crearTour>[0]) => crearTour(input),
     onSuccess: () => {
       onGuardado();
       onClose();

@@ -18,7 +18,7 @@ export function EstadoInicial({ totalTours, totalOperadores, onElegir }: {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
-        src="/empty-initial.svg"
+        src="./empty-initial.svg"
         alt="Volcán Arenal al atardecer con lago y kayaks"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -70,7 +70,7 @@ export function EstadoSinResultados({
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
-        src="/empty-search.svg"
+        src="./empty-search.svg"
         alt="Binoculares sobre un mapa con ruta punteada"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

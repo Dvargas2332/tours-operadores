@@ -121,7 +121,7 @@ export default function TourDetalle() {
           /* Tour no encontrado / ID inválido (tour-detalle.md §9) */
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <motion.img
-              src="/empty-search.svg"
+              src="./empty-search.svg"
               alt="Binoculares sobre un mapa con ruta punteada"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

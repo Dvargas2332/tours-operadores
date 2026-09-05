@@ -11,7 +11,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Building2, CheckCircle2, Download, Eye, FileSpreadsheet, FileText, ImageIcon, Trash2, UploadCloud, X } from 'lucide-react';
 import { parsearArchivo, parseComision, validar } from '@/components/admin/operadores-excel';
 import type { FilaExcel } from '@/components/admin/operadores-excel';
-import { trpc } from '@/providers/trpc';
+import { useMutation } from '@tanstack/react-query';
+import { crearOperadores, subirLogo, subirPoliza } from '@/data/mutations';
 import { cn, polizaPreviewUrl } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -71,7 +72,8 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
   const [polizaPreview, setPolizaPreview] = useState<string | null>(null);
   const [subiendoPoliza, setSubiendoPoliza] = useState(false);
 
-  const mutacion = trpc.tours.crearOperadores.useMutation({
+  const mutacion = useMutation({
+    mutationFn: (operadores: Parameters<typeof crearOperadores>[0]) => crearOperadores(operadores),
     onSuccess: (res) => {
       setResultado(res);
       setPaso('exito');
@@ -143,14 +145,14 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
   const confirmar = () => {
     if (validas.length === 0 || mutacion.isPending) return;
     setErrorEnvio(null);
-    mutacion.mutate({
-      operadores: validas.map((f) => ({
+    mutacion.mutate(
+      validas.map((f) => ({
         nombre: f.nombre,
         telefono: f.telefono,
         email: f.email || null,
         comision: f.comisionNum,
       })),
-    });
+    );
   };
 
   const titulos: Record<Paso, string> = {
@@ -218,16 +220,7 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     if (logoFile) {
       setSubiendoLogo(true);
       try {
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-        const res = await fetch('/api/upload/operador-logo', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al subir el logo');
-        logoUrl = data.logoUrl;
+        logoUrl = await subirLogo(logoFile);
       } catch (err) {
         setErrorEnvio(err instanceof Error ? err.message : 'Error al subir el logo');
         setSubiendoLogo(false);
@@ -240,16 +233,7 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     if (polizaFile) {
       setSubiendoPoliza(true);
       try {
-        const formData = new FormData();
-        formData.append('poliza', polizaFile);
-        const res = await fetch('/api/upload/operador-poliza', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al subir la póliza');
-        polizaUrl = data.polizaUrl;
+        polizaUrl = await subirPoliza(polizaFile);
       } catch (err) {
         setErrorEnvio(err instanceof Error ? err.message : 'Error al subir la póliza');
         setSubiendoPoliza(false);
@@ -258,19 +242,17 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
       setSubiendoPoliza(false);
     }
 
-    mutacion.mutate({
-      operadores: [
-        {
-          nombre,
-          telefono: nuevoTelefono.trim(),
-          email: nuevoEmail.trim() || null,
-          comision: comision !== null && !Number.isNaN(comision) ? comision : null,
-          politicaCancelacion: nuevaPolitica.trim(),
-          logoUrl,
-          polizaUrl,
-        },
-      ],
-    });
+    mutacion.mutate([
+      {
+        nombre,
+        telefono: nuevoTelefono.trim(),
+        email: nuevoEmail.trim() || null,
+        comision: comision !== null && !Number.isNaN(comision) ? comision : null,
+        politicaCancelacion: nuevaPolitica.trim(),
+        logoUrl,
+        polizaUrl,
+      },
+    ]);
   };
 
   const titulo =

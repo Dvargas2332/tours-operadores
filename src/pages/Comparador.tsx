@@ -26,7 +26,7 @@ const SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 const IlustracionVacia = memo(function IlustracionVacia() {
   return (
     <motion.img
-      src="/empty-compare.svg"
+      src="./empty-compare.svg"
       alt="Dos tarjetas flotando con una balanza equilibrada"
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}

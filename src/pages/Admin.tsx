@@ -19,7 +19,8 @@ import type { FilaOperador } from '@/components/admin/OperadoresTable';
 import ToursTable from '@/components/admin/ToursTable';
 import { fetchOperadores, fetchTours, formatDateEs, freshness } from '@/data/mock-tours';
 import type { Operador, Tour } from '@/data/mock-tours';
-import { trpc } from '@/providers/trpc';
+import { useMutation } from '@tanstack/react-query';
+import { eliminarOperador, eliminarTour } from '@/data/mutations';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -185,7 +186,8 @@ export default function Admin() {
       .catch(() => setEstado('error'));
   }, []);
 
-  const eliminarOperadorMutacion = trpc.tours.eliminarOperador.useMutation({
+  const eliminarOperadorMutacion = useMutation({
+    mutationFn: (id: number) => eliminarOperador(id),
     onSuccess: () => {
       setOperadorAEliminar(null);
       setErrorEliminar(null);
@@ -194,7 +196,8 @@ export default function Admin() {
     onError: (err) => setErrorEliminar(err.message),
   });
 
-  const eliminarTourMutacion = trpc.tours.eliminarTour.useMutation({
+  const eliminarTourMutacion = useMutation({
+    mutationFn: (id: number) => eliminarTour(id),
     onSuccess: () => {
       setTourAEliminar(null);
       setErrorEliminar(null);
@@ -307,7 +310,7 @@ export default function Admin() {
         {/* BD vacía */}
         {estado === 'listo' && operadores.length === 0 && (
           <div className="mt-10 flex flex-col items-center rounded-r-md border border-border bg-surface px-6 py-14 text-center shadow-card">
-            <img src="/upload-drop.svg" alt="" className="h-[180px] w-[240px] object-contain" />
+            <img src="./upload-drop.svg" alt="" className="h-[180px] w-[240px] object-contain" />
             <h2 className="mt-4 text-h3 text-ink">Aún no hay operadores</h2>
             <p className="mt-2 max-w-[420px] text-small text-ink-muted">
               Empieza agregando tus operadores (manual o desde Excel) con nombre, teléfono, email y comisión.
@@ -579,7 +582,7 @@ export default function Admin() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => eliminarOperadorMutacion.mutate({ id: operadorAEliminar.operador.id })}
+                    onClick={() => eliminarOperadorMutacion.mutate(operadorAEliminar.operador.id)}
                     disabled={eliminarOperadorMutacion.isPending}
                     className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-danger px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                   >
@@ -638,7 +641,7 @@ export default function Admin() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => eliminarTourMutacion.mutate({ id: tourAEliminar.id })}
+                    onClick={() => eliminarTourMutacion.mutate(tourAEliminar.id)}
                     disabled={eliminarTourMutacion.isPending}
                     className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-danger px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                   >

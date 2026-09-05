@@ -13,7 +13,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [usuario, setUsuario] = useState('');
+  const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -26,7 +26,7 @@ export default function Login() {
     setError(null);
     setEnviando(true);
     try {
-      await iniciarSesion(usuario, contrasena);
+      await iniciarSesion(email, contrasena);
       navigate(from, { replace: true });
     } catch (err) {
       setError((err as Error)?.message ?? 'No pudimos iniciar sesión');
@@ -44,7 +44,7 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         <div className="mb-6 flex items-center gap-3">
-          <img src="/logo/volcan.png" alt="Tours Operadores" className="h-24 w-24 object-contain" />
+          <img src="./logo/volcan.png" alt="Tours Operadores" className="h-24 w-24 object-contain" />
           <div>
             <h1 className="font-display text-2xl font-bold text-[#6F4E37]">Tours Operadores</h1>
             <p className="text-small text-[#8B7355]">Lavas Tacotal</p>
@@ -56,14 +56,16 @@ export default function Login() {
           className="space-y-4 rounded-r-lg border border-border bg-surface p-6 shadow-card"
         >
           <div className="space-y-1.5">
-            <label htmlFor="usuario" className="text-label text-ink">
-              Usuario
+            <label htmlFor="email" className="text-label text-ink">
+              Email
             </label>
             <input
-              id="usuario"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              autoComplete="username"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="correo@ejemplo.com"
               required
               className="h-10 w-full rounded-r-sm border border-border bg-bg px-3 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand"
             />

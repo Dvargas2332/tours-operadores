@@ -33,7 +33,7 @@ export default function PdfPreview({ url }: { url: string }) {
         onLoadSuccess={({ numPages }) => setNumPages(numPages)}
         loading={<p className="p-6 text-center text-small text-ink-muted">Cargando PDF…</p>}
         error={<p className="p-6 text-center text-small text-danger">No se pudo cargar el PDF.</p>}
-        options={{ withCredentials: true }}
+        options={{ withCredentials: false }}
       >
         {Array.from({ length: numPages ?? 0 }, (_, i) => (
           <Page

@@ -14,7 +14,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import PdfPreview from '@/components/PdfPreview';
-import { trpc } from '@/providers/trpc';
+import { useMutation } from '@tanstack/react-query';
+import { actualizarOperador, subirLogo, subirPoliza } from '@/data/mutations';
 import type { Operador } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +60,8 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
     setError(null);
   }, [operador, open]);
 
-  const mutacion = trpc.tours.actualizarOperador.useMutation({
+  const mutacion = useMutation({
+    mutationFn: (input: Parameters<typeof actualizarOperador>[0]) => actualizarOperador(input),
     onSuccess: () => {
       onGuardado();
       onClose();
@@ -123,16 +125,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
     if (logoFile) {
       setSubiendoLogo(true);
       try {
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-        const res = await fetch('/api/upload/operador-logo', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al subir el logo');
-        logoUrl = data.logoUrl;
+        logoUrl = await subirLogo(logoFile);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al subir el logo');
         setSubiendoLogo(false);
@@ -147,16 +140,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
     if (polizaFile) {
       setSubiendoPoliza(true);
       try {
-        const formData = new FormData();
-        formData.append('poliza', polizaFile);
-        const res = await fetch('/api/upload/operador-poliza', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al subir la póliza');
-        nuevaPolizaUrl = data.polizaUrl;
+        nuevaPolizaUrl = await subirPoliza(polizaFile);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al subir la póliza');
         setSubiendoPoliza(false);
@@ -182,11 +166,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
 
   const isPending = mutacion.isPending || subiendoLogo || subiendoPoliza;
 
-  const previewUrl = polizaUrl
-    ? polizaUrl.startsWith('blob:')
-      ? polizaUrl
-      : `/api/poliza-preview/${polizaUrl.split('/').pop()}`
-    : null;
+  const previewUrl = polizaUrl;
 
   return (
     <>

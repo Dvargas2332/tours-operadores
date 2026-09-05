@@ -1,16 +1,18 @@
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router'
+import { HashRouter } from 'react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
-import { TRPCProvider } from "@/providers/trpc"
 import { AuthProvider } from '@/context/AuthContext'
 import App from './App.tsx'
 
+const queryClient = new QueryClient()
+
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
-    <TRPCProvider>
+  <QueryClientProvider client={queryClient}>
+    <HashRouter>
       <AuthProvider>
         <App />
       </AuthProvider>
-    </TRPCProvider>
-  </BrowserRouter>,
+    </HashRouter>
+  </QueryClientProvider>,
 )

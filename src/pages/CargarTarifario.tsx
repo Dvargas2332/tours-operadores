@@ -14,7 +14,8 @@ import Stepper from '@/components/admin/cargar/Stepper';
 import type { ArchivoSubido, FilaRevision } from '@/components/admin/cargar/tipos';
 import { filaAInput } from '@/components/admin/cargar/tipos';
 import type { OperadorCatalogo } from '@/components/admin/cargar/tarifario-excel';
-import { trpc } from '@/providers/trpc';
+import { useMutation } from '@tanstack/react-query';
+import { importarCatalogo } from '@/data/mutations';
 import { clearToursCache } from '@/hooks/useToursData';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -52,7 +53,8 @@ export default function CargarTarifario() {
   });
   const [hayBorrador, setHayBorrador] = useState(borradorInicial != null);
 
-  const mutacion = trpc.tours.importarCatalogo.useMutation({
+  const mutacion = useMutation({
+    mutationFn: (input: Parameters<typeof importarCatalogo>[0]) => importarCatalogo(input),
     onSuccess: (res) => {
       clearToursCache();
       window.sessionStorage.removeItem(BORRADOR_KEY);

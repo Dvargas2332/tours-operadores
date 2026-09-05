@@ -1,16 +1,11 @@
 /**
- * Capa de acceso a datos de Tours Operadores La Fortuna (design.md §8).
+ * Capa de acceso a datos de Tours Operadores (design.md §8).
  *
  * Todas las páginas consumen los fetchers async de este archivo
  * (fetchTours, fetchOperadores, fetchTourById). La implementación habla
- * con el backend real vía cliente tRPC vanilla; si el backend no responde
- * (p. ej. sin base de datos conectada), devuelve listas vacías para que la
- * UI muestre estados "sin datos" en lugar de datos falsos.
+ * directo con Supabase (PostgREST) usando supabase-js.
  */
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import superjson from 'superjson';
-import type { AppRouter } from '../../api/router';
-import type { Operador as DbOperador, Tour as DbTour, TourHorario as DbTourHorario, TourTarifa as DbTourTarifa } from '../../db/schema';
+import { supabase } from '@/lib/supabase';
 
 export type Categoria = 'aventura' | 'naturaleza' | 'acuatico' | 'cultural' | 'termas';
 
@@ -21,7 +16,7 @@ export interface Operador {
   nombre: string;
   telefono: string; // teléfono de contacto (WhatsApp/llamadas)
   email: string | null; // correo del operador
-  comision: number | null; // % — visible solo en admin (uso interno)
+  comision: number | null; // % — visible solo en admin
   logo_url: string | null; // URL pública del logo del operador
   poliza_url: string | null; // URL pública de la póliza de seguro
   politica_cancelacion: string; // política de cancelación compartida por todos sus tours
@@ -124,137 +119,150 @@ export function salidasTour(tour: Tour): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Cliente tRPC vanilla (mismo patrón que src/providers/trpc.tsx)      */
+/* Mapeo Supabase (PostgREST, snake_case) → frontend (design.md §8)    */
 /* ------------------------------------------------------------------ */
 
-const trpcClient = createTRPCClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: '/api/trpc',
-      transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: 'include',
-        });
-      },
-    }),
-  ],
-});
+type RowOperador = {
+  id: number;
+  nombre: string;
+  telefono: string;
+  email: string | null;
+  comision: number | string | null;
+  logo_url: string | null;
+  poliza_url: string | null;
+  politica_cancelacion: string | null;
+};
 
-/* ------------------------------------------------------------------ */
-/* Mapeo backend (Drizzle, camelCase) → frontend (design.md §8, snake) */
-/* ------------------------------------------------------------------ */
+type RowTarifa = {
+  id: number;
+  nombre: string | null;
+  min_edad: number;
+  max_edad: number | null;
+  rack: number | string;
+  neta: number | string | null;
+  hora_desde: string | null;
+  hora_hasta: string | null;
+  orden: number;
+};
 
-type RowTour = { tour: DbTour; operador: DbOperador; horarios: DbTourHorario[]; tarifas: DbTourTarifa[] };
+type RowHorario = {
+  id: number;
+  hora_salida: string;
+  hora_llegada: string;
+  orden: number;
+};
 
-function mapHorario(h: DbTourHorario): Horario {
-  return {
-    id: h.id,
-    hora_salida: h.horaSalida,
-    hora_llegada: h.horaLlegada,
-    orden: h.orden,
-  };
-}
+type RowTour = {
+  id: number;
+  nombre: string;
+  zona: string;
+  categoria: Categoria;
+  precio_adulto: number | string;
+  precio_nino: number | string | null;
+  precio_neto_adulto: number | string | null;
+  precio_neto_nino: number | string | null;
+  duracion_horas: number | string;
+  incluye: string[];
+  no_incluye: string[];
+  minimo_personas: number;
+  apto_ninos: boolean;
+  politica_cancelacion: string | null;
+  observaciones: string | null;
+  fuente: string | null;
+  fecha_actualizacion: string;
+  moneda: Moneda | null;
+  operadores: RowOperador;
+  tour_tarifas: RowTarifa[];
+  tour_horarios: RowHorario[];
+};
 
-function mapTarifa(t: DbTourTarifa): Tarifa {
-  return {
-    id: t.id,
-    nombre: t.nombre ?? '',
-    min_edad: t.minEdad,
-    max_edad: t.maxEdad,
-    rack: Number(t.rack),
-    neta: t.neta == null ? null : Number(t.neta),
-    hora_desde: t.horaDesde ?? null,
-    hora_hasta: t.horaHasta ?? null,
-    orden: t.orden,
-  };
-}
-
-function mapOperador(o: DbOperador): Operador {
+function mapOperador(o: RowOperador): Operador {
   return {
     id: o.id,
     nombre: o.nombre,
     telefono: o.telefono,
     email: o.email ?? null,
     comision: o.comision == null ? null : Number(o.comision),
-    logo_url: o.logoUrl ?? null,
-    poliza_url: o.polizaUrl ?? null,
-    politica_cancelacion: o.politicaCancelacion ?? '',
+    logo_url: o.logo_url ?? null,
+    poliza_url: o.poliza_url ?? null,
+    politica_cancelacion: o.politica_cancelacion ?? '',
   };
 }
 
-/** Normaliza a "YYYY-MM-DD" (Drizzle date mode:"string" ya viene así) */
-function toISODate(fecha: string | Date): string {
-  return fecha instanceof Date ? fecha.toISOString().slice(0, 10) : fecha.slice(0, 10);
-}
-
-function mapTour({ tour: t, operador, horarios, tarifas }: RowTour): Tour {
+function mapTarifa(t: RowTarifa): Tarifa {
   return {
     id: t.id,
-    operador: mapOperador(operador),
+    nombre: t.nombre ?? '',
+    min_edad: t.min_edad,
+    max_edad: t.max_edad ?? null,
+    rack: Number(t.rack),
+    neta: t.neta == null ? null : Number(t.neta),
+    hora_desde: t.hora_desde ?? null,
+    hora_hasta: t.hora_hasta ?? null,
+    orden: t.orden,
+  };
+}
+
+function mapHorario(h: RowHorario): Horario {
+  return {
+    id: h.id,
+    hora_salida: h.hora_salida,
+    hora_llegada: h.hora_llegada,
+    orden: h.orden,
+  };
+}
+
+function mapTour(t: RowTour): Tour {
+  return {
+    id: t.id,
+    operador: mapOperador(t.operadores),
     nombre: t.nombre,
     zona: t.zona,
     categoria: t.categoria,
-    precio_adulto: Number(t.precioAdulto), // tarifa base representativa
-    precio_nino: t.precioNino == null ? null : Number(t.precioNino), // legacy
-    precio_neto_adulto: t.precioNetoAdulto == null ? null : Number(t.precioNetoAdulto), // legacy
-    precio_neto_nino: t.precioNetoNino == null ? null : Number(t.precioNetoNino), // legacy
-    tarifas: tarifas.map(mapTarifa).sort((a, b) => a.orden - b.orden),
-    horarios: horarios.map(mapHorario).sort((a, b) => a.orden - b.orden),
-    duracion_horas: Number(t.duracionHoras),
-    incluye: t.incluye,
-    no_incluye: t.noIncluye,
-    minimo_personas: t.minimoPersonas,
-    apto_ninos: t.aptoNinos,
-    politica_cancelacion: t.politicaCancelacion,
-    observaciones: t.observaciones,
-    fuente: t.fuente,
-    fecha_actualizacion: toISODate(t.fechaActualizacion),
+    precio_adulto: Number(t.precio_adulto),
+    precio_nino: t.precio_nino == null ? null : Number(t.precio_nino),
+    precio_neto_adulto: t.precio_neto_adulto == null ? null : Number(t.precio_neto_adulto),
+    precio_neto_nino: t.precio_neto_nino == null ? null : Number(t.precio_neto_nino),
+    tarifas: (t.tour_tarifas ?? []).map(mapTarifa).sort((a, b) => a.orden - b.orden),
+    horarios: (t.tour_horarios ?? []).map(mapHorario).sort((a, b) => a.orden - b.orden),
+    duracion_horas: Number(t.duracion_horas),
+    incluye: t.incluye ?? [],
+    no_incluye: t.no_incluye ?? [],
+    minimo_personas: t.minimo_personas,
+    apto_ninos: t.apto_ninos,
+    politica_cancelacion: t.politica_cancelacion ?? '',
+    observaciones: t.observaciones ?? '',
+    fuente: t.fuente ?? '',
+    fecha_actualizacion: (t.fecha_actualizacion ?? '').slice(0, 10),
     moneda: t.moneda ?? 'usd',
   };
 }
 
 /* ------------------------------------------------------------------ */
-/* Fetchers async — punto único de acceso a datos.                     */
-/* Backend real vía tRPC; sin backend devuelve listas vacías.          */
+/* Fetchers async — punto único de acceso a datos (Supabase)           */
 /* ------------------------------------------------------------------ */
 
-/** Distingue un 401 (sesión requerida) de una caída del backend. */
-function esNoAutorizado(err: unknown): boolean {
-  const e = err as { data?: { code?: string; httpStatus?: number } } | null;
-  return e?.data?.code === 'UNAUTHORIZED' || e?.data?.httpStatus === 401;
-}
-
 export async function fetchTours(): Promise<Tour[]> {
-  try {
-    const rows = await trpcClient.tours.buscar.query();
-    return rows.map(mapTour);
-  } catch (err) {
-    if (esNoAutorizado(err)) throw err; // sin sesión no caemos a vacío
-    console.warn('[data] fetchTours: backend no disponible', err);
-    return [];
-  }
+  const { data, error } = await supabase
+    .from('tours')
+    .select('*, operadores(*), tour_tarifas(*), tour_horarios(*)')
+    .order('precio_adulto');
+  if (error) throw error;
+  return (data as RowTour[] | null ?? []).map(mapTour);
 }
 
 export async function fetchOperadores(): Promise<Operador[]> {
-  try {
-    const rows = await trpcClient.tours.operadores.query();
-    return rows.map((r) => mapOperador(r.operador));
-  } catch (err) {
-    if (esNoAutorizado(err)) throw err;
-    console.warn('[data] fetchOperadores: backend no disponible', err);
-    return [];
-  }
+  const { data, error } = await supabase.from('operadores').select('*').order('nombre');
+  if (error) throw error;
+  return (data as RowOperador[] | null ?? []).map(mapOperador);
 }
 
 export async function fetchTourById(id: number): Promise<Tour | undefined> {
-  try {
-    const row = await trpcClient.tours.detalle.query({ id });
-    return row ? mapTour(row) : undefined;
-  } catch (err) {
-    if (esNoAutorizado(err)) throw err;
-    console.warn('[data] fetchTourById: backend no disponible', err);
-    return undefined;
-  }
+  const { data, error } = await supabase
+    .from('tours')
+    .select('*, operadores(*), tour_tarifas(*), tour_horarios(*)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapTour(data as RowTour) : undefined;
 }
