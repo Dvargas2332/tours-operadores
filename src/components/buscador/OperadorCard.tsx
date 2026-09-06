@@ -47,16 +47,16 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
       onClick={onVerOperador}
     >
       {/* Mitad izquierda: logo */}
-      <div className="flex w-1/2 items-center justify-center border-r border-border bg-surface-2 p-4">
+      <div className="relative w-1/2 overflow-hidden border-r border-border bg-surface-2">
         {operador.logo_url ? (
           <img
             src={operador.logo_url}
             alt={`Logo de ${operador.nombre}`}
-            className="max-h-full max-w-full object-contain"
+            className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
           />
         ) : (
-          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-soft text-3xl font-bold text-brand ring-1 ring-border">
+          <span className="absolute inset-0 flex items-center justify-center bg-brand-soft text-4xl font-bold text-brand">
             {iniciales || 'OP'}
           </span>
         )}
