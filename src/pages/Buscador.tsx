@@ -49,7 +49,7 @@ export default function Buscador() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES);
   const [filtrosAplicados, setFiltrosAplicados] = useState<Filtros>(FILTROS_INICIALES);
   const [interpretando, setInterpretando] = useState(false);
-  const [hasBuscado, setHasBuscado] = useState(true);
+  const [hasBuscado, setHasBuscado] = useState(false);
   const [orden, setOrden] = useState<Orden>('precio-asc');
   const [vista, setVista] = useState<Vista>(() =>
     typeof window !== 'undefined' && window.localStorage.getItem(VISTA_KEY) === 'lista' ? 'lista' : 'grid',

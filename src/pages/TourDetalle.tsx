@@ -107,8 +107,11 @@ export default function TourDetalle() {
             Volver
           </button>
           <nav aria-label="breadcrumb" className="hidden min-w-0 items-center gap-1 text-caption md:flex">
-            <Link to="/buscar" className="shrink-0 font-medium text-brand hover:underline">
-              Buscar
+            <Link
+              to={tour ? `/operador/${tour.operador.id}` : '/buscar'}
+              className="shrink-0 font-medium text-brand hover:underline"
+            >
+              {tour ? tour.operador.nombre : 'Buscar'}
             </Link>
             <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />
             <span className="truncate text-ink-muted">{tour?.nombre ?? 'Detalle de tour'}</span>
