@@ -52,7 +52,7 @@ function TextoExpandible({ texto, muted = false }: { texto: string; muted?: bool
   const esLargo = texto.length > 140;
   return (
     <div>
-      <p className={cn('text-small', muted ? 'text-ink-muted' : 'text-ink', !expandido && esLargo && 'line-clamp-4')}>
+      <p className={cn('whitespace-pre-line text-small', muted ? 'text-ink-muted' : 'text-ink', !expandido && esLargo && 'line-clamp-4')}>
         {texto}
       </p>
       {esLargo && (

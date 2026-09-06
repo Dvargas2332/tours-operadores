@@ -97,6 +97,10 @@ export default function Login() {
             {enviando ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-caption text-ink-faint">
+          © {new Date().getFullYear()} Tours Operadores · by Kazehana Cloud
+        </p>
       </motion.div>
     </div>
   );

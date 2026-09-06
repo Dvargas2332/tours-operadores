@@ -157,6 +157,10 @@ export default function Layout() {
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <Outlet />
         </main>
+
+        <footer className="flex h-8 shrink-0 items-center justify-center gap-1 border-t border-border bg-surface px-4 text-caption text-ink-faint">
+          © {new Date().getFullYear()} Tours Operadores · by Kazehana Cloud
+        </footer>
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BadgeCategoria, DOT_FRESCURA, DotFrescura, PopoverOperador } from '@/components/detalle/DetalleUI';
+import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detalle/resumen';
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -229,7 +229,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               <MapPin className="h-3 w-3" />
               {tour.zona}
             </span>
-            <DotFrescura tour={tour} conLabel />
           </div>
           {/* Acciones del header */}
           <div className="flex shrink-0 items-center gap-1.5">
@@ -280,7 +279,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Franja de datos clave ===== */}
         <motion.section variants={seccion} aria-label="Datos clave">
           <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas por edad' : 'rack · adulto'} index={0}>
+            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : 'rack · adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
             <StatCelda icon={Clock} caption="duración total" index={1}>
@@ -326,7 +325,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Tarifas por rango de edad ===== */}
         <motion.section variants={seccion} aria-label="Tarifas">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-h3 text-ink">Tarifas por edad</h2>
+            <h2 className="text-h3 text-ink">Tarifas</h2>
             <button
               type="button"
               onClick={() => setReservaAbierta(true)}
@@ -510,7 +509,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               <FileText className="h-3.5 w-3.5 text-volcan" />
               Política de cancelación
             </h2>
-            <p className="mt-2 text-[15px] italic leading-relaxed text-ink">“{tour.politica_cancelacion}”</p>
+            <p className="mt-2 whitespace-pre-line text-[15px] italic leading-relaxed text-ink">“{tour.politica_cancelacion}”</p>
             <p className="mt-2 text-caption text-ink-muted">Texto tal como aparece en el tarifario del operador.</p>
           </motion.div>
 
@@ -525,7 +524,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               <StickyNote className="h-3.5 w-3.5 text-ink-muted" />
               Observaciones
             </h2>
-            <p className="mt-2 text-[15px] leading-relaxed text-ink">{tour.observaciones}</p>
+            <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink">{tour.observaciones}</p>
             <p className="mt-2 text-caption text-ink-muted">Observaciones del operador</p>
           </motion.div>
         </motion.section>
