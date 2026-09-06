@@ -50,9 +50,16 @@ export function calcularTotal(lineas: LineaReserva[]): number {
   return lineas.reduce((sum, l) => sum + l.totalRack, 0);
 }
 
+function saludoPorHora(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'Buenos días';
+  if (h >= 12 && h < 19) return 'Buenas tardes';
+  return 'Hola, muy buenas noches';
+}
+
 export function buildMensajeReserva(d: DatosReserva): string {
   const lineas = [
-    `Hola, quiero reservar el siguiente tour:`,
+    `${saludoPorHora()}. Me gustaría formalizar la siguiente reservación:`,
     ``,
     `*${d.tour.nombre}*`,
     `Fecha: ${formatDateEs(d.fecha.toISOString().slice(0, 10))}`,
