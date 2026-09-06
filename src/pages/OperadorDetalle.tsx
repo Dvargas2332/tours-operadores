@@ -46,11 +46,11 @@ export default function OperadorDetalle() {
         <h2 className="text-h2 text-ink">Operador no encontrado</h2>
         <button
           type="button"
-          onClick={() => navigate('/buscar')}
+          onClick={() => navigate('/')}
           className="mt-4 inline-flex items-center gap-2 rounded-r-sm bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver a buscar
+          Volver al inicio
         </button>
       </div>
     );
@@ -71,11 +71,11 @@ export default function OperadorDetalle() {
         >
           <button
             type="button"
-            onClick={() => navigate('/buscar')}
+            onClick={() => navigate('/')}
             className="inline-flex items-center gap-1.5 rounded-r-sm px-2 py-1.5 text-caption font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />
-            Volver a buscar
+            Volver al inicio
           </button>
 
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">

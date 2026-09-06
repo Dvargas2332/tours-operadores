@@ -55,6 +55,18 @@ export const FILTROS_INICIALES: Filtros = {
 
 export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
   return tours.filter((t) => {
+    if (f.texto) {
+      const q = f.texto.trim().toLowerCase();
+      if (q) {
+        const coincide =
+          t.nombre.toLowerCase().includes(q) ||
+          t.zona.toLowerCase().includes(q) ||
+          CATEGORIA_META[t.categoria].label.toLowerCase().includes(q) ||
+          t.observaciones.toLowerCase().includes(q) ||
+          t.operador.nombre.toLowerCase().includes(q);
+        if (!coincide) return false;
+      }
+    }
     if (f.precioActivo) {
       if (t.precio_adulto < f.precio[0] || t.precio_adulto > f.precio[1]) return false;
       // Con el filtro de niños activo, también filtra por alguna tarifa de menor de edad

@@ -8,15 +8,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
-import { toast } from 'sonner';
 import ActiveChips, { ContadorResultados } from '@/components/buscador/ActiveChips';
 import CompareBar from '@/components/buscador/CompareBar';
 import { EstadoInicial, EstadoSinResultados } from '@/components/buscador/EmptyStates';
 import FilterPanel from '@/components/buscador/FilterPanel';
 import ResultsBar from '@/components/buscador/ResultsBar';
 import type { Vista } from '@/components/buscador/ResultsBar';
-import SearchBar, { ChipsSugerencias } from '@/components/buscador/SearchBar';
-import type { Sugerencia } from '@/components/buscador/SearchBar';
+import SearchBar from '@/components/buscador/SearchBar';
 import TourCard, { TourCardSkeleton } from '@/components/buscador/TourCard';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 
@@ -114,25 +112,14 @@ export default function Buscador() {
     if (!texto || interpretando) return;
     setInterpretando(true);
     setHasBuscado(true);
-    // Interpreta el texto libre y lo convierte en filtros
+    // Filtra por el texto y, si aplica, suma los filtros interpretados.
     setTimeout(() => {
       const interp = interpretarBusqueda(texto);
       setInterpretando(false);
-      if (!interp) {
-        toast.warning('No pude interpretar la búsqueda, intenta con más detalle', {
-          description: 'Prueba con categoría, zona, precio o horario. Ej.: "rafting con almuerzo que salga temprano".',
-        });
-        return;
-      }
-      setFiltros((f) => ({ ...f, ...interp.filtros, texto }));
+      setFiltros((f) => ({ ...f, ...(interp?.filtros ?? {}), texto }));
       setOrden('relevancia');
       setQuery('');
     }, 900);
-  };
-
-  const elegirSugerencia = (s: Sugerencia) => {
-    setQuery(s.texto);
-    ejecutarBusqueda(s.texto);
   };
 
   const editarTextoIA = () => {
@@ -204,7 +191,6 @@ export default function Buscador() {
         >
           <h1 className="hidden text-display text-ink lg:block">Buscar tours</h1>
           <SearchBar ref={inputRef} valor={query} onCambio={setQuery} onBuscar={() => ejecutarBusqueda()} interpretando={interpretando} />
-          <ChipsSugerencias onElegir={elegirSugerencia} />
           <ActiveChips
             textoIA={filtrosAplicados.texto}
             chips={chips}
@@ -239,7 +225,6 @@ export default function Buscador() {
             <EstadoInicial
               totalTours={tours.length}
               totalOperadores={operadores.length}
-              onElegir={elegirSugerencia}
             />
           ) : resultados.length === 0 ? (
             <EstadoSinResultados sugerencia={sugerenciaVacio} onLimpiar={() => setFiltros(FILTROS_INICIALES)} />

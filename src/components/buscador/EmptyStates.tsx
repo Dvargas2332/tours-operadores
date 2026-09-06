@@ -4,16 +4,13 @@
  */
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
-import { ChipsSugerencias } from '@/components/buscador/SearchBar';
-import type { Sugerencia } from '@/components/buscador/SearchBar';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 /** Estado inicial: antes de buscar o filtrar */
-export function EstadoInicial({ totalTours, totalOperadores, onElegir }: {
+export function EstadoInicial({ totalTours, totalOperadores }: {
   totalTours: number;
   totalOperadores: number;
-  onElegir: (s: Sugerencia) => void;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
@@ -50,11 +47,6 @@ export function EstadoInicial({ totalTours, totalOperadores, onElegir }: {
           ? `Escribe lo que necesitas o usa los filtros. ${totalTours} tours de ${totalOperadores} operadores listos para consultar.`
           : 'Agrega operadores y sus tarifarios desde Administración para empezar a buscar.'}
       </motion.p>
-      {totalTours > 0 && (
-        <div className="mt-6 flex justify-center">
-          <ChipsSugerencias grandes onElegir={onElegir} />
-        </div>
-      )}
     </div>
   );
 }
