@@ -100,7 +100,7 @@ export default function TourDetalle() {
         <div className="flex items-center gap-3 px-5 pt-4">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => (tour ? navigate(`/operador/${tour.operador.id}`) : navigate('/buscar'))}
             className="flex h-9 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-3 text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:text-brand md:hidden"
           >
             <ArrowLeft className="h-4 w-4" />

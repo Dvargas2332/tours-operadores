@@ -621,8 +621,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* En página, link discreto de regreso al final */}
         {!esDrawer && (
           <motion.div variants={seccion} className="pb-2 text-center">
-            <Link to="/buscar" className="text-small font-medium text-brand hover:underline">
-              ← Volver a buscar
+            <Link to={`/operador/${tour.operador.id}`} className="text-small font-medium text-brand hover:underline">
+              ← Volver al operador
             </Link>
           </motion.div>
         )}
