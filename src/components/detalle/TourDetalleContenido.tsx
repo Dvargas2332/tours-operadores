@@ -339,6 +339,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             <table className="w-full text-left text-small">
               <thead className="bg-surface-2 text-label uppercase tracking-wide text-ink-muted">
                 <tr>
+                  <th className="px-4 py-2">Tarifa</th>
                   <th className="px-4 py-2">Edad</th>
                   <th className="px-4 py-2">Rack (público)</th>
                   <th className="px-4 py-2">Neta (interno)</th>
@@ -356,6 +357,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                         activa ? 'bg-brand-soft/30' : 'text-ink-muted/70',
                       )}
                     >
+                      <td className="px-4 py-2.5 font-medium text-ink">{t.nombre || '—'}</td>
                       <td className="px-4 py-2.5">
                         {t.max_edad != null ? `${t.min_edad} - ${t.max_edad} años` : `+${t.min_edad} años`}
                       </td>
@@ -369,7 +371,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 })}
                 {tour.tarifas.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
+                    <td colSpan={5} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
                   </tr>
                 )}
               </tbody>
