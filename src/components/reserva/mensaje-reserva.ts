@@ -52,8 +52,8 @@ export function calcularTotal(lineas: LineaReserva[]): number {
 
 function saludoPorHora(): string {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'Buenos días';
-  if (h >= 12 && h < 19) return 'Buenas tardes';
+  if (h >= 5 && h < 12) return 'Hola, buenos días';
+  if (h >= 12 && h < 19) return 'Hola, buenas tardes';
   return 'Hola, muy buenas noches';
 }
 
