@@ -39,9 +39,9 @@ const FMT_HORA = new Intl.DateTimeFormat('es-CR', {
 function breadcrumb(pathname: string): string[] {
   if (pathname === '/') return ['Dashboard'];
   if (pathname === '/buscar') return ['Buscar'];
-  if (pathname.startsWith('/tour/')) return ['Buscar', 'Detalle de tour'];
-  if (pathname.startsWith('/operador/')) return ['Buscar', 'Operador'];
-  if (pathname.startsWith('/reservar/')) return ['Buscar', 'Reservar tour'];
+  if (pathname.startsWith('/tour/')) return ['Detalle de tour'];
+  if (pathname.startsWith('/operador/')) return ['Operador'];
+  if (pathname.startsWith('/reservar/')) return ['Reservar tour'];
   if (pathname.startsWith('/comparar')) return ['Comparador'];
   if (pathname === '/admin') return ['Administración'];
   if (pathname.startsWith('/admin/cargar')) return ['Administración', 'Cargar tarifario'];
