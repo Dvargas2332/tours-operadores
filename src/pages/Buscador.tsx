@@ -224,7 +224,6 @@ export default function Buscador() {
           ) : !mostrarResultados ? (
             <EstadoInicial
               totalTours={tours.length}
-              totalOperadores={operadores.length}
             />
           ) : resultados.length === 0 ? (
             <EstadoSinResultados sugerencia={sugerenciaVacio} onLimpiar={() => setFiltros(FILTROS_INICIALES)} />

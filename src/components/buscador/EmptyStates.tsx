@@ -8,19 +8,18 @@ import { AlertTriangle } from 'lucide-react';
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 /** Estado inicial: antes de buscar o filtrar */
-export function EstadoInicial({ totalTours, totalOperadores }: {
+export function EstadoInicial({ totalTours }: {
   totalTours: number;
-  totalOperadores: number;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
-        src="./empty-initial.svg"
-        alt="Volcán Arenal al atardecer con lago y kayaks"
+        src="./logo/volcan.png"
+        alt="Volcán"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className="w-[280px] max-w-full"
+        className="h-40 w-40 object-contain"
       />
       {/* Pulso de respiración sutil */}
       <motion.div
@@ -37,16 +36,6 @@ export function EstadoInicial({ totalTours, totalOperadores }: {
       >
         {totalTours > 0 ? 'Encuentra el tour perfecto' : 'Aún no hay tours cargados'}
       </motion.h2>
-      <motion.p
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, delay: 0.16, ease: EASE }}
-        className="mt-2 max-w-md text-small text-ink-muted"
-      >
-        {totalTours > 0
-          ? `Escribe lo que necesitas o usa los filtros. ${totalTours} tours de ${totalOperadores} operadores listos para consultar.`
-          : 'Agrega operadores y sus tarifarios desde Administración para empezar a buscar.'}
-      </motion.p>
     </div>
   );
 }
