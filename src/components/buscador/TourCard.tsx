@@ -13,6 +13,7 @@ import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
 import { precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const DOT_FRESCURA: Record<string, string> = {
   ok: 'bg-ok',
@@ -102,6 +103,7 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
   ref,
 ) {
   const cat = CATEGORIA_META[tour.categoria];
+  const { autenticado } = useAuth();
   const fresh = freshness(tour.fecha_actualizacion);
   const tooltipFrescura = `${fresh.label}: ${formatDateEs(tour.fecha_actualizacion)} · Fuente: ${tour.fuente}`;
   const horario = horarioRepresentativo(tour);
@@ -291,7 +293,9 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
           <TooltipContent>
             {tour.tarifas.length > 1
               ? `Precio más bajo por persona · ${tour.tarifas.length} rangos de edad`
-              : 'Tarifa rack por adulto · la neta es el costo del operador (uso interno)'}
+              : autenticado
+                ? 'Tarifa rack por adulto · la neta es el costo del operador (uso interno)'
+                : 'Tarifa por adulto'}
           </TooltipContent>
         </Tooltip>
       </div>

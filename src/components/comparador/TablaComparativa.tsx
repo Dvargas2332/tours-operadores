@@ -101,6 +101,7 @@ interface FilaDef {
 }
 
 function useFilas(tours: Tour[]): FilaDef[] {
+  const { autenticado } = useAuth();
   return useMemo(() => {
     const desde = tours.map(precioDesde);
     const mejorDesde = Math.min(...desde);
@@ -116,7 +117,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
     const filas: FilaDef[] = [
       {
         key: 'precio-desde',
-        label: 'Desde (rack)',
+        label: autenticado ? 'Desde (rack)' : 'Desde',
         valores: desde,
         claseCelda: (t) => (precioDesde(t) === mejorDesde ? 'bg-volcan-soft/60' : undefined),
         render: (t) => (
@@ -128,7 +129,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
       },
       {
         key: 'precio-adulto',
-        label: 'Tarifa rack adulto',
+        label: autenticado ? 'Tarifa rack adulto' : 'Tarifa adulto',
         valores: adultos,
         claseCelda: (t) => {
           const base = tarifaBase(t)?.rack ?? 0;
@@ -148,7 +149,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
       },
       {
         key: 'precio-nino',
-        label: 'Tarifa rack niño',
+        label: autenticado ? 'Tarifa rack niño' : 'Tarifa niño',
         valores: ninos.map((t) => t?.rack ?? null),
         claseCelda: (t) => {
           const n = tarifaNino(t);

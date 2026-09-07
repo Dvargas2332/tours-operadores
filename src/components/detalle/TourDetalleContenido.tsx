@@ -281,7 +281,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Franja de datos clave ===== */}
         <motion.section variants={seccion} aria-label="Datos clave">
           <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : 'rack · adulto'} index={0}>
+            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
             <StatCelda icon={Clock} caption="duración total" index={1}>
@@ -343,7 +343,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 <tr>
                   <th className="px-4 py-2">Tarifa</th>
                   <th className="px-4 py-2">Edad</th>
-                  <th className="px-4 py-2">Rack (público)</th>
+                  <th className="px-4 py-2">{autenticado ? 'Rack (público)' : 'Precio'}</th>
                   {autenticado && <th className="px-4 py-2">Neta (interno)</th>}
                   {autenticado && <th className="px-4 py-2">Margen</th>}
                 </tr>
