@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  Download,
   FileSpreadsheet,
   FileText,
   Flag,
@@ -41,6 +42,7 @@ import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
+import { descargarPoliticaPdf } from '@/lib/pdf';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -523,6 +525,14 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             </h2>
             <p className="mt-2 whitespace-pre-line text-[15px] italic leading-relaxed text-ink">“{tour.politica_cancelacion}”</p>
             <p className="mt-2 text-caption text-ink-muted">Texto tal como aparece en el tarifario del operador.</p>
+            <button
+              type="button"
+              onClick={() => descargarPoliticaPdf(tour)}
+              className="mt-3 inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+            >
+              <Download className="h-4 w-4" />
+              Descargar política (PDF)
+            </button>
           </motion.div>
 
           <motion.div
