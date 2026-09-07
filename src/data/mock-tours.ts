@@ -65,6 +65,13 @@ export interface Tour {
   moneda: Moneda; // usd | crc
 }
 
+export interface Hotel {
+  id: number;
+  nombre: string;
+  whatsapp: string;
+  email: string | null;
+}
+
 /* ------------------------------------------------------------------ */
 /* Helpers de fecha/formato                                            */
 /* ------------------------------------------------------------------ */
@@ -279,4 +286,10 @@ export async function fetchTourById(id: number): Promise<Tour | undefined> {
     .maybeSingle();
   if (error) throw error;
   return data ? mapTour(data as unknown as RowTour) : undefined;
+}
+
+export async function fetchHotel(): Promise<Hotel | null> {
+  const { data, error } = await supabase.from('hotel').select('*').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data ? (data as unknown as Hotel) : null;
 }

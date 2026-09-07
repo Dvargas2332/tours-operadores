@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Clock, MessageCircle, Minus, Plus, Users } from 'lucide-react';
+import { ArrowLeft, Clock, Mail, MessageCircle, Minus, Plus, Users } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ import { telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
 import { fetchTourById, formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
 import type { Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useHotel } from '@/hooks/useHotel';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -75,6 +77,8 @@ export default function Reservar() {
   const [nombreCliente, setNombreCliente] = useState('');
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
+  const { autenticado } = useAuth();
+  const hotelInfo = useHotel();
 
   useEffect(() => {
     fetchTourById(Number(id)).then((t) => {
@@ -96,10 +100,13 @@ export default function Reservar() {
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = useMemo(() => Object.values(conteos).reduce((s, n) => s + n, 0), [conteos]);
 
-  const telefono = useMemo(() => (tour?.operador.telefono ? telefonoDeContacto(tour.operador.telefono) : null), [tour]);
-  const hrefWhatsApp = useMemo(() => {
-    if (!tour || !fecha || !horario || !telefono) return null;
-    const mensaje = buildMensajeReserva({
+  const telefono = useMemo(() => {
+    const fuente = autenticado ? tour?.operador.telefono : hotelInfo?.whatsapp;
+    return fuente ? telefonoDeContacto(fuente) : null;
+  }, [autenticado, tour, hotelInfo]);
+  const mensajeReserva = useMemo(() => {
+    if (!tour || !fecha || !horario) return null;
+    return buildMensajeReserva({
       tour,
       fecha,
       horario,
@@ -109,8 +116,15 @@ export default function Reservar() {
       hotel: hotel || undefined,
       notas: notas || undefined,
     });
-    return urlWhatsApp(telefono, mensaje);
-  }, [tour, fecha, horario, telefono, lineas, total, nombreCliente, hotel, notas]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas]);
+  const hrefWhatsApp = useMemo(
+    () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
+    [telefono, mensajeReserva],
+  );
+  const hrefEmail = useMemo(() => {
+    if (autenticado || !hotelInfo?.email || !mensajeReserva) return null;
+    return `mailto:${hotelInfo.email}?subject=${encodeURIComponent(`Reserva: ${tour?.nombre ?? ''}`)}&body=${encodeURIComponent(mensajeReserva)}`;
+  }, [autenticado, hotelInfo, mensajeReserva, tour]);
 
   if (cargando) {
     return (
@@ -355,7 +369,7 @@ export default function Reservar() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-between">
+                  <div className="mt-6 flex items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => irAPaso(2)}
@@ -364,21 +378,32 @@ export default function Reservar() {
                       <ArrowLeft className="h-4 w-4" />
                       Volver
                     </button>
-                    {hrefWhatsApp ? (
-                      <a
-                        href={hrefWhatsApp}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-[#25D366] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                      >
-                        <MessageCircle className="h-5 w-5" />
-                        Enviar por WhatsApp
-                      </a>
-                    ) : (
-                      <span className="inline-flex h-10 items-center rounded-r-sm bg-ink-faint/60 px-5 text-sm font-semibold text-white">
-                        Operador sin teléfono
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {hrefEmail && (
+                        <a
+                          href={hrefEmail}
+                          className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Enviar por email
+                        </a>
+                      )}
+                      {hrefWhatsApp ? (
+                        <a
+                          href={hrefWhatsApp}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-[#25D366] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                          Enviar por WhatsApp
+                        </a>
+                      ) : (
+                        <span className="inline-flex h-10 items-center rounded-r-sm bg-ink-faint/60 px-5 text-sm font-semibold text-white">
+                          {autenticado ? 'Operador sin teléfono' : 'Hotel sin WhatsApp configurado'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

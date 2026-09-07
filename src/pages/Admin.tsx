@@ -11,6 +11,7 @@ import gsap from 'gsap';
 import { AlertTriangle, Building2, FileSpreadsheet, MapPinned, Plus, Trash2, Upload, UploadCloud } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AgregarOperadoresModal from '@/components/admin/AgregarOperadoresModal';
+import HotelConfig from '@/components/admin/HotelConfig';
 import EditarOperadorModal from '@/components/admin/EditarOperadorModal';
 import EditarTourModal from '@/components/admin/EditarTourModal';
 import OperadoresTable from '@/components/admin/OperadoresTable';
@@ -281,6 +282,11 @@ export default function Admin() {
               Crear tour
             </button>
           </div>
+        </div>
+
+        {/* Configuración del hotel */}
+        <div className="mt-6">
+          <HotelConfig />
         </div>
 
         {/* Error */}

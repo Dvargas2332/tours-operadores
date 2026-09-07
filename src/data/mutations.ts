@@ -386,3 +386,13 @@ export async function subirPoliza(file: File): Promise<string> {
   if (error) throw new Error(error.message);
   return supabase.storage.from('polizas').getPublicUrl(path).data.publicUrl;
 }
+
+/* ------------------------------------------------------------------ */
+/* Configuración del hotel                                             */
+/* ------------------------------------------------------------------ */
+
+export async function actualizarHotel(input: { nombre: string; whatsapp: string; email: string | null }) {
+  const { error } = await supabase.from('hotel').upsert({ id: 1, ...input });
+  if (error) throw error;
+  return { ok: true as const };
+}

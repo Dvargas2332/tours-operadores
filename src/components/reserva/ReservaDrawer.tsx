@@ -5,7 +5,7 @@
  * mensaje de WhatsApp con el desglose y totales.
  */
 import { useMemo, useState } from 'react';
-import { CalendarIcon, ChevronDown, Clock, MessageCircle, Minus, Plus, Users } from 'lucide-react';
+import { CalendarIcon, ChevronDown, Clock, Mail, MessageCircle, Minus, Plus, Users } from 'lucide-react';
 import { buildMensajeReserva, calcularLineasPorTarifas, calcularTotal, labelTarifa, type ConteoTarifas } from '@/components/reserva/mensaje-reserva';
 import { telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
 import { Calendar } from '@/components/ui/calendar';
@@ -16,6 +16,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour, Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useHotel } from '@/hooks/useHotel';
 
 interface ReservaDrawerProps {
   tour: Tour;
@@ -30,18 +32,20 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
   const [nombreCliente, setNombreCliente] = useState('');
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
+  const { autenticado } = useAuth();
+  const hotelInfo = useHotel();
 
   const lineas = useMemo(() => calcularLineasPorTarifas(tour, conteos), [tour, conteos]);
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = Object.values(conteos).reduce((s, n) => s + n, 0);
 
-  const telefono = useMemo(
-    () => (tour.operador.telefono ? telefonoDeContacto(tour.operador.telefono) : null),
-    [tour],
-  );
-  const hrefWhatsApp = useMemo(() => {
-    if (!fecha || !horario || !telefono) return null;
-    const mensaje = buildMensajeReserva({
+  const telefono = useMemo(() => {
+    const fuente = autenticado ? tour.operador.telefono : hotelInfo?.whatsapp;
+    return fuente ? telefonoDeContacto(fuente) : null;
+  }, [autenticado, tour, hotelInfo]);
+  const mensajeReserva = useMemo(() => {
+    if (!fecha || !horario) return null;
+    return buildMensajeReserva({
       tour,
       fecha,
       horario,
@@ -51,8 +55,15 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
       hotel: hotel || undefined,
       notas: notas || undefined,
     });
-    return urlWhatsApp(telefono, mensaje);
-  }, [tour, fecha, horario, telefono, lineas, total, nombreCliente, hotel, notas]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas]);
+  const hrefWhatsApp = useMemo(
+    () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
+    [telefono, mensajeReserva],
+  );
+  const hrefEmail = useMemo(() => {
+    if (autenticado || !hotelInfo?.email || !mensajeReserva) return null;
+    return `mailto:${hotelInfo.email}?subject=${encodeURIComponent(`Reserva: ${tour.nombre}`)}&body=${encodeURIComponent(mensajeReserva)}`;
+  }, [autenticado, hotelInfo, mensajeReserva, tour]);
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -267,7 +278,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
           </div>
 
           {/* Footer fijo */}
-          <div className="border-t border-border bg-surface p-4">
+          <div className="space-y-2 border-t border-border bg-surface p-4">
             {hrefWhatsApp ? (
               <a
                 href={hrefWhatsApp}
@@ -286,8 +297,17 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
               </a>
             ) : (
               <span className="flex h-12 w-full items-center justify-center rounded-r-sm bg-ink-faint/60 text-sm font-semibold text-white">
-                Operador sin teléfono
+                {autenticado ? 'Operador sin teléfono' : 'Hotel sin WhatsApp configurado'}
               </span>
+            )}
+            {hrefEmail && (
+              <a
+                href={hrefEmail}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-r-sm border border-border bg-surface text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand"
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por email
+              </a>
             )}
           </div>
         </div>

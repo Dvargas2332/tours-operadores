@@ -63,3 +63,24 @@ grant select (id, operador_id, nombre, zona, categoria, precio_adulto, precio_ni
 grant select (id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion) on public.operadores to anon;
 
 grant select (id, tour_id, nombre, min_edad, max_edad, rack, orden) on public.tour_tarifas to anon;
+
+-- ----------------------------------------------------------------------------
+-- 4) Configuración del hotel (destino de reservas públicas)
+-- ----------------------------------------------------------------------------
+create table if not exists public.hotel (
+  id serial primary key,
+  nombre varchar(255) not null default '',
+  whatsapp varchar(50) not null default '',
+  email varchar(255)
+);
+
+insert into public.hotel (id, nombre, whatsapp, email) values (1, '', '', null)
+on conflict (id) do nothing;
+
+alter table public.hotel enable row level security;
+
+create policy "hotel_lectura_publica" on public.hotel
+  for select to anon using (true);
+
+create policy "hotel_acceso" on public.hotel
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
