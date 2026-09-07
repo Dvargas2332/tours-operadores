@@ -50,3 +50,16 @@ create policy "polizas_upload" on storage.objects
 
 create policy "polizas_delete" on storage.objects
   for delete to authenticated using (bucket_id = 'polizas');
+
+-- ----------------------------------------------------------------------------
+-- 3) Blindado de columnas internas: anon NO lee comisión / neta / precios netos
+-- ----------------------------------------------------------------------------
+revoke all on public.tours from anon;
+revoke all on public.operadores from anon;
+revoke all on public.tour_tarifas from anon;
+
+grant select (id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda) on public.tours to anon;
+
+grant select (id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion) on public.operadores to anon;
+
+grant select (id, tour_id, nombre, min_edad, max_edad, rack, orden) on public.tour_tarifas to anon;

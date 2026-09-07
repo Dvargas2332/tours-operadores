@@ -242,27 +242,41 @@ function mapTour(t: RowTour): Tour {
 /* Fetchers async — punto único de acceso a datos (Supabase)           */
 /* ------------------------------------------------------------------ */
 
+async function esAutenticado(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return data.session != null;
+}
+
+const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
+const TOURS_SELECT_PUBLICO =
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+const OPERADORES_SELECT = '*';
+const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion';
+
 export async function fetchTours(): Promise<Tour[]> {
+  const select = (await esAutenticado()) ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
   const { data, error } = await supabase
     .from('tours')
-    .select('*, operadores(*), tour_tarifas(*), tour_horarios(*)')
+    .select(select)
     .order('precio_adulto');
   if (error) throw error;
-  return (data as RowTour[] | null ?? []).map(mapTour);
+  return ((data as unknown as RowTour[]) ?? []).map(mapTour);
 }
 
 export async function fetchOperadores(): Promise<Operador[]> {
-  const { data, error } = await supabase.from('operadores').select('*').order('nombre');
+  const select = (await esAutenticado()) ? OPERADORES_SELECT : OPERADORES_SELECT_PUBLICO;
+  const { data, error } = await supabase.from('operadores').select(select).order('nombre');
   if (error) throw error;
-  return (data as RowOperador[] | null ?? []).map(mapOperador);
+  return ((data as unknown as RowOperador[]) ?? []).map(mapOperador);
 }
 
 export async function fetchTourById(id: number): Promise<Tour | undefined> {
+  const select = (await esAutenticado()) ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
   const { data, error } = await supabase
     .from('tours')
-    .select('*, operadores(*), tour_tarifas(*), tour_horarios(*)')
+    .select(select)
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
-  return data ? mapTour(data as RowTour) : undefined;
+  return data ? mapTour(data as unknown as RowTour) : undefined;
 }

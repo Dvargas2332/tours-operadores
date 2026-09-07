@@ -5,6 +5,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { clearToursCache } from '@/hooks/useToursData';
 
 interface AuthContextValue {
   autenticado: boolean;
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAutenticado(sesion != null);
       setUsuario(sesion?.user?.email ?? null);
       setCargando(false);
+      clearToursCache();
     });
 
     return () => sub.subscription.unsubscribe();
