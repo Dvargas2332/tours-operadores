@@ -19,6 +19,7 @@ export interface DatosReserva {
   nombreCliente?: string;
   hotel?: string;
   notas?: string;
+  metodosPago?: string[];
 }
 
 export type ConteoTarifas = Record<number, number>;
@@ -75,6 +76,9 @@ export function buildMensajeReserva(d: DatosReserva): string {
   if (d.nombreCliente) lineas.push(``, `Nombre: ${d.nombreCliente}`);
   if (d.hotel) lineas.push(`Hotel: ${d.hotel}`);
   if (d.notas) lineas.push(`Notas: ${d.notas}`);
+  if (d.metodosPago && d.metodosPago.length > 0) {
+    lineas.push(`Método de pago: ${d.metodosPago.join(', ')}`);
+  }
 
   lineas.push(
     ``,

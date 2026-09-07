@@ -77,6 +77,8 @@ export default function Reservar() {
   const [nombreCliente, setNombreCliente] = useState('');
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
+  const [pagoLink, setPagoLink] = useState(false);
+  const [pagoRecepcion, setPagoRecepcion] = useState(false);
   const { autenticado } = useAuth();
   const hotelInfo = useHotel();
 
@@ -115,8 +117,12 @@ export default function Reservar() {
       nombreCliente: nombreCliente || undefined,
       hotel: hotel || undefined,
       notas: notas || undefined,
+      metodosPago: [
+        ...(pagoLink ? ['Link de pago'] : []),
+        ...(pagoRecepcion ? ['Pago en recepción'] : []),
+      ],
     });
-  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoRecepcion]);
   const hrefWhatsApp = useMemo(
     () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
     [telefono, mensajeReserva],
@@ -366,6 +372,19 @@ export default function Reservar() {
                     <div>
                       <Label htmlFor="notas">Notas adicionales</Label>
                       <Input id="notas" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" />
+                    </div>
+                    <div>
+                      <Label>Método de pago</Label>
+                      <div className="mt-2 space-y-2">
+                        <label className="flex items-center gap-2 text-small text-ink">
+                          <input type="checkbox" checked={pagoLink} onChange={(e) => setPagoLink(e.target.checked)} className="h-4 w-4" />
+                          Link de pago
+                        </label>
+                        <label className="flex items-center gap-2 text-small text-ink">
+                          <input type="checkbox" checked={pagoRecepcion} onChange={(e) => setPagoRecepcion(e.target.checked)} className="h-4 w-4" />
+                          Pago en recepción
+                        </label>
+                      </div>
                     </div>
                   </div>
 

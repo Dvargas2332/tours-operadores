@@ -241,9 +241,11 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             >
               <Scale className="h-4 w-4" />
             </IconBoton>
-            <IconBoton label="Copiar resumen" onClick={copiarResumen}>
-              <Copy className="h-4 w-4" />
-            </IconBoton>
+            {autenticado && (
+              <IconBoton label="Copiar resumen" onClick={copiarResumen}>
+                <Copy className="h-4 w-4" />
+              </IconBoton>
+            )}
             {esDrawer && onCerrar && (
               <IconBoton label="Cerrar (Esc)" onClick={onCerrar}>
                 <X className="h-4 w-4" />
@@ -261,20 +263,22 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           {tour.nombre}
         </h1>
 
-        <div className="mt-2">
-          <PopoverOperador operador={tour.operador} tour={tour}>
-            <button
-              type="button"
-              className="group inline-flex items-center gap-1.5 rounded-r-sm text-left transition-colors duration-fast hover:text-brand"
-            >
-              <Building2 className="h-3.5 w-3.5 text-ink-muted transition-colors duration-fast group-hover:text-brand" />
-              <span className="text-[15px] font-semibold text-ink-muted transition-colors duration-fast group-hover:text-brand">
-                {tour.operador.nombre}
-              </span>
-              <span className="text-caption text-ink-faint">Operador</span>
-            </button>
-          </PopoverOperador>
-        </div>
+        {autenticado && (
+          <div className="mt-2">
+            <PopoverOperador operador={tour.operador} tour={tour}>
+              <button
+                type="button"
+                className="group inline-flex items-center gap-1.5 rounded-r-sm text-left transition-colors duration-fast hover:text-brand"
+              >
+                <Building2 className="h-3.5 w-3.5 text-ink-muted transition-colors duration-fast group-hover:text-brand" />
+                <span className="text-[15px] font-semibold text-ink-muted transition-colors duration-fast group-hover:text-brand">
+                  {tour.operador.nombre}
+                </span>
+                <span className="text-caption text-ink-faint">Operador</span>
+              </button>
+            </PopoverOperador>
+          </div>
+        )}
       </motion.header>
 
       <div className="space-y-6 px-5 py-5">
@@ -537,7 +541,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           </motion.div>
         </motion.section>
 
-        {/* ===== Procedencia del dato ===== */}
+        {/* ===== Procedencia del dato (solo admin) ===== */}
+        {autenticado && (
         <motion.section variants={seccion} aria-label="Procedencia del dato">
           {fresh.estado !== 'ok' && (
             <motion.div
@@ -604,10 +609,12 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             </div>
           </motion.div>
         </motion.section>
+        )}
 
         <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
 
-        {/* ===== Copiar resumen (killer feature) ===== */}
+        {/* ===== Copiar resumen (solo admin) ===== */}
+        {autenticado && (
         <motion.section variants={seccion}>
           <motion.button
             type="button"
@@ -623,12 +630,16 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             {copiado ? 'Copiado ✓' : 'Copiar resumen para el huésped'}
           </motion.button>
         </motion.section>
+        )}
 
         {/* En página, link discreto de regreso al final */}
         {!esDrawer && (
           <motion.div variants={seccion} className="pb-2 text-center">
-            <Link to={`/operador/${tour.operador.id}`} className="text-small font-medium text-brand hover:underline">
-              ← Volver al operador
+            <Link
+              to={autenticado ? `/operador/${tour.operador.id}` : '/buscar'}
+              className="text-small font-medium text-brand hover:underline"
+            >
+              {autenticado ? '← Volver al operador' : '← Volver a buscar'}
             </Link>
           </motion.div>
         )}
