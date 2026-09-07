@@ -13,7 +13,7 @@ export interface LineaReserva {
 export interface DatosReserva {
   tour: Tour;
   fecha: Date;
-  horario: Horario;
+  horario?: Horario;
   lineas: LineaReserva[];
   total: number;
   nombreCliente?: string;
@@ -59,12 +59,16 @@ function saludoPorHora(): string {
 }
 
 export function buildMensajeReserva(d: DatosReserva): string {
+  const horarioLinea = d.horario
+    ? `Duración: ${formatDuracion(d.tour.duracion_horas)} · Salida: ${d.horario.hora_salida} · Llegada: ${d.horario.hora_llegada}`
+    : `Duración: ${formatDuracion(d.tour.duracion_horas)} · Horario: ${d.tour.operador.horario || 'consultar en recepción'}`;
+
   const lineas = [
     `${saludoPorHora()}. Me gustaría formalizar la siguiente reservación:`,
     ``,
     `*${d.tour.nombre}*`,
     `Fecha: ${formatDateEs(d.fecha.toISOString().slice(0, 10))}`,
-    `Duración: ${formatDuracion(d.tour.duracion_horas)} · Salida: ${d.horario.hora_salida} · Llegada: ${d.horario.hora_llegada}`,
+    horarioLinea,
     ``,
     `*Personas:*`,
   ];

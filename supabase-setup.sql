@@ -60,7 +60,7 @@ revoke all on public.tour_tarifas from anon;
 
 grant select (id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda) on public.tours to anon;
 
-grant select (id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion) on public.operadores to anon;
+grant select (id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario) on public.operadores to anon;
 
 grant select (id, tour_id, nombre, min_edad, max_edad, rack, orden) on public.tour_tarifas to anon;
 
@@ -78,6 +78,12 @@ insert into public.hotel (id, nombre, whatsapp, email) values (1, '', '', null)
 on conflict (id) do nothing;
 
 alter table public.hotel enable row level security;
+
+-- ----------------------------------------------------------------------------
+-- 5) Horario del operador (para tours que heredan su horario)
+-- ----------------------------------------------------------------------------
+alter table public.operadores add column if not exists horario varchar(255) not null default '';
+grant select (horario) on public.operadores to anon;
 
 create policy "hotel_lectura_publica" on public.hotel
   for select to anon using (true);

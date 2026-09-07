@@ -46,7 +46,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
     return fuente ? telefonoDeContacto(fuente) : null;
   }, [autenticado, tour, hotelInfo]);
   const mensajeReserva = useMemo(() => {
-    if (!fecha || !horario) return null;
+    if (!fecha) return null;
     return buildMensajeReserva({
       tour,
       fecha,
@@ -78,7 +78,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
     setConteos((prev) => ({ ...prev, [tarifaId]: Math.max(0, (prev[tarifaId] ?? 0) + delta) }));
   };
 
-  const puedeEnviar = fecha != null && horario != null && totalPersonas >= tour.minimo_personas && hrefWhatsApp != null;
+  const puedeEnviar = fecha != null && (tour.horarios.length === 0 || horario != null) && totalPersonas >= tour.minimo_personas && hrefWhatsApp != null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

@@ -32,6 +32,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   const [email, setEmail] = useState('');
   const [comision, setComision] = useState('');
   const [politica, setPolitica] = useState('');
+  const [horario, setHorario] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
@@ -48,6 +49,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       setEmail(operador.email ?? '');
       setComision(operador.comision != null ? String(operador.comision) : '');
       setPolitica(operador.politica_cancelacion || '');
+      setHorario(operador.horario || '');
       setLogoPreview(operador.logo_url || null);
       setPolizaUrl(operador.poliza_url || null);
     }
@@ -159,6 +161,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       email: emailLimpio ? emailLimpio : null,
       comision: comisionNum,
       politicaCancelacion: politica.trim(),
+      horario: horario.trim(),
       ...(logoUrl !== undefined && { logoUrl }),
       ...(nuevaPolizaUrl !== undefined && { polizaUrl: nuevaPolizaUrl }),
     });
@@ -237,6 +240,20 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
               onChange={(e) => setPolitica(e.target.value)}
               placeholder="Ej: Cancelación gratuita hasta 24 horas antes..."
               className="mt-1 w-full rounded-r-sm border border-border bg-surface px-3 py-2 text-small text-ink focus:border-brand focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="op-horario">Horario del operador</Label>
+            <p className="text-small text-ink-muted">
+              Lo usan los tours que no tienen horario propio.
+            </p>
+            <Input
+              id="op-horario"
+              value={horario}
+              onChange={(e) => setHorario(e.target.value)}
+              placeholder="Ej: Todos los días de 7:00 a.m. a 5:00 p.m."
+              className="mt-1"
             />
           </div>
 

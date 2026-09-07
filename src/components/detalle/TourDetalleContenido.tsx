@@ -293,15 +293,23 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             <StatCelda icon={Clock} caption="duración total" index={1}>
               <ValorCountUp valor={tour.duracion_horas} formato={(v) => formatDuracion(Math.round(v * 10) / 10)} />
             </StatCelda>
-            <StatCelda icon={Bus} caption="hora de salida" index={2}>
-              <span className="tnum">{horario?.hora_salida ?? '—'}</span>
-              {tour.horarios.length > 1 && (
-                <span className="ml-1 text-caption text-ink-faint">+{tour.horarios.length - 1}</span>
-              )}
-            </StatCelda>
-            <StatCelda icon={Flag} caption="hora de llegada" index={3}>
-              <span className="tnum">{horario?.hora_llegada ?? '—'}</span>
-            </StatCelda>
+            {tour.horarios.length > 0 ? (
+              <>
+                <StatCelda icon={Bus} caption="hora de salida" index={2}>
+                  <span className="tnum">{horario?.hora_salida ?? '—'}</span>
+                  {tour.horarios.length > 1 && (
+                    <span className="ml-1 text-caption text-ink-faint">+{tour.horarios.length - 1}</span>
+                  )}
+                </StatCelda>
+                <StatCelda icon={Flag} caption="hora de llegada" index={3}>
+                  <span className="tnum">{horario?.hora_llegada ?? '—'}</span>
+                </StatCelda>
+              </>
+            ) : (
+              <StatCelda icon={Clock} caption="horario" index={2}>
+                <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
+              </StatCelda>
+            )}
           </div>
 
           {/* Badges informativos */}

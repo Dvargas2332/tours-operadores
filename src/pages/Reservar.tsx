@@ -107,7 +107,7 @@ export default function Reservar() {
     return fuente ? telefonoDeContacto(fuente) : null;
   }, [autenticado, tour, hotelInfo]);
   const mensajeReserva = useMemo(() => {
-    if (!tour || !fecha || !horario) return null;
+    if (!tour || !fecha) return null;
     return buildMensajeReserva({
       tour,
       fecha,
@@ -232,11 +232,11 @@ export default function Reservar() {
                   <div className="mt-6 flex justify-end">
                     <button
                       type="button"
-                      disabled={!fecha || !horario}
+                      disabled={!fecha || (tour.horarios.length > 0 && !horario)}
                       onClick={() => irAPaso(2)}
                       className={cn(
                         'inline-flex h-10 items-center gap-2 rounded-r-sm px-5 text-sm font-semibold text-white',
-                        !fecha || !horario ? 'cursor-not-allowed bg-ink-faint/60' : 'bg-brand hover:bg-brand-hover',
+                        !fecha || (tour.horarios.length > 0 && !horario) ? 'cursor-not-allowed bg-ink-faint/60' : 'bg-brand hover:bg-brand-hover',
                       )}
                     >
                       Continuar

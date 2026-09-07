@@ -85,6 +85,9 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       ? tour.horarios.slice().sort((a, b) => a.orden - b.orden).map((h) => ({ id: h.id, hora_salida: h.hora_salida, hora_llegada: h.hora_llegada }))
       : [{ hora_salida: '08:00', hora_llegada: '12:00' }],
   );
+  const [modoHorario, setModoHorario] = useState<'propio' | 'operador'>(() =>
+    tour && tour.horarios.length === 0 ? 'operador' : 'propio',
+  );
   const [minimoPersonas, setMinimoPersonas] = useState(() => (tour ? String(tour.minimo_personas) : '2'));
   const [aptoNinos, setAptoNinos] = useState(() => tour?.apto_ninos ?? true);
   const [observaciones, setObservaciones] = useState(() => tour?.observaciones ?? '');
@@ -166,15 +169,17 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       return;
     }
 
-    for (let i = 0; i < horarios.length; i++) {
-      const h = horarios[i];
-      if (!/^\d{2}:\d{2}$/.test(h.hora_salida) || !/^\d{2}:\d{2}$/.test(h.hora_llegada)) {
-        setError(`Horario ${i + 1} inválido (HH:MM)`);
-        return;
-      }
-      if (h.hora_salida >= h.hora_llegada) {
-        setError(`En el horario ${i + 1} la salida debe ser antes de la llegada`);
-        return;
+    if (modoHorario === 'propio') {
+      for (let i = 0; i < horarios.length; i++) {
+        const h = horarios[i];
+        if (!/^\d{2}:\d{2}$/.test(h.hora_salida) || !/^\d{2}:\d{2}$/.test(h.hora_llegada)) {
+          setError(`Horario ${i + 1} inválido (HH:MM)`);
+          return;
+        }
+        if (h.hora_salida >= h.hora_llegada) {
+          setError(`En el horario ${i + 1} la salida debe ser antes de la llegada`);
+          return;
+        }
       }
     }
 
@@ -227,7 +232,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       precioNetoAdulto: tarifaAdulto.neta,
       tarifas: tarifasBackend,
       duracionHoras: duracionNum,
-      horarios: horarios.map((h, i) => ({ horaSalida: h.hora_salida, horaLlegada: h.hora_llegada, orden: i })),
+      horarios: modoHorario === 'operador' ? [] : horarios.map((h, i) => ({ horaSalida: h.hora_salida, horaLlegada: h.hora_llegada, orden: i })),
       incluye,
       noIncluye: [] as string[],
       minimoPersonas: minimoNum,
@@ -318,46 +323,78 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
               <Input id="t-duracion" type="number" min={0.5} step={0.5} value={duracion} onChange={(e) => setDuracion(e.target.value)} className="mt-1" />
             </div>
             <div className="sm:col-span-2">
-              <div className="mb-2 flex items-center justify-between">
-                <Label>Horarios de salida / llegada</Label>
+              <Label>Horario</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={agregarHorario}
-                  className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft"
+                  onClick={() => setModoHorario('propio')}
+                  className={cn(
+                    'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-caption font-semibold transition-colors duration-fast',
+                    modoHorario === 'propio' ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
+                  )}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Agregar horario
+                  Horario propio del tour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoHorario('operador')}
+                  className={cn(
+                    'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-caption font-semibold transition-colors duration-fast',
+                    modoHorario === 'operador' ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
+                  )}
+                >
+                  Usar horario del operador
                 </button>
               </div>
-              <div className="space-y-2">
-                {horarios.map((h, idx) => (
-                  <div key={h.id ?? idx} className="flex items-center gap-2">
-                    <div className="flex flex-1 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 py-2">
-                      <Input
-                        value={h.hora_salida}
-                        onChange={(e) => actualizarHorario(idx, { hora_salida: e.target.value })}
-                        placeholder="HH:MM"
-                        className="w-24 tnum"
-                      />
-                      <span className="text-ink-muted">→</span>
-                      <Input
-                        value={h.hora_llegada}
-                        onChange={(e) => actualizarHorario(idx, { hora_llegada: e.target.value })}
-                        placeholder="HH:MM"
-                        className="w-24 tnum"
-                      />
-                    </div>
+
+              {modoHorario === 'operador' ? (
+                <p className="mt-3 rounded-r-sm border border-border bg-surface-2 px-3 py-2 text-small text-ink-muted">
+                  Este tour usará el horario configurado en el operador.
+                </p>
+              ) : (
+                <div className="mt-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <Label>Horarios de salida / llegada</Label>
                     <button
                       type="button"
-                      onClick={() => eliminarHorario(idx)}
-                      disabled={horarios.length <= 1}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                      onClick={agregarHorario}
+                      className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Plus className="h-3.5 w-3.5" />
+                      Agregar horario
                     </button>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2">
+                    {horarios.map((h, idx) => (
+                      <div key={h.id ?? idx} className="flex items-center gap-2">
+                        <div className="flex flex-1 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 py-2">
+                          <Input
+                            value={h.hora_salida}
+                            onChange={(e) => actualizarHorario(idx, { hora_salida: e.target.value })}
+                            placeholder="HH:MM"
+                            className="w-24 tnum"
+                          />
+                          <span className="text-ink-muted">→</span>
+                          <Input
+                            value={h.hora_llegada}
+                            onChange={(e) => actualizarHorario(idx, { hora_llegada: e.target.value })}
+                            placeholder="HH:MM"
+                            className="w-24 tnum"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => eliminarHorario(idx)}
+                          disabled={horarios.length <= 1}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="t-minimo">Mínimo personas</Label>
