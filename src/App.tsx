@@ -20,22 +20,17 @@ export default function App() {
       <CompareProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          {/* Rutas protegidas: RequireAuth redirige a /login sin sesión */}
-          <Route
-            element={
-              <RequireAuth>
-                <Layout />
-              </RequireAuth>
-            }
-          >
+          <Route element={<Layout />}>
+            {/* Vistas públicas (sin sesión) */}
             <Route index element={<Dashboard />} />
             <Route path="buscar" element={<Buscador />} />
             <Route path="tour/:id" element={<TourDetalle />} />
             <Route path="operador/:id" element={<OperadorDetalle />} />
             <Route path="reservar/:id" element={<Reservar />} />
             <Route path="comparar" element={<Comparador />} />
-            <Route path="admin" element={<Admin />} />
-            <Route path="admin/cargar" element={<CargarTarifario />} />
+            {/* Administración (requiere sesión) */}
+            <Route path="admin" element={<RequireAuth><Admin /></RequireAuth>} />
+            <Route path="admin/cargar" element={<RequireAuth><CargarTarifario /></RequireAuth>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

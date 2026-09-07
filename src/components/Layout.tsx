@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { LogIn, LogOut, Menu, Moon, Sun } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
@@ -50,7 +50,7 @@ function breadcrumb(pathname: string): string[] {
 
 export default function Layout() {
   const { tema, toggle } = useTheme();
-  const { cerrarSesion } = useAuth();
+  const { cerrarSesion, autenticado } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ahora = useReloj();
@@ -141,16 +141,27 @@ export default function Layout() {
             </AnimatePresence>
           </button>
 
-          {/* Cerrar sesión */}
-          <button
-            type="button"
-            onClick={salir}
-            aria-label="Cerrar sesión"
-            className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
-          >
-            <LogOut className="h-[18px] w-[18px]" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+          {autenticado ? (
+            <button
+              type="button"
+              onClick={salir}
+              aria-label="Cerrar sesión"
+              className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              aria-label="Iniciar sesión"
+              className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+            >
+              <LogIn className="h-[18px] w-[18px]" />
+              <span className="hidden sm:inline">Ingresar</span>
+            </button>
+          )}
         </header>
 
         {/* Slot de contenido: cada vista maneja su scroll interno */}

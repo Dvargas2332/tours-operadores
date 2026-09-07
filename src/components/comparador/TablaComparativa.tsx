@@ -14,6 +14,7 @@ import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -329,7 +330,8 @@ interface TablaComparativaProps {
 }
 
 export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar, onVerDetalle }: TablaComparativaProps) {
-  const filas = useFilas(tours);
+  const { autenticado } = useAuth();
+  const filas = useFilas(tours).filter((f) => autenticado || (f.key !== 'neta-adulto' && f.key !== 'neta-nino'));
 
   const copiarResumen = async (tour: Tour) => {
     const ok = await copiarTexto(buildResumenTour(tour));

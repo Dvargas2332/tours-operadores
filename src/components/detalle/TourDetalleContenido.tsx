@@ -35,6 +35,7 @@ import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detall
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
+import { useAuth } from '@/context/AuthContext';
 import { formatPrecio, freshness, formatDateEs, horarioRepresentativo, salidasTour } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
@@ -171,6 +172,7 @@ export interface TourDetalleContenidoProps {
 
 export default function TourDetalleContenido({ tour, variante, scrolled = false, onCerrar }: TourDetalleContenidoProps) {
   const { toggle, estaSeleccionado } = useCompare();
+  const { autenticado } = useAuth();
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -342,8 +344,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                   <th className="px-4 py-2">Tarifa</th>
                   <th className="px-4 py-2">Edad</th>
                   <th className="px-4 py-2">Rack (público)</th>
-                  <th className="px-4 py-2">Neta (interno)</th>
-                  <th className="px-4 py-2">Margen</th>
+                  {autenticado && <th className="px-4 py-2">Neta (interno)</th>}
+                  {autenticado && <th className="px-4 py-2">Margen</th>}
                 </tr>
               </thead>
               <tbody>
@@ -362,16 +364,20 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                         {t.max_edad != null ? `${t.min_edad} - ${t.max_edad} años` : `+${t.min_edad} años`}
                       </td>
                       <td className="px-4 py-2.5 tnum font-medium text-ink">{formatPrecio(t.rack, tour.moneda)}</td>
-                      <td className="px-4 py-2.5 tnum text-brand">{t.neta != null ? formatPrecio(t.neta, tour.moneda) : '—'}</td>
-                      <td className="px-4 py-2.5 tnum text-ink-muted">
-                        {t.neta != null ? formatPrecio(t.rack - t.neta, tour.moneda) : '—'}
-                      </td>
+                      {autenticado && (
+                        <td className="px-4 py-2.5 tnum text-brand">{t.neta != null ? formatPrecio(t.neta, tour.moneda) : '—'}</td>
+                      )}
+                      {autenticado && (
+                        <td className="px-4 py-2.5 tnum text-ink-muted">
+                          {t.neta != null ? formatPrecio(t.rack - t.neta, tour.moneda) : '—'}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
                 {tour.tarifas.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
+                    <td colSpan={autenticado ? 5 : 3} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
                   </tr>
                 )}
               </tbody>

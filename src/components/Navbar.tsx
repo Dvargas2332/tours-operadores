@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Columns3, Home, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCompare } from '@/context/CompareContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToursData } from '@/hooks/useToursData';
 import { freshness } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ const SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: NavbarProps) {
   const data = useToursData();
   const { seleccionados } = useCompare();
+  const { autenticado } = useAuth();
 
   const desactualizados = data
     ? data.tours.filter((t) => freshness(t.fecha_actualizacion).estado !== 'ok').length
@@ -65,14 +67,18 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
       badge: seleccionados.length > 0 ? seleccionados.length : null,
       badgeTono: 'brand',
     },
-    {
-      to: '/admin',
-      label: 'Administración',
-      icon: Building2,
-      badge: desactualizados > 0 ? desactualizados : null,
-      badgeTono: 'alerta',
-      end: true,
-    },
+    ...(autenticado
+      ? ([
+          {
+            to: '/admin',
+            label: 'Administración',
+            icon: Building2,
+            badge: desactualizados > 0 ? desactualizados : null,
+            badgeTono: 'alerta',
+            end: true,
+          },
+        ] as NavItem[])
+      : []),
   ];
 
   return (

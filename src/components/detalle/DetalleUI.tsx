@@ -13,6 +13,7 @@ import type { Operador, Tour } from '@/data/mock-tours';
 import { buildResumenTour, telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 export const DOT_FRESCURA: Record<string, string> = {
   ok: 'bg-ok',
@@ -75,6 +76,7 @@ interface PopoverOperadorProps {
 /** Popover con datos del operador; la comisión va marcada "Uso interno" */
 export function PopoverOperador({ operador, children, open, onOpenChange, tour }: PopoverOperadorProps) {
   const [interno, setInterno] = useState(false);
+  const { autenticado } = useAuth();
   const controlado = open !== undefined;
   const abierto = controlado ? open : interno;
   const setAbierto = (v: boolean) => {
@@ -121,7 +123,7 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
             Enviar por WhatsApp
           </a>
         )}
-        {operador.comision != null && (
+        {autenticado && operador.comision != null && (
           <div className="mt-3 border-t border-border pt-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-label text-ink-muted">Comisión</span>
