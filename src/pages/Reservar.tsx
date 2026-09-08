@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { buildMensajeReserva, calcularLineasPorTarifas, calcularTotal, labelTarifa, type ConteoTarifas } from '@/components/reserva/mensaje-reserva';
 import { telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
-import { fetchTourById, formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
+import { fetchTourById, formatPrecio, horarioLabel, horarioRepresentativo } from '@/data/mock-tours';
 import type { Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -220,9 +220,7 @@ export default function Reservar() {
                             )}
                           >
                             <Clock className="h-3.5 w-3.5" />
-                            <span className="tnum">{h.hora_salida}</span>
-                            <span className="text-ink-faint">→</span>
-                            <span className="tnum">{h.hora_llegada}</span>
+                            <span className="tnum">{horarioLabel(h)}</span>
                           </button>
                         ))}
                       </div>

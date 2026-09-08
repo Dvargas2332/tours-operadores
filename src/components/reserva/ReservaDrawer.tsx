@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
+import { formatPrecio, horarioLabel, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour, Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -154,9 +154,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                         )}
                       >
                         <Clock className="h-3.5 w-3.5" />
-                        <span className="tnum">{h.hora_salida}</span>
-                        <span className="text-ink-faint">→</span>
-                        <span className="tnum">{h.hora_llegada}</span>
+                        <span className="tnum">{horarioLabel(h)}</span>
                       </button>
                     ))}
                   </div>

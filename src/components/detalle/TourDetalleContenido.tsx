@@ -38,7 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
@@ -479,7 +479,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 label: 'Horarios de tours',
                 valor: tour.horarios.length ? (
                   <span className="tnum text-base">
-                    {horariosOrdenados.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}
+                    {horariosOrdenados.map(horarioLabel).join(' · ')}
                   </span>
                 ) : (
                   <span className="text-base text-ink-faint">{tour.operador.horario || 'No especificado'}</span>

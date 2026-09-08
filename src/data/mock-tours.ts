@@ -127,6 +127,31 @@ export function salidasTour(tour: Tour): string {
   return salidas.join(', ');
 }
 
+/** Indica si el horario tiene una llegada real (distinta de la salida). */
+export function horarioTieneLlegada(h: Horario): boolean {
+  const salida = (h.hora_salida ?? '').trim();
+  const llegada = (h.hora_llegada ?? '').trim();
+  return !!llegada && llegada !== salida;
+}
+
+/**
+ * Etiqueta compacta de un horario:
+ * - con llegada real: "08:00 - 12:00"
+ * - sin llegada:      "Inicia 08:00"
+ */
+export function horarioLabel(h: Horario): string {
+  return horarioTieneLlegada(h) ? `${h.hora_salida} - ${h.hora_llegada}` : `Inicia ${h.hora_salida}`;
+}
+
+/** Lista legible de horarios de un tour, p. ej. "Inicia 08:00 · 13:00 - 17:00". */
+export function horariosLabel(tour: Tour): string {
+  return tour.horarios
+    .slice()
+    .sort((a, b) => a.orden - b.orden)
+    .map(horarioLabel)
+    .join(' · ');
+}
+
 /* ------------------------------------------------------------------ */
 /* Mapeo Supabase (PostgREST, snake_case) → frontend (design.md §8)    */
 /* ------------------------------------------------------------------ */

@@ -2,7 +2,7 @@
  * Generadores de texto plano para copiar al portapapeles (tour-detalle.md §7,
  * comparador.md §6). Texto limpio para el huésped: sin comisión ni fuente.
  */
-import { formatPrecio } from '@/data/mock-tours';
+import { formatPrecio, horariosLabel } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 
@@ -35,7 +35,7 @@ function preciosLinea(tour: Tour): string {
 /** Resumen de un tour para el huésped (tour-detalle.md §7) */
 export function buildResumenTour(tour: Tour): string {
   const horarioTexto = tour.horarios.length > 0
-    ? `Horarios de tours: ${tour.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}`
+    ? `Horarios de tours: ${horariosLabel(tour)}`
     : `Horarios de tours: ${tour.operador.horario || '—'}`;
   const lineas = [
     `${tour.nombre} — ${tour.operador.nombre}`,
@@ -53,7 +53,7 @@ export function buildResumenComparacion(tours: Tour[]): string {
   const monedas = [...new Set(tours.map((t) => (t.moneda === 'crc' ? 'CRC' : 'USD')))];
   const bloques = tours.map((tour, i) => {
     const horarioTexto = tour.horarios.length > 0
-      ? `Horarios de tours: ${tour.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}`
+      ? `Horarios de tours: ${horariosLabel(tour)}`
       : `Horarios de tours: ${tour.operador.horario || '—'}`;
     return [
       `${i + 1}) ${tour.nombre} — ${tour.operador.nombre}`,

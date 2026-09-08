@@ -1,4 +1,4 @@
-import { formatPrecio, formatDateEs } from '@/data/mock-tours';
+import { formatPrecio, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa, Horario } from '@/data/mock-tours';
 
 export interface LineaReserva {
@@ -59,7 +59,7 @@ function saludoPorHora(): string {
 
 export function buildMensajeReserva(d: DatosReserva): string {
   const horarioLinea = d.horario
-    ? `Horarios de tours: ${d.horario.hora_salida} - ${d.horario.hora_llegada}`
+    ? `Horarios de tours: ${horarioLabel(d.horario)}`
     : `Horarios de tours: ${d.tour.operador.horario || 'consultar en recepción'}`;
 
   const lineas = [

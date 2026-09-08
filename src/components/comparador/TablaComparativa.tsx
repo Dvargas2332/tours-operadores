@@ -9,7 +9,7 @@ import { Baby, Check, ChevronDown, Copy, MapPin, Minus, Trophy, X } from 'lucide
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
-import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
@@ -201,9 +201,9 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'horarios',
         label: 'Horarios de tours',
-        valores: tours.map((t) => t.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')),
+        valores: tours.map((t) => t.horarios.map(horarioLabel).join(' · ')),
         render: (t) => (
-          <span className="tnum">{t.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ') || '—'}</span>
+          <span className="tnum">{t.horarios.map(horarioLabel).join(' · ') || '—'}</span>
         ),
       },
       {
