@@ -182,7 +182,7 @@ type RowTour = {
   fuente: string | null;
   fecha_actualizacion: string;
   moneda: Moneda | null;
-  operadores: RowOperador;
+  operadores: RowOperador | null;
   tour_tarifas: RowTarifa[];
   tour_horarios: RowHorario[];
 };
@@ -226,6 +226,9 @@ function mapHorario(h: RowHorario): Horario {
 }
 
 function mapTour(t: RowTour): Tour {
+  if (!t.operadores) {
+    throw new Error(`Tour ${t.id} no tiene operador asociado`);
+  }
   return {
     id: t.id,
     operador: mapOperador(t.operadores),
@@ -273,7 +276,7 @@ export async function fetchTours(): Promise<Tour[]> {
   if (!autenticado) query = query.eq('operadores.activo', true);
   const { data, error } = await query.order('precio_adulto');
   if (error) throw error;
-  return ((data as unknown as RowTour[]) ?? []).map(mapTour);
+  return ((data as unknown as RowTour[]) ?? []).filter((t) => t.operadores != null).map(mapTour);
 }
 
 export async function fetchOperadores(): Promise<Operador[]> {
@@ -293,7 +296,8 @@ export async function fetchTourById(id: number): Promise<Tour | undefined> {
   if (!autenticado) query = query.eq('operadores.activo', true);
   const { data, error } = await query.eq('id', id).maybeSingle();
   if (error) throw error;
-  return data ? mapTour(data as unknown as RowTour) : undefined;
+  if (!data || (data as unknown as RowTour).operadores == null) return undefined;
+  return mapTour(data as unknown as RowTour);
 }
 
 export async function fetchHotel(): Promise<Hotel | null> {
