@@ -11,48 +11,87 @@ function cargarImagen(url: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Genera y descarga un PDF con la política de cancelación del tour. */
-export async function descargarPoliticaPdf(tour: Tour): Promise<void> {
+/** Construye el documento PDF con la política de cancelación. */
+async function construirDoc(tour: Tour): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margen = 20;
 
-  // Logo del hotel (volcán de Lavas Tacotal)
+  // Logo del hotel (volcán de Lavas Tacotal) centrado arriba, sin deformar.
+  let cursor = 20;
   try {
     const logo = await cargarImagen('./logo/volcan.png');
-    doc.addImage(logo, 'PNG', 20, 15, 24, 24);
+    const maxAncho = 30;
+    const maxAlto = 26;
+    const ratio = logo.naturalHeight / logo.naturalWidth;
+    let w = maxAncho;
+    let h = w * ratio;
+    if (h > maxAlto) {
+      h = maxAlto;
+      w = h / ratio;
+    }
+    const x = (pageWidth - w) / 2;
+    const y = 12;
+    doc.addImage(logo, 'PNG', x, y, w, h);
+    cursor = y + h + 8;
   } catch {
-    // sin logo, continuamos
+    cursor = 20;
   }
 
+  // Título centrado
   doc.setFontSize(16);
   doc.setTextColor(40);
-  doc.text('Política de cancelación', 105, 25, { align: 'center' });
+  doc.text('Política de cancelación', pageWidth / 2, cursor, { align: 'center' });
+  cursor += 7;
 
   doc.setDrawColor(180);
-  doc.line(20, 32, 190, 32);
+  doc.line(margen, cursor, pageWidth - margen, cursor);
+  cursor += 10;
 
+  // Tour y operador (texto con salto de línea para nombres largos)
   doc.setFontSize(12);
   doc.setTextColor(60);
-  doc.text(`Tour: ${tour.nombre}`, 20, 42);
-  doc.text(`Operador: ${tour.operador.nombre}`, 20, 49);
+  const infoTour = doc.splitTextToSize(`Tour: ${tour.nombre}`, pageWidth - margen * 2);
+  doc.text(infoTour, margen, cursor);
+  cursor += infoTour.length * doc.getLineHeight() + 3;
 
+  const infoOperador = doc.splitTextToSize(`Operador: ${tour.operador.nombre}`, pageWidth - margen * 2);
+  doc.text(infoOperador, margen, cursor);
+  cursor += infoOperador.length * doc.getLineHeight() + 6;
+
+  // Política completa
   doc.setFontSize(11);
   doc.setTextColor(40);
   const politica = tour.politica_cancelacion?.trim() || 'No especificada.';
-  const lineas = doc.splitTextToSize(politica, 170);
-  doc.text(lineas, 20, 60);
+  const lineas = doc.splitTextToSize(politica, pageWidth - margen * 2);
+  doc.text(lineas, margen, cursor);
+  cursor += lineas.length * doc.getLineHeight() + 8;
 
-  const yNota = 60 + lineas.length * 5 + 10;
+  // Nota de logística
   doc.setFontSize(10);
   doc.setTextColor(80);
   const nota = 'Horario y logística: el transporte se debe consultar en recepción.';
-  doc.text(doc.splitTextToSize(nota, 170), 20, yNota);
+  doc.text(doc.splitTextToSize(nota, pageWidth - margen * 2), margen, cursor);
 
+  // Pie de página
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text(`© ${new Date().getFullYear()} Tours Operadores · by Kazehana Cloud`, 105, 285, {
+  doc.text(`© ${new Date().getFullYear()} Tours Operadores · by Kazehana Cloud`, pageWidth / 2, 285, {
     align: 'center',
   });
 
+  return doc;
+}
+
+/** Genera el PDF y devuelve el Blob (para vista previa). */
+export async function generarPoliticaPdf(tour: Tour): Promise<Blob> {
+  const doc = await construirDoc(tour);
+  return doc.output('blob');
+}
+
+/** Genera y descarga el PDF de la política de cancelación. */
+export async function descargarPoliticaPdf(tour: Tour): Promise<void> {
+  const doc = await construirDoc(tour);
   const nombreArchivo = `politica-${tour.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
   doc.save(nombreArchivo);
 }

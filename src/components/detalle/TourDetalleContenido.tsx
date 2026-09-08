@@ -17,6 +17,7 @@ import {
   Clock,
   Copy,
   Download,
+  Eye,
   FileSpreadsheet,
   FileText,
   MapPin,
@@ -31,7 +32,9 @@ import {
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detalle/resumen';
+import PdfPreview from '@/components/PdfPreview';
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
@@ -40,7 +43,7 @@ import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
-import { descargarPoliticaPdf } from '@/lib/pdf';
+import { descargarPoliticaPdf, generarPoliticaPdf } from '@/lib/pdf';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -170,6 +173,9 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const { autenticado } = useAuth();
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [politicaPreviewAbierta, setPoliticaPreviewAbierta] = useState(false);
+  const [politicaUrl, setPoliticaUrl] = useState<string | null>(null);
+  const [generandoPolitica, setGenerandoPolitica] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fresh = freshness(tour.fecha_actualizacion);
@@ -181,6 +187,11 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
+
+  // Libera el blob de la vista previa al desmontar
+  useEffect(() => () => {
+    if (politicaUrl) URL.revokeObjectURL(politicaUrl);
+  }, [politicaUrl]);
 
   // Atajo `c`: marca/desmarca comparar (tour-detalle.md §10)
   useEffect(() => {
@@ -207,6 +218,20 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   };
 
   const anioVigencia = tour.fuente.match(/20\d{2}/)?.[0] ?? tour.fecha_actualizacion.slice(0, 4);
+
+  const verPolitica = async () => {
+    if (generandoPolitica) return;
+    setGenerandoPolitica(true);
+    try {
+      const blob = await generarPoliticaPdf(tour);
+      setPoliticaUrl(URL.createObjectURL(blob));
+      setPoliticaPreviewAbierta(true);
+    } catch {
+      toast.error('No se pudo generar la vista previa de la política');
+    } finally {
+      setGenerandoPolitica(false);
+    }
+  };
 
   return (
     <motion.div variants={container} initial="hidden" animate="show">
@@ -497,16 +522,28 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               <FileText className="h-3.5 w-3.5 text-volcan" />
               Política de cancelación
             </h2>
-            <p className="mt-2 whitespace-pre-line text-[15px] italic leading-relaxed text-ink">“{tour.politica_cancelacion}”</p>
-            <p className="mt-2 text-caption text-ink-muted">Texto tal como aparece en el tarifario del operador.</p>
-            <button
-              type="button"
-              onClick={() => descargarPoliticaPdf(tour)}
-              className="mt-3 inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
-            >
-              <Download className="h-4 w-4" />
-              Descargar política (PDF)
-            </button>
+            <p className="mt-2 text-small text-ink-muted">
+              Consulta la política completa en PDF con el logo, el tour y el operador.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={verPolitica}
+                disabled={generandoPolitica}
+                className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Eye className="h-4 w-4" />
+                {generandoPolitica ? 'Generando…' : 'Vista previa'}
+              </button>
+              <button
+                type="button"
+                onClick={() => descargarPoliticaPdf(tour)}
+                className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+              >
+                <Download className="h-4 w-4" />
+                Descargar (PDF)
+              </button>
+            </div>
           </motion.div>
 
           <motion.div
@@ -596,6 +633,18 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         )}
 
         <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
+
+        {/* Vista previa de la política de cancelación */}
+        <Dialog open={politicaPreviewAbierta} onOpenChange={setPoliticaPreviewAbierta}>
+          <DialogContent className="max-w-3xl border-border bg-surface text-ink">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="text-h3 text-ink">Vista previa — Política de cancelación</DialogTitle>
+            </DialogHeader>
+            <div className="min-h-0 flex-1">
+              {politicaUrl ? <PdfPreview url={politicaUrl} /> : null}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ===== Copiar resumen (solo admin) ===== */}
         {autenticado && (
