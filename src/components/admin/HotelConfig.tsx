@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchHotel } from '@/data/mock-tours';
 import { actualizarHotel } from '@/data/mutations';
+import { cn } from '@/lib/utils';
 
-export default function HotelConfig() {
+export default function HotelConfig({ embedded = false }: { embedded?: boolean }) {
   const [nombre, setNombre] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -43,11 +44,13 @@ export default function HotelConfig() {
   });
 
   return (
-    <div className="rounded-r-md border border-border bg-surface p-4 shadow-card">
-      <div className="flex items-center gap-2">
-        <Building2 className="h-[18px] w-[18px] text-brand" />
-        <h2 className="text-h3 text-ink">Configuración del hotel</h2>
-      </div>
+    <div className={cn('rounded-r-md border border-border bg-surface p-4 shadow-card', embedded && 'border-0 bg-transparent p-0 shadow-none')}>
+      {!embedded && (
+        <div className="flex items-center gap-2">
+          <Building2 className="h-[18px] w-[18px] text-brand" />
+          <h2 className="text-h3 text-ink">Configuración del hotel</h2>
+        </div>
+      )}
       <p className="mt-1 text-small text-ink-muted">
         Aquí llegan las reservas de los clientes (vista sin sesión).
       </p>

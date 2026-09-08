@@ -8,7 +8,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
-import { AlertTriangle, Building2, FileSpreadsheet, MapPinned, Plus, Trash2, Upload, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Building2, FileSpreadsheet, Info, MapPinned, Plus, Trash2, Upload, UploadCloud } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AgregarOperadoresModal from '@/components/admin/AgregarOperadoresModal';
 import HotelConfig from '@/components/admin/HotelConfig';
@@ -17,6 +17,7 @@ import EditarTourModal from '@/components/admin/EditarTourModal';
 import OperadoresTable from '@/components/admin/OperadoresTable';
 import type { FilaOperador } from '@/components/admin/OperadoresTable';
 import ToursTable from '@/components/admin/ToursTable';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fetchOperadores, fetchTours, formatDateEs, freshness } from '@/data/mock-tours';
 import type { Operador, Tour } from '@/data/mock-tours';
 import { useMutation } from '@tanstack/react-query';
@@ -162,6 +163,7 @@ export default function Admin() {
   const [tourAEliminar, setTourAEliminar] = useState<Tour | null>(null);
   const [operadorAEliminar, setOperadorAEliminar] = useState<FilaOperador | null>(null);
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+  const [hotelConfigAbierto, setHotelConfigAbierto] = useState(false);
   const tablaRef = useRef<HTMLDivElement>(null);
   const [animarCountUp] = useState(primeraVisitaSesion);
 
@@ -262,6 +264,14 @@ export default function Admin() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setHotelConfigAbierto(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+            >
+              <Info className="h-4 w-4" />
+              <span className="hidden md:inline">Info hotel</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setModalOperadores(true)}
               className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-[14px] font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover"
             >
@@ -289,10 +299,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Configuración del hotel */}
-        <div className="mt-6">
-          <HotelConfig />
-        </div>
+        {/* Configuración del hotel (botón Info arriba abre el modal) */}
 
         {/* Error */}
         {estado === 'error' && (
@@ -545,6 +552,18 @@ export default function Admin() {
         }}
         onGuardado={refrescar}
       />
+
+      {/* Modal: configuración del hotel */}
+      <Dialog open={hotelConfigAbierto} onOpenChange={setHotelConfigAbierto}>
+        <DialogContent className="max-w-2xl border-border bg-surface text-ink">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-h3 text-ink">Configuración del hotel</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1">
+            <HotelConfig embedded />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmación: eliminar operador + sus tours */}
       <AnimatePresence>
