@@ -49,7 +49,7 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
         const coincide =
           t.nombre.toLowerCase().includes(q) ||
           t.zona.toLowerCase().includes(q) ||
-          CATEGORIA_META[t.categoria].label.toLowerCase().includes(q) ||
+          t.categorias.some((c) => CATEGORIA_META[c].label.toLowerCase().includes(q)) ||
           t.observaciones.toLowerCase().includes(q) ||
           t.operador.nombre.toLowerCase().includes(q);
         if (!coincide) return false;
@@ -64,7 +64,7 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
       }
     }
     if (f.zonas.length > 0 && !f.zonas.includes(t.zona)) return false;
-    if (f.categorias.length > 0 && !f.categorias.includes(t.categoria)) return false;
+    if (f.categorias.length > 0 && !f.categorias.some((c) => t.categorias.includes(c))) return false;
     if (f.horarios.length > 0) {
       const buckets = new Set(t.horarios.map((h) => horarioBucket(h.hora_salida)));
       if (!f.horarios.some((h) => buckets.has(h))) return false;
@@ -163,7 +163,7 @@ export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour
         let s = 0;
         if (t.nombre.toLowerCase().includes(q)) s += 3;
         if (t.zona.toLowerCase().includes(q)) s += 2;
-        if (CATEGORIA_META[t.categoria].label.toLowerCase().includes(q)) s += 1;
+        if (t.categorias.some((c) => CATEGORIA_META[c].label.toLowerCase().includes(q))) s += 1;
         for (const palabra of q.split(/\s+/)) {
           if (palabra.length > 2 && t.nombre.toLowerCase().includes(palabra)) s += 1;
         }

@@ -39,7 +39,7 @@ export interface FilaRevision {
   moneda: Moneda; // usd | crc
   nombre: string;
   zona: string;
-  categoria: Categoria;
+  categorias: Categoria[];
   tarifas: TarifaRevision[];
   duracionHoras: string;
   horarios: HorarioRevision[];
@@ -131,7 +131,7 @@ export function filaVacia(operador = '', moneda: Moneda = 'usd'): FilaRevision {
     moneda,
     nombre: '',
     zona: 'Arenal',
-    categoria: 'aventura',
+    categorias: ['aventura'],
     tarifas: [{ minEdad: 12, maxEdad: 64, rack: '', neta: '' }],
     duracionHoras: '',
     horarios: [{ salida: '08:00', llegada: '12:00' }],
@@ -180,7 +180,7 @@ export function filaAInput(f: FilaRevision) {
   return {
     nombre: f.nombre.trim(),
     zona: f.zona.trim(),
-    categoria: f.categoria,
+    categorias: f.categorias,
     moneda: f.moneda,
     precioAdulto: tarifaAdulto?.rack ?? Number(f.tarifas[0]?.rack || 0),
     precioNino: tarifaNino?.rack ?? null,

@@ -63,7 +63,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
     const elegidos = tours.filter((t) => seleccionados.includes(t.id));
     const puntaje = (t: Tour) =>
       elegidos.reduce(
-        (acc, e) => acc + (e.categoria === t.categoria ? 2 : 0) + (e.zona === t.zona ? 1 : 0),
+        (acc, e) => acc + (e.categorias.some((c) => t.categorias.includes(c)) ? 2 : 0) + (e.zona === t.zona ? 1 : 0),
         0,
       );
     return [...filtrados].sort((a, b) => puntaje(b) - puntaje(a));
@@ -126,7 +126,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
                 ) : (
                   <ul>
                     {lista.map((tour, i) => {
-                      const cat = CATEGORIA_META[tour.categoria];
+                      const cat = CATEGORIA_META[tour.categorias[0] ?? 'aventura'];
                       return (
                         <motion.li
                           key={tour.id}
@@ -140,7 +140,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
                             className="flex h-11 w-full items-center gap-3 rounded-r-sm px-3 text-left transition-colors duration-fast hover:bg-surface-2"
                           >
                             <span
-                              className={cn('h-2.5 w-2.5 shrink-0 rounded-full', DOT_CAT[tour.categoria])}
+                              className={cn('h-2.5 w-2.5 shrink-0 rounded-full', DOT_CAT[tour.categorias[0] ?? 'aventura'])}
                               title={cat.label}
                             />
                             <span className="min-w-0 flex-1">

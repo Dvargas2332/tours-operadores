@@ -17,7 +17,7 @@ interface OperadorCardProps {
 
 export default function OperadorCard({ operador, tours, onVerOperador }: OperadorCardProps) {
   const zonas = [...new Set(tours.map((t) => t.zona))].sort((a, b) => a.localeCompare(b, 'es'));
-  const categorias = [...new Set(tours.map((t) => t.categoria))];
+  const categorias = [...new Set(tours.flatMap((t) => t.categorias))];
   const precios = tours.flatMap((t) => (t.tarifas.length ? t.tarifas.map((tar) => tar.rack) : [t.precio_adulto]));
   const precioMin = Math.min(...precios);
   const precioMax = Math.max(...precios);

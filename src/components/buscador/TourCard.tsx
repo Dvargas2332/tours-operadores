@@ -102,7 +102,6 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
   { tour, seleccionado, onToggleComparar, onVerDetalle, vista, index },
   ref,
 ) {
-  const cat = CATEGORIA_META[tour.categoria];
   const { autenticado } = useAuth();
   const fresh = freshness(tour.fecha_actualizacion);
   const tooltipFrescura = `${fresh.label}: ${formatDateEs(tour.fecha_actualizacion)} · Fuente: ${tour.fuente}`;
@@ -124,17 +123,20 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
     </div>
   );
 
-  const badgeCategoria = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium', cat.clases)}>
-          <cat.icon className="h-3 w-3" />
-          {cat.label}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>Categoría: {cat.label}</TooltipContent>
-    </Tooltip>
-  );
+  const badgeCategoria = tour.categorias.map((c) => {
+    const meta = CATEGORIA_META[c];
+    return (
+      <Tooltip key={c}>
+        <TooltipTrigger asChild>
+          <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium', meta.clases)}>
+            <meta.icon className="h-3 w-3" />
+            {meta.label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Categoría: {meta.label}</TooltipContent>
+      </Tooltip>
+    );
+  });
 
   const dotFrescura = (
     <Tooltip>

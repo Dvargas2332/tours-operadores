@@ -272,7 +272,7 @@ export default function PasoRevision({
                   const idx = filas.indexOf(fila);
                   const errores = erroresPorFila.get(fila.key) ?? {};
                   const expandida = expandidas.has(fila.key);
-                  const cat = CATEGORIA_META[fila.categoria];
+                  const cat = CATEGORIA_META[fila.categorias[0] ?? 'aventura'];
                   return [
                     <motion.tr
                       key={fila.key}
@@ -385,18 +385,37 @@ export default function PasoRevision({
                             >
                               <cat.icon className="h-3 w-3" />
                               {cat.label}
+                              {fila.categorias.length > 1 && (
+                                <span className="text-ink-faint">+{fila.categorias.length - 1}</span>
+                              )}
                             </button>
                           </PopoverTrigger>
-                          <PopoverContent align="start" className="w-[190px] p-1.5">
+                          <PopoverContent align="start" className="w-[210px] p-1.5">
                             {CATEGORIAS.map((c: Categoria) => {
                               const meta = CATEGORIA_META[c];
+                              const marcado = fila.categorias.includes(c);
                               return (
                                 <button
                                   key={c}
                                   type="button"
-                                  onClick={() => actualizar(fila.key, 'categoria', { categoria: c })}
+                                  onClick={() => {
+                                    const nuevas = marcado
+                                      ? fila.categorias.filter((x) => x !== c)
+                                      : [...fila.categorias, c];
+                                    // Mínimo 1 categoría
+                                    if (nuevas.length === 0) return;
+                                    actualizar(fila.key, 'categoria', { categorias: nuevas });
+                                  }}
                                   className="flex w-full items-center gap-2 rounded-r-sm px-2 py-1.5 text-left transition-colors duration-fast hover:bg-surface-2"
                                 >
+                                  <span
+                                    className={cn(
+                                      'flex h-[18px] w-[18px] items-center justify-center rounded-[5px] border transition-colors duration-fast',
+                                      marcado ? 'border-brand bg-brand text-white' : 'border-border bg-surface',
+                                    )}
+                                  >
+                                    {marcado && <CheckCircle2 className="h-3 w-3" />}
+                                  </span>
                                   <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium', meta.clases)}>
                                     <meta.icon className="h-3 w-3" />
                                     {meta.label}

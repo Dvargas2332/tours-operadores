@@ -1,8 +1,11 @@
 /**
  * Previsualización de pólizas (PDF o imagen) renderizada en el cliente con
  * PDF.js. Evita que el navegador descargue el PDF en vez de mostrarlo.
+ *
+ * El ancho de página se ajusta al contenedor (ResizeObserver) para que el
+ * PDF nunca se desborde ni quede descuadrado dentro del diálogo.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -17,6 +20,18 @@ function esImagen(url: string): boolean {
 
 export default function PdfPreview({ url }: { url: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const [anchoPagina, setAnchoPagina] = useState(0);
+
+  useEffect(() => {
+    const el = contenedorRef.current;
+    if (!el) return;
+    const medir = () => setAnchoPagina(el.clientWidth);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   if (esImagen(url)) {
     return (
@@ -28,24 +43,28 @@ export default function PdfPreview({ url }: { url: string }) {
 
   return (
     <div className="max-h-[70vh] overflow-auto rounded-r-sm bg-surface-2 p-3">
-      <Document
-        file={url}
-        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-        loading={<p className="p-6 text-center text-small text-ink-muted">Cargando PDF…</p>}
-        error={<p className="p-6 text-center text-small text-danger">No se pudo cargar el PDF.</p>}
-        options={{ withCredentials: false }}
-      >
-        {Array.from({ length: numPages ?? 0 }, (_, i) => (
-          <Page
-            key={`page_${i + 1}`}
-            pageNumber={i + 1}
-            width={700}
-            renderTextLayer={false}
-            renderAnnotationLayer={false}
-            className="mx-auto mb-3 shadow-card"
-          />
-        ))}
-      </Document>
+      <div ref={contenedorRef}>
+        {anchoPagina > 0 && (
+          <Document
+            file={url}
+            onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+            loading={<p className="p-6 text-center text-small text-ink-muted">Cargando PDF…</p>}
+            error={<p className="p-6 text-center text-small text-danger">No se pudo cargar el PDF.</p>}
+            options={{ withCredentials: false }}
+          >
+            {Array.from({ length: numPages ?? 0 }, (_, i) => (
+              <Page
+                key={`page_${i + 1}`}
+                pageNumber={i + 1}
+                width={anchoPagina}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+                className="mx-auto mb-3 w-fit shadow-card last:mb-0"
+              />
+            ))}
+          </Document>
+        )}
+      </div>
     </div>
   );
 }

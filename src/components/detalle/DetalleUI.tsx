@@ -29,18 +29,25 @@ const ICONO_ESTADO = {
 
 /** Badge pill de categoría con ícono (design.md §2) */
 export function BadgeCategoria({ tour, className }: { tour: Tour; className?: string }) {
-  const cat = CATEGORIA_META[tour.categoria];
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium',
-        cat.clases,
-        className,
-      )}
-    >
-      <cat.icon className="h-3 w-3" />
-      {cat.label}
-    </span>
+    <>
+      {tour.categorias.map((c) => {
+        const cat = CATEGORIA_META[c];
+        return (
+          <span
+            key={c}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium',
+              cat.clases,
+              className,
+            )}
+          >
+            <cat.icon className="h-3 w-3" />
+            {cat.label}
+          </span>
+        );
+      })}
+    </>
   );
 }
 

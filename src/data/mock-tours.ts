@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase';
 
 export type Categoria = 'aventura' | 'naturaleza' | 'acuatico' | 'cultural' | 'termas';
 
+const CATEGORIAS_VALIDAS: readonly Categoria[] = ['aventura', 'naturaleza', 'acuatico', 'cultural', 'termas'];
+
 export type Moneda = 'usd' | 'crc';
 
 export interface Operador {
@@ -48,7 +50,7 @@ export interface Tour {
   operador: Operador;
   nombre: string;
   zona: string;
-  categoria: Categoria;
+  categorias: Categoria[];
   precio_adulto: number; // tarifa base representativa (rango adulto 12-64)
   precio_nino: number | null; // legacy
   precio_neto_adulto: number | null; // legacy
@@ -152,6 +154,20 @@ export function horariosLabel(tour: Tour): string {
     .join(' · ');
 }
 
+/** Convierte el valor crudo de la columna `categoria` (separado por comas) a lista. */
+export function parseCategorias(raw: string | null | undefined): Categoria[] {
+  const validas = new Set<string>(CATEGORIAS_VALIDAS);
+  return (raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s): s is Categoria => validas.has(s));
+}
+
+/** Serializa la lista de categorías a una cadena separada por comas. */
+export function serializarCategorias(categorias: Categoria[]): string {
+  return categorias.join(',');
+}
+
 /* ------------------------------------------------------------------ */
 /* Mapeo Supabase (PostgREST, snake_case) → frontend (design.md §8)    */
 /* ------------------------------------------------------------------ */
@@ -192,7 +208,7 @@ type RowTour = {
   id: number;
   nombre: string;
   zona: string;
-  categoria: Categoria;
+  categoria: string | null;
   precio_adulto: number | string;
   precio_nino: number | string | null;
   precio_neto_adulto: number | string | null;
@@ -259,7 +275,7 @@ function mapTour(t: RowTour): Tour {
     operador: mapOperador(t.operadores),
     nombre: t.nombre,
     zona: t.zona,
-    categoria: t.categoria,
+    categorias: parseCategorias(t.categoria),
     precio_adulto: Number(t.precio_adulto),
     precio_nino: t.precio_nino == null ? null : Number(t.precio_nino),
     precio_neto_adulto: t.precio_neto_adulto == null ? null : Number(t.precio_neto_adulto),

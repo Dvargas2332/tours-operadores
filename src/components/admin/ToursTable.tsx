@@ -180,9 +180,7 @@ export default function ToursTable({
             </thead>
             <tbody>
               {visibles.map((tour, i) => {
-                const cat = CATEGORIA_META[tour.categoria];
                 const frescura = freshness(tour.fecha_actualizacion);
-                const CatIcon = cat.icon;
                 return (
                   <motion.tr
                     key={tour.id}
@@ -197,15 +195,22 @@ export default function ToursTable({
                   >
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                            cat.clases,
-                          )}
-                          title={cat.label}
-                        >
-                          <CatIcon className="h-3 w-3" />
-                        </span>
+                        {tour.categorias.map((c) => {
+                          const meta = CATEGORIA_META[c];
+                          const CatIcon = meta.icon;
+                          return (
+                            <span
+                              key={c}
+                              className={cn(
+                                'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                                meta.clases,
+                              )}
+                              title={meta.label}
+                            >
+                              <CatIcon className="h-3 w-3" />
+                            </span>
+                          );
+                        })}
                         <span className="text-[14px] font-semibold leading-snug text-ink">{tour.nombre}</span>
                       </div>
                     </td>

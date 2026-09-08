@@ -57,7 +57,7 @@ export default function OperadorDetalle() {
   }
 
   const zonas = [...new Set(tours.map((t) => t.zona))].sort((a, b) => a.localeCompare(b, 'es'));
-  const categorias = [...new Set(tours.map((t) => t.categoria))];
+  const categorias = [...new Set(tours.flatMap((t) => t.categorias))];
 
   return (
     <>

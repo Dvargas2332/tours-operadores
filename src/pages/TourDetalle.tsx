@@ -80,7 +80,7 @@ export default function TourDetalle() {
   const relacionados =
     tour && data
       ? data.tours
-          .filter((t) => t.id !== tour.id && (t.categoria === tour.categoria || t.zona === tour.zona))
+          .filter((t) => t.id !== tour.id && (t.categorias.some((c) => tour.categorias.includes(c)) || t.zona === tour.zona))
           .slice(0, 3)
       : [];
 

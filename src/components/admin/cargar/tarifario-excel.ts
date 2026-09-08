@@ -276,7 +276,7 @@ function nuevaFila(
     moneda,
     nombre,
     zona: 'Arenal',
-    categoria: 'aventura',
+    categorias: ['aventura'],
     tarifas: [],
     duracionHoras: '1',
     horarios: [{ salida: '08:00', llegada: '12:00' }],

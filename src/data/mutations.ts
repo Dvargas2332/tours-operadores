@@ -3,6 +3,8 @@
  * Los inputs usan camelCase; aquí se convierten a las columnas snake_case de la base.
  */
 import { supabase } from '@/lib/supabase';
+import { serializarCategorias } from '@/data/mock-tours';
+import type { Categoria } from '@/data/mock-tours';
 
 export interface TarifaInput {
   nombre?: string;
@@ -24,7 +26,7 @@ export interface HorarioInput {
 export interface TourInput {
   nombre: string;
   zona: string;
-  categoria: string;
+  categorias?: Categoria[];
   moneda?: string;
   precioAdulto: number;
   precioNino?: number | null;
@@ -83,7 +85,7 @@ function tourFieldsToRow(t: Partial<TourInput> & { operadorId?: number }): Recor
   if (t.operadorId !== undefined) out.operador_id = t.operadorId;
   if (t.nombre !== undefined) out.nombre = t.nombre;
   if (t.zona !== undefined) out.zona = t.zona;
-  if (t.categoria !== undefined) out.categoria = t.categoria;
+  if (t.categorias !== undefined) out.categoria = serializarCategorias(t.categorias);
   if (t.moneda !== undefined) out.moneda = t.moneda;
   if (t.precioAdulto !== undefined) out.precio_adulto = t.precioAdulto;
   if (t.precioNino !== undefined) out.precio_nino = t.precioNino;

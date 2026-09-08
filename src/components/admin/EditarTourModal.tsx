@@ -77,7 +77,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
 
   const [nombre, setNombre] = useState(() => tour?.nombre ?? '');
   const [zona, setZona] = useState(() => tour?.zona ?? '');
-  const [categoria, setCategoria] = useState<Categoria>(() => tour?.categoria ?? 'aventura');
+  const [categorias, setCategorias] = useState<Categoria[]>(() => tour?.categorias ?? ['aventura']);
   const [moneda, setMoneda] = useState<Moneda>(() => tour?.moneda ?? 'usd');
   const [horarios, setHorarios] = useState<HorarioForm[]>(() =>
     tour?.horarios.length
@@ -149,11 +149,26 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
     setIncluye((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
+  const toggleCategoria = (c: Categoria) => {
+    setCategorias((prev) => {
+      if (prev.includes(c)) {
+        // Mínimo 1 categoría: no permitir desmarcar la última
+        return prev.length > 1 ? prev.filter((x) => x !== c) : prev;
+      }
+      return [...prev, c];
+    });
+  };
+
   const guardar = () => {
     setError(null);
 
     if (!nombre.trim() || !zona.trim()) {
       setError('Nombre y zona son obligatorios');
+      return;
+    }
+
+    if (categorias.length === 0) {
+      setError('Elegí al menos una categoría');
       return;
     }
 
@@ -219,7 +234,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
     const payload = {
       nombre: nombre.trim(),
       zona: zona.trim(),
-      categoria,
+      categorias,
       moneda,
       precioAdulto: tarifaAdulto.rack,
       precioNetoAdulto: tarifaAdulto.neta,
@@ -281,22 +296,35 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
               <Input id="t-zona" value={zona} onChange={(e) => setZona(e.target.value)} className="mt-1" />
             </div>
             <div>
-              <Label htmlFor="t-categoria">Categoría</Label>
-              <select
-                id="t-categoria"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value as Categoria)}
-                className="mt-1 h-10 w-full rounded-r-sm border border-border bg-surface px-2 text-small text-ink focus:border-brand focus:outline-none"
-              >
+              <Label>Categorías</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
                 {CATEGORIAS.map((c) => {
                   const meta = CATEGORIA_META[c];
+                  const marcada = categorias.includes(c);
                   return (
-                    <option key={c} value={c}>
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleCategoria(c)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium transition-colors duration-fast',
+                        marcada ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-4 w-4 items-center justify-center rounded-[4px] border',
+                          marcada ? 'border-white bg-white text-brand' : 'border-ink-muted',
+                        )}
+                      >
+                        {marcada && <Check className="h-3 w-3" />}
+                      </span>
+                      <meta.icon className="h-3 w-3" />
                       {meta.label}
-                    </option>
+                    </button>
                   );
                 })}
-              </select>
+              </div>
             </div>
             <div>
               <Label htmlFor="t-moneda">Moneda</Label>
