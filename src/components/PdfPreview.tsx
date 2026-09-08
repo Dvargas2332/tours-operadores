@@ -42,7 +42,7 @@ export default function PdfPreview({ url }: { url: string }) {
   }
 
   return (
-    <div className="max-h-[70vh] overflow-auto rounded-r-sm bg-surface-2 p-3">
+    <div className="max-h-[80vh] overflow-auto rounded-r-sm bg-surface-2 p-3">
       <div ref={contenedorRef}>
         {anchoPagina > 0 && (
           <Document

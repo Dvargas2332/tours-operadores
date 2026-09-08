@@ -31,7 +31,6 @@ interface Resultado {
   operadores: number;
   tours: number;
   fecha: string;
-  fuente: string;
 }
 
 export default function CargarTarifario() {
@@ -63,7 +62,6 @@ export default function CargarTarifario() {
         operadores: res.operadoresCreados + res.operadoresActualizados,
         tours: res.toursInsertados,
         fecha: new Date().toISOString().slice(0, 10),
-        fuente: archivo?.nombre ?? 'catálogo',
       });
       setDireccion(1);
       setPaso(4);
@@ -130,7 +128,6 @@ export default function CargarTarifario() {
     }));
 
     mutacion.mutate({
-      fuente: archivo.nombre,
       fechaActualizacion: new Date().toISOString().slice(0, 10),
       operadores,
     });
@@ -216,7 +213,6 @@ export default function CargarTarifario() {
                   operadores={resultado.operadores}
                   tours={resultado.tours}
                   fecha={resultado.fecha}
-                  fuente={resultado.fuente}
                   onCargarOtro={reiniciarWizard}
                 />
               )}

@@ -51,7 +51,7 @@ export function BadgeCategoria({ tour, className }: { tour: Tour; className?: st
   );
 }
 
-/** Dot de frescura + caption relativo, tooltip con fecha exacta y fuente */
+/** Dot de frescura + caption relativo, tooltip con fecha exacta */
 export function DotFrescura({ tour, conLabel = false }: { tour: Tour; conLabel?: boolean }) {
   const fresh = freshness(tour.fecha_actualizacion);
   const Icon = ICONO_ESTADO[fresh.estado];
@@ -64,7 +64,7 @@ export function DotFrescura({ tour, conLabel = false }: { tour: Tour; conLabel?:
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {fresh.label}: {formatDateEs(tour.fecha_actualizacion)} · Fuente: {tour.fuente}
+        {fresh.label}: {formatDateEs(tour.fecha_actualizacion)}
       </TooltipContent>
     </Tooltip>
   );

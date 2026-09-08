@@ -64,7 +64,6 @@ export interface Tour {
   apto_ninos: boolean;
   politica_cancelacion: string;
   observaciones: string;
-  fuente: string; // "tarifario-sunset-2026.pdf"
   fecha_actualizacion: string; // ISO date
   moneda: Moneda; // usd | crc
 }
@@ -220,7 +219,6 @@ type RowTour = {
   apto_ninos: boolean;
   politica_cancelacion: string | null;
   observaciones: string | null;
-  fuente: string | null;
   fecha_actualizacion: string;
   moneda: Moneda | null;
   operadores: RowOperador | null;
@@ -289,7 +287,6 @@ function mapTour(t: RowTour): Tour {
     apto_ninos: t.apto_ninos,
     politica_cancelacion: t.politica_cancelacion ?? '',
     observaciones: t.observaciones ?? '',
-    fuente: t.fuente ?? '',
     fecha_actualizacion: (t.fecha_actualizacion ?? '').slice(0, 10),
     moneda: t.moneda ?? 'usd',
   };
@@ -306,7 +303,7 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo';
 

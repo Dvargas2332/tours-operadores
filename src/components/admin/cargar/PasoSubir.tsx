@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
-import { metaDeFuente } from '@/components/admin/FuenteCell';
 import type { ArchivoSubido } from '@/components/admin/cargar/tipos';
 import { EXTENSIONES_OK, MAX_BYTES, formatBytes } from '@/components/admin/cargar/tipos';
 import { cn } from '@/lib/utils';
@@ -57,8 +56,6 @@ export default function PasoSubir({
     setArchivo({ nombre: file.name, tamano: file.size, ext });
     fileRef.current = file;
   };
-
-  const metaArchivo = archivo ? metaDeFuente(archivo.nombre) : null;
 
   return (
     <div>
@@ -146,10 +143,10 @@ export default function PasoSubir({
             />
           </>
         ) : (
-          metaArchivo && (
+          (
             <div className="w-full max-w-[420px]">
               <div className="flex items-center gap-3 rounded-r-md border border-border bg-surface-2/60 px-4 py-3">
-                <metaArchivo.icon className={cn('h-6 w-6 shrink-0', metaArchivo.clases)} />
+                <FileSpreadsheet className="h-6 w-6 shrink-0 text-ok" />
                 <div className="min-w-0 flex-1 text-left">
                   <p className="truncate text-mono text-ink">{archivo.nombre}</p>
                   <p className="text-caption text-ink-faint">{formatBytes(archivo.tamano)}</p>

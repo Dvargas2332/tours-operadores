@@ -22,11 +22,10 @@ interface PasoExitoProps {
   operadores: number;
   tours: number;
   fecha: string; // ISO
-  fuente: string;
   onCargarOtro: () => void;
 }
 
-export default function PasoExito({ operadores, tours, fecha, fuente, onCargarOtro }: PasoExitoProps) {
+export default function PasoExito({ operadores, tours, fecha, onCargarOtro }: PasoExitoProps) {
   const particulas = useMemo<Particula[]>(
     () =>
       Array.from({ length: 20 }, (_, i) => ({
@@ -77,9 +76,6 @@ export default function PasoExito({ operadores, tours, fecha, fuente, onCargarOt
           </li>
           <li>
             Fecha de actualización: <span className="font-medium text-ink tnum">{formatDateEs(fecha)}</span>
-          </li>
-          <li className="flex items-baseline gap-1.5">
-            Fuente: <span className="truncate text-mono text-ink">{fuente}</span>
           </li>
         </ul>
       </motion.div>

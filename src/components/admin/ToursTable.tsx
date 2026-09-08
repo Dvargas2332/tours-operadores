@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Edit2, Eye, MapPin, Search, Trash2 } from 'lucide-react';
 import FreshnessPill from '@/components/admin/FreshnessPill';
-import FuenteCell from '@/components/admin/FuenteCell';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
 import { formatPrecio, freshness } from '@/data/mock-tours';
@@ -169,9 +168,6 @@ export default function ToursTable({
                 <th scope="col" className="w-[80px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Tarifas
                 </th>
-                <th scope="col" className="w-[200px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
-                  Fuente
-                </th>
                 <SortTh colKey="estado" label="Estado" orden={orden} onCiclar={ciclar} className="w-[80px]" />
                 <th scope="col" className="w-[90px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Detalle
@@ -228,9 +224,6 @@ export default function ToursTable({
                       <span className="rounded-full bg-surface-2 px-2 py-0.5 text-caption text-ink-muted">
                         {tour.tarifas.length || 1}
                       </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <FuenteCell fuente={tour.fuente} />
                     </td>
                     <td className="px-3 py-3 text-center">
                       <FreshnessPill frescura={frescura} compact />

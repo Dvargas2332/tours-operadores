@@ -213,9 +213,9 @@ async function insertarTarifasYHorarios(
 }
 
 export async function crearTour(
-  input: TourInput & { operadorId: number; fuente?: string; fechaActualizacion?: string },
+  input: TourInput & { operadorId: number; fechaActualizacion?: string },
 ) {
-  const { operadorId, fuente = 'manual', fechaActualizacion = new Date().toISOString().slice(0, 10), tarifas, horarios, ...resto } = input;
+  const { operadorId, fechaActualizacion = new Date().toISOString().slice(0, 10), tarifas, horarios, ...resto } = input;
 
   let politica = resto.politicaCancelacion ?? '';
   if (!politica) {
@@ -230,7 +230,6 @@ export async function crearTour(
   const row = {
     ...tourFieldsToRow(resto),
     operador_id: operadorId,
-    fuente,
     fecha_actualizacion: fechaActualizacion,
     politica_cancelacion: politica,
   };
@@ -289,7 +288,6 @@ export interface OperadorCatalogoInput extends OperadorInput {
 }
 
 export async function importarCatalogo(input: {
-  fuente: string;
   fechaActualizacion: string;
   operadores: OperadorCatalogoInput[];
 }) {
@@ -345,7 +343,6 @@ export async function importarCatalogo(input: {
           op.tours.map((t) => ({
             ...tourFieldsToRow(t),
             operador_id: operadorId,
-            fuente: input.fuente,
             fecha_actualizacion: input.fechaActualizacion,
             politica_cancelacion: t.politicaCancelacion || politicaOperador,
           })),

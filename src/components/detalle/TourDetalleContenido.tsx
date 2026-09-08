@@ -18,7 +18,6 @@ import {
   Copy,
   Download,
   Eye,
-  FileSpreadsheet,
   FileText,
   MapPin,
   Minus,
@@ -217,7 +216,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     }
   };
 
-  const anioVigencia = tour.fuente.match(/20\d{2}/)?.[0] ?? tour.fecha_actualizacion.slice(0, 4);
+  const anioVigencia = tour.fecha_actualizacion.slice(0, 4);
 
   const verPolitica = async () => {
     if (generandoPolitica) return;
@@ -597,24 +596,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.2, ease: EASE }}
-            className="grid gap-3 rounded-r-md bg-surface-2 p-3.5 sm:grid-cols-3"
+            className="grid gap-3 rounded-r-md bg-surface-2 p-3.5 sm:grid-cols-2"
           >
-            <div className="min-w-0">
-              <div className="text-caption uppercase tracking-wide text-ink-faint">Fuente</div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="mt-1 flex cursor-default items-center gap-1.5">
-                    {/\.(xlsx|xls|csv)$/i.test(tour.fuente) ? (
-                      <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    ) : (
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
-                    )}
-                    <span className="truncate font-mono text-mono text-ink">{tour.fuente}</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>{tour.fuente}</TooltipContent>
-              </Tooltip>
-            </div>
             <div>
               <div className="text-caption uppercase tracking-wide text-ink-faint">Actualizado</div>
               <div className="mt-1 flex items-center gap-1.5">
@@ -636,7 +619,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
 
         {/* Vista previa de la política de cancelación */}
         <Dialog open={politicaPreviewAbierta} onOpenChange={setPoliticaPreviewAbierta}>
-          <DialogContent className="max-w-3xl border-border bg-surface text-ink">
+          <DialogContent className="max-h-[92vh] max-w-5xl grid-rows-[auto_minmax(0,1fr)] border-border bg-surface text-ink">
             <DialogHeader className="shrink-0">
               <DialogTitle className="text-h3 text-ink">Vista previa — Política de cancelación</DialogTitle>
             </DialogHeader>

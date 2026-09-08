@@ -104,7 +104,7 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
 ) {
   const { autenticado } = useAuth();
   const fresh = freshness(tour.fecha_actualizacion);
-  const tooltipFrescura = `${fresh.label}: ${formatDateEs(tour.fecha_actualizacion)} · Fuente: ${tour.fuente}`;
+  const tooltipFrescura = `${fresh.label}: ${formatDateEs(tour.fecha_actualizacion)}`;
   const horario = horarioRepresentativo(tour);
   const masHorarios = tour.horarios.length > 1;
   const delay = Math.min(index, 11) * 0.04;
