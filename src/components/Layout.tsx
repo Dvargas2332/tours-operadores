@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LogIn, LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { LogIn, LogOut, Menu, Moon, Search, Sun } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
@@ -114,6 +114,17 @@ export default function Layout() {
           </nav>
 
           <div className="flex-1" />
+
+          {/* Botón de búsqueda */}
+          <button
+            type="button"
+            onClick={() => navigate('/buscar')}
+            aria-label="Buscar tours"
+            className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+          >
+            <Search className="h-[18px] w-[18px]" />
+            <span className="hidden sm:inline">Buscar</span>
+          </button>
 
           {/* Reloj de recepción */}
           <div className="hidden text-caption text-ink-muted tnum sm:block">

@@ -9,7 +9,7 @@
  */
 import { NavLink } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Columns3, Home, Search } from 'lucide-react';
+import { Building2, Columns3, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
@@ -52,13 +52,6 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
       badge: null,
       badgeTono: 'neutro',
       end: true,
-    },
-    {
-      to: '/buscar',
-      label: 'Buscar',
-      icon: Search,
-      badge: data ? data.tours.length : null,
-      badgeTono: 'neutro',
     },
     {
       to: '/comparar',
