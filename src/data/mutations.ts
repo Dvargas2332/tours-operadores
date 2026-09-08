@@ -32,7 +32,7 @@ export interface TourInput {
   precioNetoNino?: number | null;
   tarifas?: TarifaInput[];
   horarios?: HorarioInput[];
-  duracionHoras: number;
+  duracionHoras?: number;
   incluye?: string[];
   noIncluye?: string[];
   minimoPersonas?: number;

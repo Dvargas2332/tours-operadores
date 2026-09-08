@@ -90,3 +90,8 @@ create policy "hotel_lectura_publica" on public.hotel
 
 create policy "hotel_acceso" on public.hotel
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ----------------------------------------------------------------------------
+-- 6) Duración opcional (ya no se pide al crear tours)
+-- ----------------------------------------------------------------------------
+alter table public.tours alter column duracion_horas set default 0;

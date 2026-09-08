@@ -137,7 +137,6 @@ export default function Buscador() {
     for (const z of f.zonas) candidatos.push([`'${z}'`, { ...f, zonas: f.zonas.filter((x) => x !== z) }]);
     if (f.precioActivo) candidatos.push(['subir el precio máximo', { ...f, precioActivo: false }]);
     for (const c of f.categorias) candidatos.push([`la categoría`, { ...f, categorias: f.categorias.filter((x) => x !== c) }]);
-    if (f.duracion !== 'cualquiera') candidatos.push(['la duración', { ...f, duracion: 'cualquiera' }]);
     for (const h of f.horarios) candidatos.push(['el horario', { ...f, horarios: f.horarios.filter((x) => x !== h) }]);
     for (const i of f.incluye) candidatos.push([`'${i}' de "incluye"`, { ...f, incluye: f.incluye.filter((x) => x !== i) }]);
     if (f.aptoNinos) candidatos.push(['"Apto para niños"', { ...f, aptoNinos: false }]);

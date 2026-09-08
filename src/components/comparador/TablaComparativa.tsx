@@ -11,7 +11,7 @@ import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/deta
 import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
 import { formatPrecio, freshness, formatDateEs, salidasTour } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
-import { INCLUYE_KEYS, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -111,8 +111,6 @@ function useFilas(tours: Tour[]): FilaDef[] {
     const ninos = tours.map(tarifaNino);
     const conNino = ninos.filter(Boolean);
     const mejorNino = conNino.length >= 2 ? Math.min(...(conNino.map((t) => t!.rack) as number[])) : null;
-    const masCorta = Math.min(...tours.map((t) => t.duracion_horas));
-    const hayCortaDistinta = !todosIguales(tours.map((t) => t.duracion_horas));
 
     const filas: FilaDef[] = [
       {
@@ -199,19 +197,6 @@ function useFilas(tours: Tour[]): FilaDef[] {
             </span>
           );
         },
-      },
-      {
-        key: 'duracion',
-        label: 'Duración',
-        valores: tours.map((t) => t.duracion_horas),
-        render: (t) => (
-          <div>
-            <span className="text-[15px] font-semibold text-ink tnum">{formatDuracion(t.duracion_horas)}</span>
-            {hayCortaDistinta && t.duracion_horas === masCorta && (
-              <span className="ml-2 text-caption text-ink-muted">más corto</span>
-            )}
-          </div>
-        ),
       },
       {
         key: 'salida',

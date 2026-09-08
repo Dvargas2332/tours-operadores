@@ -7,16 +7,6 @@ import { CATEGORIA_META, HORARIO_META, INCLUYE_META, horarioBucket } from '@/lib
 import type { HorarioKey } from '@/lib/tour-meta';
 import { formatUSD } from '@/data/mock-tours';
 
-export type DuracionFiltro = 'cualquiera' | 'hasta3' | 'hasta5' | 'hasta8' | 'dia-completo';
-
-export const DURACION_OPCIONES: { key: DuracionFiltro; label: string }[] = [
-  { key: 'cualquiera', label: 'Cualquiera' },
-  { key: 'hasta3', label: 'Hasta 3 h (medio día corto)' },
-  { key: 'hasta5', label: 'Hasta 5 h' },
-  { key: 'hasta8', label: 'Hasta 8 h' },
-  { key: 'dia-completo', label: 'Día completo (>8 h)' },
-];
-
 export const PRECIO_MIN = 0;
 export const PRECIO_MAX = 300;
 
@@ -25,7 +15,6 @@ export interface Filtros {
   precioActivo: boolean;
   zonas: string[];
   categorias: Categoria[];
-  duracion: DuracionFiltro;
   horarios: HorarioKey[];
   incluye: string[];
   aptoNinos: boolean;
@@ -40,7 +29,6 @@ export const FILTROS_INICIALES: Filtros = {
   precioActivo: false,
   zonas: [],
   categorias: [],
-  duracion: 'cualquiera',
   horarios: [],
   incluye: [],
   aptoNinos: false,
@@ -77,15 +65,6 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
     }
     if (f.zonas.length > 0 && !f.zonas.includes(t.zona)) return false;
     if (f.categorias.length > 0 && !f.categorias.includes(t.categoria)) return false;
-    if (f.duracion !== 'cualquiera') {
-      const d = t.duracion_horas;
-      const ok =
-        f.duracion === 'hasta3' ? d <= 3
-        : f.duracion === 'hasta5' ? d <= 5
-        : f.duracion === 'hasta8' ? d <= 8
-        : d > 8;
-      if (!ok) return false;
-    }
     if (f.horarios.length > 0) {
       const buckets = new Set(t.horarios.map((h) => horarioBucket(h.hora_salida)));
       if (!f.horarios.some((h) => buckets.has(h))) return false;
@@ -108,7 +87,6 @@ export function contarActivos(f: Filtros): number {
   if (f.precioActivo) n++;
   n += f.zonas.length;
   n += f.categorias.length;
-  if (f.duracion !== 'cualquiera') n++;
   n += f.horarios.length;
   n += f.incluye.length;
   if (f.aptoNinos) n++;
@@ -129,10 +107,6 @@ export function chipsDeFiltros(f: Filtros, operadores: Operador[]): ChipFiltro[]
   }
   for (const z of f.zonas) chips.push({ id: `zona:${z}`, label: `Zona: ${z}` });
   for (const c of f.categorias) chips.push({ id: `cat:${c}`, label: `Categoría: ${CATEGORIA_META[c].label}` });
-  if (f.duracion !== 'cualquiera') {
-    const op = DURACION_OPCIONES.find((o) => o.key === f.duracion);
-    chips.push({ id: 'duracion', label: `Duración: ${op?.label ?? ''}` });
-  }
   for (const h of f.horarios) chips.push({ id: `horario:${h}`, label: `Salida: ${HORARIO_META[h].label}` });
   for (const i of f.incluye) chips.push({ id: `incluye:${i}`, label: `Incluye: ${INCLUYE_META[i]?.label ?? i}` });
   if (f.aptoNinos) {
@@ -148,7 +122,6 @@ export function chipsDeFiltros(f: Filtros, operadores: Operador[]): ChipFiltro[]
 /** Quita un chip por id (inverso de chipsDeFiltros) */
 export function quitarChip(f: Filtros, chipId: string): Filtros {
   if (chipId === 'precio') return { ...f, precioActivo: false, precio: [PRECIO_MIN, PRECIO_MAX] };
-  if (chipId === 'duracion') return { ...f, duracion: 'cualquiera' };
   if (chipId === 'ninos') return { ...f, aptoNinos: false, edadNino: null };
   if (chipId === 'texto') return { ...f, texto: null };
   const [tipo, valor] = chipId.split(':');
@@ -164,13 +137,12 @@ export function quitarChip(f: Filtros, chipId: string): Filtros {
 /* Ordenamiento (buscador.md §4)                                       */
 /* ------------------------------------------------------------------ */
 
-export type Orden = 'relevancia' | 'precio-asc' | 'precio-desc' | 'duracion-asc' | 'nombre';
+export type Orden = 'relevancia' | 'precio-asc' | 'precio-desc' | 'nombre';
 
 export const ORDEN_OPCIONES: { key: Orden; label: string }[] = [
   { key: 'relevancia', label: 'Relevancia' },
   { key: 'precio-asc', label: 'Precio: menor a mayor' },
   { key: 'precio-desc', label: 'Precio: mayor a menor' },
-  { key: 'duracion-asc', label: 'Duración: más corto' },
   { key: 'nombre', label: 'Nombre A–Z' },
 ];
 
@@ -181,8 +153,6 @@ export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour
       return arr.sort((a, b) => a.precio_adulto - b.precio_adulto);
     case 'precio-desc':
       return arr.sort((a, b) => b.precio_adulto - a.precio_adulto);
-    case 'duracion-asc':
-      return arr.sort((a, b) => a.duracion_horas - b.duracion_horas);
     case 'nombre':
       return arr.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     case 'relevancia': {
@@ -296,18 +266,6 @@ export function interpretarBusqueda(texto: string): Interpretacion | null {
     const mEdad = q.match(/(\d{1,2})\s*añ/i);
     if (mEdad) parcial.edadNino = Number(mEdad[1]);
     resumen.push('Apto para niños');
-  }
-
-  // Duración
-  if (/d[ií]a completo|todo el d[ií]a/i.test(q)) {
-    parcial.duracion = 'dia-completo';
-    resumen.push('Duración: día completo');
-  } else if (/medio d[ií]a corto|corto|r[aá]pido/i.test(q)) {
-    parcial.duracion = 'hasta3';
-    resumen.push('Duración: hasta 3 h');
-  } else if (/medio d[ií]a/i.test(q)) {
-    parcial.duracion = 'hasta5';
-    resumen.push('Duración: hasta 5 h');
   }
 
   if (resumen.length === 0) return null;

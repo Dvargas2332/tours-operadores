@@ -39,7 +39,7 @@ import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatPrecio, freshness, formatDateEs, horarioRepresentativo, salidasTour } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
-import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { descargarPoliticaPdf } from '@/lib/pdf';
@@ -74,11 +74,6 @@ function ValorCountUp({ valor, formato }: { valor: number; formato: (n: number) 
   }, [mv, valor]);
 
   return <motion.span className="tnum">{texto}</motion.span>;
-}
-
-function horasTexto(horas: number): string {
-  const n = Number.isInteger(horas) ? horas : horas.toFixed(1);
-  return `${n} horas`;
 }
 
 const OPERA_DIARIO = /todos los d[ií]as|diario|lunes a domingo/i;
@@ -290,9 +285,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
-            <StatCelda icon={Clock} caption="duración total" index={1}>
-              <ValorCountUp valor={tour.duracion_horas} formato={(v) => formatDuracion(Math.round(v * 10) / 10)} />
-            </StatCelda>
             {tour.horarios.length > 0 ? (
               <>
                 <StatCelda icon={Bus} caption="hora de salida" index={2}>
@@ -493,7 +485,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                   <span className="text-base text-ink-faint">No especificado</span>
                 ),
               },
-              { label: 'Duración total', valor: horasTexto(tour.duracion_horas) },
               {
                 label: 'Recojo en hotel',
                 valor: tour.incluye.includes('transporte')

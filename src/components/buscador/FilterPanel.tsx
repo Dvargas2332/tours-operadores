@@ -12,7 +12,6 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import type { Operador, Tour } from '@/data/mock-tours';
 import {
-  DURACION_OPCIONES,
   FILTROS_INICIALES,
   PRECIO_MAX,
   PRECIO_MIN,
@@ -268,35 +267,6 @@ export default function FilterPanel({
                 >
                   <meta.icon className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{meta.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </Seccion>
-
-        {/* 4. Duración */}
-        <Seccion titulo="Duración">
-          <div className="space-y-0.5">
-            {DURACION_OPCIONES.map((op) => {
-              const activa = filtros.duracion === op.key;
-              return (
-                <button
-                  key={op.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={activa}
-                  onClick={() => set({ duracion: op.key })}
-                  className="flex w-full items-center gap-2.5 rounded-r-sm px-1 py-1.5 text-left transition-colors duration-fast hover:bg-surface-2"
-                >
-                  <span
-                    className={cn(
-                      'flex h-[18px] w-[18px] items-center justify-center rounded-full border transition-colors duration-fast',
-                      activa ? 'border-brand' : 'border-border',
-                    )}
-                  >
-                    {activa && <motion.span layoutId={undefined} className="h-2.5 w-2.5 rounded-full bg-brand" />}
-                  </span>
-                  <span className="text-small text-ink">{op.label}</span>
                 </button>
               );
             })}

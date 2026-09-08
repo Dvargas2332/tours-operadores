@@ -6,11 +6,11 @@
  */
 import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Baby, Bus, Clock, Flag, ImageIcon, Users } from 'lucide-react';
+import { AlertTriangle, Baby, Bus, Flag, ImageIcon, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatPrecio, freshness, formatDateEs, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
-import { CATEGORIA_META, INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { CATEGORIA_META, INCLUYE_META } from '@/lib/tour-meta';
 import { precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -189,10 +189,6 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
         </div>
         <div className="hidden shrink-0 items-center gap-4 text-small text-ink-muted tnum md:flex">
           <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {formatDuracion(tour.duracion_horas)}
-          </span>
-          <span className="flex items-center gap-1">
             <Bus className="h-3.5 w-3.5" />
             {horario?.hora_salida ?? '—'}
           </span>
@@ -302,10 +298,6 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
 
       {/* Metadatos */}
       <div className="mt-3 flex items-center gap-4 border-t border-border pt-3 text-small text-ink-muted tnum">
-        <span className="flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5" />
-          {formatDuracion(tour.duracion_horas)}
-        </span>
         <span className="flex items-center gap-1.5">
           <Bus className="h-3.5 w-3.5" />
           {horario?.hora_salida ?? '—'}

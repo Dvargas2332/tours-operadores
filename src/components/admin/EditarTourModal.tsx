@@ -79,7 +79,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
   const [zona, setZona] = useState(() => tour?.zona ?? '');
   const [categoria, setCategoria] = useState<Categoria>(() => tour?.categoria ?? 'aventura');
   const [moneda, setMoneda] = useState<Moneda>(() => tour?.moneda ?? 'usd');
-  const [duracion, setDuracion] = useState(() => (tour ? String(tour.duracion_horas) : ''));
   const [horarios, setHorarios] = useState<HorarioForm[]>(() =>
     tour?.horarios.length
       ? tour.horarios.slice().sort((a, b) => a.orden - b.orden).map((h) => ({ id: h.id, hora_salida: h.hora_salida, hora_llegada: h.hora_llegada }))
@@ -163,12 +162,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       return;
     }
 
-    const duracionNum = Number(duracion);
-    if (!Number.isFinite(duracionNum) || duracionNum <= 0) {
-      setError('Duración inválida');
-      return;
-    }
-
     if (modoHorario === 'propio') {
       for (let i = 0; i < horarios.length; i++) {
         const h = horarios[i];
@@ -231,7 +224,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       precioAdulto: tarifaAdulto.rack,
       precioNetoAdulto: tarifaAdulto.neta,
       tarifas: tarifasBackend,
-      duracionHoras: duracionNum,
       horarios: modoHorario === 'operador' ? [] : horarios.map((h, i) => ({ horaSalida: h.hora_salida, horaLlegada: h.hora_llegada, orden: i })),
       incluye,
       noIncluye: [] as string[],
@@ -317,10 +309,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                 <option value="usd">USD ($)</option>
                 <option value="crc">CRC (₡)</option>
               </select>
-            </div>
-            <div>
-              <Label htmlFor="t-duracion">Duración (horas)</Label>
-              <Input id="t-duracion" type="number" min={0.5} step={0.5} value={duracion} onChange={(e) => setDuracion(e.target.value)} className="mt-1" />
             </div>
             <div className="sm:col-span-2">
               <Label>Horario</Label>

@@ -1,6 +1,5 @@
 import { formatPrecio, formatDateEs } from '@/data/mock-tours';
 import type { Tour, Tarifa, Horario } from '@/data/mock-tours';
-import { formatDuracion } from '@/lib/tour-meta';
 
 export interface LineaReserva {
   edad: string;
@@ -60,8 +59,8 @@ function saludoPorHora(): string {
 
 export function buildMensajeReserva(d: DatosReserva): string {
   const horarioLinea = d.horario
-    ? `Duración: ${formatDuracion(d.tour.duracion_horas)} · Salida: ${d.horario.hora_salida} · Llegada: ${d.horario.hora_llegada}`
-    : `Duración: ${formatDuracion(d.tour.duracion_horas)} · Horario: ${d.tour.operador.horario || 'consultar en recepción'}`;
+    ? `Salida: ${d.horario.hora_salida} · Llegada: ${d.horario.hora_llegada}`
+    : `Horario: ${d.tour.operador.horario || 'consultar en recepción'}`;
 
   const lineas = [
     `${saludoPorHora()}. Me gustaría formalizar la siguiente reservación:`,

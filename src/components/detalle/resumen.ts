@@ -4,7 +4,7 @@
  */
 import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
-import { INCLUYE_META, formatDuracion } from '@/lib/tour-meta';
+import { INCLUYE_META } from '@/lib/tour-meta';
 
 /** "guía" → "Guía"; claves de INCLUYE_META usan su label oficial */
 export function labelIncluye(key: string): string {
@@ -43,7 +43,7 @@ export function buildResumenTour(tour: Tour): string {
   const lineas = [
     `${tour.nombre} — ${tour.operador.nombre}`,
     preciosLinea(tour),
-    `Duración: ${formatDuracion(tour.duracion_horas)} · ${horarioTexto}`,
+    horarioTexto,
   ];
   if (tour.incluye.length > 0) lineas.push(`Incluye: ${incluyeCorto(tour)}`);
   lineas.push(`Mínimo ${tour.minimo_personas} personas · ${tour.apto_ninos ? 'Apto para niños' : 'Solo adultos'}`);
@@ -62,7 +62,7 @@ export function buildResumenComparacion(tours: Tour[]): string {
     return [
       `${i + 1}) ${tour.nombre} — ${tour.operador.nombre}`,
       `   ${preciosLinea(tour)}`,
-      `   Duración: ${formatDuracion(tour.duracion_horas)} · ${horarioTexto} · Zona: ${tour.zona}`,
+      `   ${horarioTexto} · Zona: ${tour.zona}`,
       tour.incluye.length > 0 ? `   Incluye: ${incluyeCorto(tour)}` : null,
       tour.politica_cancelacion ? `   Cancelación: ${tour.politica_cancelacion}` : null,
     ]

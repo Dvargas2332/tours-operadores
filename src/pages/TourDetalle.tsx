@@ -7,13 +7,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronRight, Clock } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { BadgeCategoria } from '@/components/detalle/DetalleUI';
 import TourDetalleContenido, { TourDetalleSkeleton } from '@/components/detalle/TourDetalleContenido';
 import { useToursData } from '@/hooks/useToursData';
 import { fetchTourById, formatPrecio } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
-import { formatDuracion } from '@/lib/tour-meta';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -41,10 +40,6 @@ function TarjetaRelacionada({ tour, index, onClick }: { tour: Tour; index: numbe
           <span className="text-precio text-ink">{formatPrecio(tour.precio_adulto, tour.moneda)}</span>
           <span className="ml-1 text-caption text-ink-faint">adulto</span>
         </div>
-        <span className="flex items-center gap-1 text-small text-ink-muted tnum">
-          <Clock className="h-3.5 w-3.5" />
-          {formatDuracion(tour.duracion_horas)}
-        </span>
       </div>
     </motion.button>
   );
