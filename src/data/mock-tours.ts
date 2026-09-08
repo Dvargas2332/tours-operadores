@@ -21,6 +21,7 @@ export interface Operador {
   poliza_url: string | null; // URL pública de la póliza de seguro
   politica_cancelacion: string; // política de cancelación compartida por todos sus tours
   horario: string; // horario del operador (para tours que heredan su horario)
+  activo: boolean; // si está desactivado, sus tours no se muestran en la vista pública
 }
 
 export interface Tarifa {
@@ -140,6 +141,7 @@ type RowOperador = {
   poliza_url: string | null;
   politica_cancelacion: string | null;
   horario: string | null;
+  activo: boolean | null;
 };
 
 type RowTarifa = {
@@ -196,6 +198,7 @@ function mapOperador(o: RowOperador): Operador {
     poliza_url: o.poliza_url ?? null,
     politica_cancelacion: o.politica_cancelacion ?? '',
     horario: o.horario ?? '',
+    activo: o.activo ?? true,
   };
 }
 
@@ -259,34 +262,36 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fuente, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
-const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario';
+const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo';
 
 export async function fetchTours(): Promise<Tour[]> {
-  const select = (await esAutenticado()) ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
-  const { data, error } = await supabase
-    .from('tours')
-    .select(select)
-    .order('precio_adulto');
+  const autenticado = await esAutenticado();
+  const select = autenticado ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
+  let query = supabase.from('tours').select(select);
+  if (!autenticado) query = query.eq('operadores.activo', true);
+  const { data, error } = await query.order('precio_adulto');
   if (error) throw error;
   return ((data as unknown as RowTour[]) ?? []).map(mapTour);
 }
 
 export async function fetchOperadores(): Promise<Operador[]> {
-  const select = (await esAutenticado()) ? OPERADORES_SELECT : OPERADORES_SELECT_PUBLICO;
-  const { data, error } = await supabase.from('operadores').select(select).order('nombre');
+  const autenticado = await esAutenticado();
+  const select = autenticado ? OPERADORES_SELECT : OPERADORES_SELECT_PUBLICO;
+  let query = supabase.from('operadores').select(select);
+  if (!autenticado) query = query.eq('activo', true);
+  const { data, error } = await query.order('nombre');
   if (error) throw error;
   return ((data as unknown as RowOperador[]) ?? []).map(mapOperador);
 }
 
 export async function fetchTourById(id: number): Promise<Tour | undefined> {
-  const select = (await esAutenticado()) ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
-  const { data, error } = await supabase
-    .from('tours')
-    .select(select)
-    .eq('id', id)
-    .maybeSingle();
+  const autenticado = await esAutenticado();
+  const select = autenticado ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
+  let query = supabase.from('tours').select(select);
+  if (!autenticado) query = query.eq('operadores.activo', true);
+  const { data, error } = await query.eq('id', id).maybeSingle();
   if (error) throw error;
   return data ? mapTour(data as unknown as RowTour) : undefined;
 }

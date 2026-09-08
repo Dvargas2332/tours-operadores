@@ -50,6 +50,7 @@ export interface OperadorInput {
   polizaUrl?: string | null;
   politicaCancelacion?: string;
   horario?: string;
+  activo?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -108,6 +109,7 @@ function operadorToRow(o: OperadorInput) {
     poliza_url: o.polizaUrl ?? null,
     politica_cancelacion: o.politicaCancelacion ?? '',
     horario: o.horario ?? '',
+    activo: o.activo ?? true,
   };
 }
 
@@ -172,6 +174,7 @@ export async function actualizarOperador(input: { id: number } & Partial<Operado
       .eq('operador_id', id);
   }
   if (resto.horario !== undefined) update.horario = resto.horario;
+  if (resto.activo !== undefined) update.activo = resto.activo;
 
   if (Object.keys(update).length) {
     await supabase.from('operadores').update(update).eq('id', id);

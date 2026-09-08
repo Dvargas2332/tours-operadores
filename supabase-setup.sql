@@ -95,3 +95,9 @@ create policy "hotel_acceso" on public.hotel
 -- 6) Duración opcional (ya no se pide al crear tours)
 -- ----------------------------------------------------------------------------
 alter table public.tours alter column duracion_horas set default 0;
+
+-- ----------------------------------------------------------------------------
+-- 7) Activo/inactivo del operador (oculta sus tours en la vista pública)
+-- ----------------------------------------------------------------------------
+alter table public.operadores add column if not exists activo boolean not null default true;
+grant select (activo) on public.operadores to anon;

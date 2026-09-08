@@ -20,7 +20,7 @@ import ToursTable from '@/components/admin/ToursTable';
 import { fetchOperadores, fetchTours, formatDateEs, freshness } from '@/data/mock-tours';
 import type { Operador, Tour } from '@/data/mock-tours';
 import { useMutation } from '@tanstack/react-query';
-import { eliminarOperador, eliminarTour } from '@/data/mutations';
+import { actualizarOperador, eliminarOperador, eliminarTour } from '@/data/mutations';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -204,6 +204,11 @@ export default function Admin() {
       refrescar();
     },
     onError: (err) => setErrorEliminar(err.message),
+  });
+
+  const toggleActivoMutacion = useMutation({
+    mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarOperador({ id, activo }),
+    onSuccess: () => refrescar(),
   });
 
   useEffect(cargar, [cargar]);
@@ -488,6 +493,7 @@ export default function Admin() {
                         setErrorEliminar(null);
                         setOperadorAEliminar(fila);
                       }}
+                      onToggleActivo={(id, activo) => toggleActivoMutacion.mutate({ id, activo })}
                     />
                   ) : (
                     <ToursTable

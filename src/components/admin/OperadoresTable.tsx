@@ -12,6 +12,7 @@ import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
 import { freshness } from '@/data/mock-tours';
 import type { InfoFrescura, Operador } from '@/data/mock-tours';
+import { Switch } from '@/components/ui/switch';
 import { cn, polizaPreviewUrl } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -53,9 +54,10 @@ interface OperadoresTableProps {
   onVerTours: (operadorId: number) => void;
   onEditar: (fila: FilaOperador) => void;
   onEliminar: (fila: FilaOperador) => void;
+  onToggleActivo: (operadorId: number, activo: boolean) => void;
 }
 
-export default function OperadoresTable({ filas, onVerTours, onEditar, onEliminar }: OperadoresTableProps) {
+export default function OperadoresTable({ filas, onVerTours, onEditar, onEliminar, onToggleActivo }: OperadoresTableProps) {
   const { orden, ciclar } = useOrdenColumna<ColOrden>(ORDEN_DEFAULT);
 
   const ordenadas = [...filas].sort((a, b) => comparar(a, b, orden ?? ORDEN_DEFAULT));
@@ -92,7 +94,17 @@ export default function OperadoresTable({ filas, onVerTours, onEditar, onElimina
                   )}
                 >
                   <td className="px-3 py-3">
-                    <div className="text-[15px] font-semibold leading-snug text-ink">{operador.nombre}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-semibold leading-snug text-ink">{operador.nombre}</span>
+                      <Switch
+                        checked={operador.activo}
+                        onCheckedChange={(v) => onToggleActivo(operador.id, v)}
+                        aria-label={`Activar o desactivar ${operador.nombre}`}
+                      />
+                      {!operador.activo && (
+                        <span className="rounded-full bg-volcan-soft px-2 py-0.5 text-caption font-medium text-warn">Inactivo</span>
+                      )}
+                    </div>
                     {(operador.telefono || operador.email) && (
                       <div className="mt-0.5 flex flex-col gap-0.5 text-caption text-ink-faint">
                         {operador.telefono && (
