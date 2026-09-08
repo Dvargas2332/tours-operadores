@@ -5,7 +5,7 @@
  * comparación + atajos de teclado.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
 import ActiveChips, { ContadorResultados } from '@/components/buscador/ActiveChips';
@@ -38,7 +38,7 @@ const VISTA_KEY = 'tourhub-vista';
 export default function Buscador() {
   const data = useToursData();
   const navigate = useNavigate();
-
+  const [params] = useSearchParams();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -121,6 +121,17 @@ export default function Buscador() {
       setQuery('');
     }, 900);
   };
+
+  // Búsqueda lanzada desde la barra superior (?q=...): se ejecuta al llegar
+  // con un texto nuevo.
+  const qProcesada = useRef<string | null>(null);
+  useEffect(() => {
+    const q = params.get('q')?.trim();
+    if (!q || qProcesada.current === q) return;
+    qProcesada.current = q;
+    const id = window.setTimeout(() => ejecutarBusqueda(q), 0);
+    return () => window.clearTimeout(id);
+  });
 
   const editarTextoIA = () => {
     setQuery(filtrosAplicados.texto ?? '');

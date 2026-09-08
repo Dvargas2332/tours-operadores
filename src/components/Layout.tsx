@@ -55,6 +55,7 @@ export default function Layout() {
   const location = useLocation();
   const ahora = useReloj();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
   const collapsed = false;
 
   // Cierra el drawer móvil al cambiar de ruta
@@ -115,16 +116,27 @@ export default function Layout() {
 
           <div className="flex-1" />
 
-          {/* Botón de búsqueda */}
-          <button
-            type="button"
-            onClick={() => navigate('/buscar')}
-            aria-label="Buscar tours"
-            className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+          {/* Búsqueda rápida: escribir + Enter abre /buscar con la consulta */}
+          <form
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const texto = busqueda.trim();
+              navigate(texto ? `/buscar?q=${encodeURIComponent(texto)}` : '/buscar');
+              setBusqueda('');
+            }}
+            className="relative"
           >
-            <Search className="h-[18px] w-[18px]" />
-            <span className="hidden sm:inline">Buscar</span>
-          </button>
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar tours…"
+              aria-label="Buscar tours"
+              className="h-9 w-32 rounded-r-sm border border-border bg-surface-2 pl-8 pr-2 text-sm text-ink outline-none transition-[width,border-color,box-shadow] duration-fast placeholder:text-ink-faint focus:w-52 focus:border-brand focus:ring-[3px] focus:ring-brand/15 sm:w-48"
+            />
+          </form>
 
           {/* Reloj de recepción */}
           <div className="hidden text-caption text-ink-muted tnum sm:block">
