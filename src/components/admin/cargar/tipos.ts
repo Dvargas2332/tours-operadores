@@ -44,7 +44,6 @@ export interface FilaRevision {
   duracionHoras: string;
   horarios: HorarioRevision[];
   incluye: string[];
-  noIncluye: string[];
   minimoPersonas: string;
   aptoNinos: boolean;
   politicaCancelacion: string;
@@ -136,7 +135,6 @@ export function filaVacia(operador = '', moneda: Moneda = 'usd'): FilaRevision {
     duracionHoras: '',
     horarios: [{ salida: '08:00', llegada: '12:00' }],
     incluye: [],
-    noIncluye: [],
     minimoPersonas: '2',
     aptoNinos: true,
     politicaCancelacion: '',
@@ -190,7 +188,6 @@ export function filaAInput(f: FilaRevision) {
     duracionHoras: Number(f.duracionHoras),
     horarios: f.horarios.map((h, i) => ({ horaSalida: h.salida, horaLlegada: h.llegada, orden: i })),
     incluye: f.incluye,
-    noIncluye: f.noIncluye,
     minimoPersonas: Math.max(1, Math.round(Number(f.minimoPersonas) || 2)),
     aptoNinos: f.aptoNinos || tarifasBackend.some((t) => t.maxEdad != null && t.maxEdad < 18),
     politicaCancelacion: f.politicaCancelacion,

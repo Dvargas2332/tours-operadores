@@ -241,7 +241,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
       tarifas: tarifasBackend,
       horarios: modoHorario === 'operador' ? [] : horarios.map((h, i) => ({ horaSalida: h.hora_salida, horaLlegada: h.hora_llegada, orden: i })),
       incluye,
-      noIncluye: [] as string[],
       minimoPersonas: minimoNum,
       aptoNinos,
       observaciones,
@@ -417,7 +416,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
             </div>
             <div>
               <Label htmlFor="t-minimo">Mínimo personas</Label>
-              <Input id="t-minimo" type="number" min={1} value={minimoPersonas} onChange={(e) => setMinimoPersonas(e.target.value)} className="mt-1" />
+              <Input id="t-minimo" type="number" min={1} value={minimoPersonas} onChange={(e) => setMinimoPersonas(e.target.value)} className="mt-1 w-20" />
             </div>
             <div className="flex items-end pb-2">
               <label className="flex cursor-pointer items-center gap-2.5">
@@ -427,10 +426,10 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
             </div>
           </div>
 
-          {/* Incluye */}
-          <div>
+          {/* Incluye: recuadro con checks (mismo patrón que categorías) */}
+          <div className="rounded-r-sm border border-border bg-surface-2/50 p-3">
             <Label>Incluye</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {INCLUYE_KEYS.map((key) => {
                 const meta = INCLUYE_META[key];
                 const marcado = incluye.includes(key);
@@ -440,19 +439,19 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                     type="button"
                     onClick={() => toggleIncluye(key)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium transition-colors duration-fast',
+                      'inline-flex w-full items-center gap-1.5 rounded-r-sm px-2.5 py-1.5 text-caption font-medium transition-colors duration-fast',
                       marcado ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
                     )}
                   >
                     <span
                       className={cn(
-                        'flex h-4 w-4 items-center justify-center rounded-[4px] border',
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border',
                         marcado ? 'border-white bg-white text-brand' : 'border-ink-muted',
                       )}
                     >
                       {marcado && <Check className="h-3 w-3" />}
                     </span>
-                    <meta.icon className="h-3 w-3" />
+                    <meta.icon className="h-3 w-3 shrink-0" />
                     {meta.label}
                   </button>
                 );

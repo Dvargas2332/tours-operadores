@@ -36,7 +36,6 @@ export interface TourInput {
   horarios?: HorarioInput[];
   duracionHoras?: number;
   incluye?: string[];
-  noIncluye?: string[];
   minimoPersonas?: number;
   aptoNinos?: boolean;
   politicaCancelacion?: string;
@@ -93,7 +92,6 @@ function tourFieldsToRow(t: Partial<TourInput> & { operadorId?: number }): Recor
   if (t.precioNetoNino !== undefined) out.precio_neto_nino = t.precioNetoNino;
   if (t.duracionHoras !== undefined) out.duracion_horas = t.duracionHoras;
   if (t.incluye !== undefined) out.incluye = t.incluye;
-  if (t.noIncluye !== undefined) out.no_incluye = t.noIncluye;
   if (t.minimoPersonas !== undefined) out.minimo_personas = t.minimoPersonas;
   if (t.aptoNinos !== undefined) out.apto_ninos = t.aptoNinos;
   if (t.politicaCancelacion !== undefined) out.politica_cancelacion = t.politicaCancelacion;

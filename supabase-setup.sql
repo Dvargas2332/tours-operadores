@@ -58,7 +58,7 @@ revoke all on public.tours from anon;
 revoke all on public.operadores from anon;
 revoke all on public.tour_tarifas from anon;
 
-grant select (id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda) on public.tours to anon;
+grant select (id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda) on public.tours to anon;
 
 grant select (id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario) on public.operadores to anon;
 

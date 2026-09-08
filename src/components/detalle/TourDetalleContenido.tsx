@@ -20,13 +20,11 @@ import {
   Eye,
   FileText,
   MapPin,
-  Minus,
   Scale,
   StickyNote,
   User,
   Users,
   X,
-  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
@@ -398,18 +396,17 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           </div>
         </motion.section>
 
-        {/* ===== Incluye / No incluye ===== */}
+        {/* ===== Incluye ===== */}
         <motion.section
           variants={seccion}
           className="rounded-r-md border border-border bg-surface p-4"
           aria-label="Qué incluye"
         >
-          <div className={cn('grid gap-5', esDrawer ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')}>
-            <div>
-              <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-ok">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Incluye
-              </h2>
+          <div>
+            <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-ok">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Incluye
+            </h2>
               {tour.incluye.length > 0 ? (
                 <ul className="mt-3 space-y-2.5">
                   {tour.incluye.map((key, i) => {
@@ -436,32 +433,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               ) : (
                 <p className="mt-3 text-caption text-ink-faint">Sin especificar en el tarifario</p>
               )}
-            </div>
-            <div>
-              <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-danger">
-                <XCircle className="h-3.5 w-3.5" />
-                No incluye
-              </h2>
-              {tour.no_incluye.length > 0 ? (
-                <ul className="mt-3 space-y-2.5">
-                  {tour.no_incluye.map((item, i) => (
-                    <motion.li
-                      key={item}
-                      initial={{ opacity: 0, x: -8 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true, amount: 0.4 }}
-                      transition={{ duration: 0.2, ease: EASE, delay: i * 0.035 }}
-                      className="flex items-center gap-2.5"
-                    >
-                      <Minus className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
-                      <span className="text-[15px] text-ink-muted">{labelIncluye(item)}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-3 text-caption text-ink-faint">Sin especificar en el tarifario</p>
-              )}
-            </div>
           </div>
         </motion.section>
 

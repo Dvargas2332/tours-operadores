@@ -707,23 +707,6 @@ export default function PasoRevision({
                                 className="mt-1 w-full rounded-r-sm border border-border bg-surface px-2 py-1.5 text-small text-ink focus:border-brand focus:outline-none"
                               />
                             </label>
-                            <label className="block md:col-span-2">
-                              <span className="text-label uppercase tracking-wide text-ink-muted">No incluye (separado por comas)</span>
-                              <textarea
-                                rows={2}
-                                value={fila.noIncluye.join(', ')}
-                                disabled={fila.excluida}
-                                onChange={(e) =>
-                                  actualizar(fila.key, 'noIncluye', {
-                                    noIncluye: e.target.value
-                                      .split(',')
-                                      .map((s) => s.trim())
-                                      .filter(Boolean),
-                                  })
-                                }
-                                className="mt-1 w-full rounded-r-sm border border-border bg-surface px-2 py-1.5 text-small text-ink focus:border-brand focus:outline-none"
-                              />
-                            </label>
                           </motion.div>
                         </td>
                       </tr>

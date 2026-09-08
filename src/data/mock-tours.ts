@@ -59,7 +59,6 @@ export interface Tour {
   horarios: Horario[];
   duracion_horas: number;
   incluye: string[]; // transporte, guia, almuerzo, entradas, equipo, seguro
-  no_incluye: string[];
   minimo_personas: number;
   apto_ninos: boolean;
   politica_cancelacion: string;
@@ -214,7 +213,6 @@ type RowTour = {
   precio_neto_nino: number | string | null;
   duracion_horas: number | string;
   incluye: string[];
-  no_incluye: string[];
   minimo_personas: number;
   apto_ninos: boolean;
   politica_cancelacion: string | null;
@@ -282,7 +280,6 @@ function mapTour(t: RowTour): Tour {
     horarios: (t.tour_horarios ?? []).map(mapHorario).sort((a, b) => a.orden - b.orden),
     duracion_horas: Number(t.duracion_horas),
     incluye: t.incluye ?? [],
-    no_incluye: t.no_incluye ?? [],
     minimo_personas: t.minimo_personas,
     apto_ninos: t.apto_ninos,
     politica_cancelacion: t.politica_cancelacion ?? '',
@@ -303,7 +300,7 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, no_incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo';
 

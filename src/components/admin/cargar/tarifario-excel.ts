@@ -281,7 +281,6 @@ function nuevaFila(
     duracionHoras: '1',
     horarios: [{ salida: '08:00', llegada: '12:00' }],
     incluye: [],
-    noIncluye: [],
     minimoPersonas: '2',
     aptoNinos: true,
     politicaCancelacion: '',
