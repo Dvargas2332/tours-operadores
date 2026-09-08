@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Baby,
   Building2,
-  Bus,
   CalendarClock,
   Calendar,
   Check,
@@ -20,7 +19,6 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Flag,
   MapPin,
   Minus,
   Scale,
@@ -37,7 +35,7 @@ import ReservaDrawer from '@/components/reserva/ReservaDrawer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatPrecio, freshness, formatDateEs, horarioRepresentativo, salidasTour } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
@@ -178,7 +176,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const seleccionado = estaSeleccionado(tour.id);
   const operaDiario = OPERA_DIARIO.test(tour.observaciones);
   const esDrawer = variante === 'drawer';
-  const horario = horarioRepresentativo(tour);
   const horariosOrdenados = tour.horarios.slice().sort((a, b) => a.orden - b.orden);
 
   useEffect(() => () => {
@@ -285,23 +282,15 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
-            {tour.horarios.length > 0 ? (
-              <>
-                <StatCelda icon={Bus} caption="hora de salida" index={2}>
-                  <span className="tnum">{horario?.hora_salida ?? '—'}</span>
-                  {tour.horarios.length > 1 && (
-                    <span className="ml-1 text-caption text-ink-faint">+{tour.horarios.length - 1}</span>
-                  )}
-                </StatCelda>
-                <StatCelda icon={Flag} caption="hora de llegada" index={3}>
-                  <span className="tnum">{horario?.hora_llegada ?? '—'}</span>
-                </StatCelda>
-              </>
-            ) : (
-              <StatCelda icon={Clock} caption="horario" index={2}>
+            <StatCelda icon={Clock} caption="horarios de tours" index={1}>
+              {tour.horarios.length > 0 ? (
+                <span className="tnum">
+                  {horariosOrdenados.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}
+                </span>
+              ) : (
                 <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
-              </StatCelda>
-            )}
+              )}
+            </StatCelda>
           </div>
 
           {/* Badges informativos */}
@@ -468,21 +457,13 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           <dl className="mt-3 divide-y divide-border">
             {[
               {
-                label: 'Salidas',
-                valor: tour.horarios.length ? (
-                  <span className="tnum text-base">{salidasTour(tour)}</span>
-                ) : (
-                  <span className="text-base text-ink-faint">No especificado</span>
-                ),
-              },
-              {
-                label: 'Llegadas',
+                label: 'Horarios de tours',
                 valor: tour.horarios.length ? (
                   <span className="tnum text-base">
-                    {horariosOrdenados.map((h) => h.hora_llegada).join(', ')}
+                    {horariosOrdenados.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}
                   </span>
                 ) : (
-                  <span className="text-base text-ink-faint">No especificado</span>
+                  <span className="text-base text-ink-faint">{tour.operador.horario || 'No especificado'}</span>
                 ),
               },
               {

@@ -59,8 +59,8 @@ function saludoPorHora(): string {
 
 export function buildMensajeReserva(d: DatosReserva): string {
   const horarioLinea = d.horario
-    ? `Salida: ${d.horario.hora_salida} · Llegada: ${d.horario.hora_llegada}`
-    : `Horario: ${d.tour.operador.horario || 'consultar en recepción'}`;
+    ? `Horarios de tours: ${d.horario.hora_salida} - ${d.horario.hora_llegada}`
+    : `Horarios de tours: ${d.tour.operador.horario || 'consultar en recepción'}`;
 
   const lineas = [
     `${saludoPorHora()}. Me gustaría formalizar la siguiente reservación:`,

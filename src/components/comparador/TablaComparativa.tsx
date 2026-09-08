@@ -5,11 +5,11 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Baby, Check, ChevronDown, Copy, Flag, MapPin, Minus, Trophy, X } from 'lucide-react';
+import { Baby, Check, ChevronDown, Copy, MapPin, Minus, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
-import { formatPrecio, freshness, formatDateEs, salidasTour } from '@/data/mock-tours';
+import { formatPrecio, freshness, formatDateEs } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
@@ -199,20 +199,11 @@ function useFilas(tours: Tour[]): FilaDef[] {
         },
       },
       {
-        key: 'salida',
-        label: 'Hora de salida',
-        valores: tours.map((t) => salidasTour(t)),
-        render: (t) => <span className="text-[15px] font-semibold text-ink tnum">{salidasTour(t)}</span>,
-      },
-      {
-        key: 'llegada',
-        label: 'Hora de llegada',
-        valores: tours.map((t) => t.horarios.map((h) => h.hora_llegada).join(', ')),
+        key: 'horarios',
+        label: 'Horarios de tours',
+        valores: tours.map((t) => t.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')),
         render: (t) => (
-          <span className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-ink">
-            <Flag className="h-3.5 w-3.5 text-ink-muted" />
-            <span className="tnum">{t.horarios.map((h) => h.hora_llegada).join(', ') || '—'}</span>
-          </span>
+          <span className="tnum">{t.horarios.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ') || '—'}</span>
         ),
       },
       {
