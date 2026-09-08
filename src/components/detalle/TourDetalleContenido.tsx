@@ -282,14 +282,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
-            <StatCelda icon={Clock} caption="horarios de tours" index={1}>
-              {tour.horarios.length > 0 ? (
-                <span className="tnum">
-                  {horariosOrdenados.map((h) => `${h.hora_salida} - ${h.hora_llegada}`).join(' · ')}
-                </span>
-              ) : (
-                <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
-              )}
+            <StatCelda icon={Clock} caption="horario del operador" index={1}>
+              <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
             </StatCelda>
           </div>
 
