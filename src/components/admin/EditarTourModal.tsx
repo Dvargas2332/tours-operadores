@@ -296,37 +296,6 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
               <Input id="t-zona" value={zona} onChange={(e) => setZona(e.target.value)} className="mt-1" />
             </div>
             <div>
-              <Label>Categorías</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {CATEGORIAS.map((c) => {
-                  const meta = CATEGORIA_META[c];
-                  const marcada = categorias.includes(c);
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => toggleCategoria(c)}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium transition-colors duration-fast',
-                        marcada ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex h-4 w-4 items-center justify-center rounded-[4px] border',
-                          marcada ? 'border-white bg-white text-brand' : 'border-ink-muted',
-                        )}
-                      >
-                        {marcada && <Check className="h-3 w-3" />}
-                      </span>
-                      <meta.icon className="h-3 w-3" />
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
               <Label htmlFor="t-moneda">Moneda</Label>
               <select
                 id="t-moneda"
@@ -337,6 +306,40 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                 <option value="usd">USD ($)</option>
                 <option value="crc">CRC (₡)</option>
               </select>
+            </div>
+            {/* Categorías: recuadro de ancho completo con checks */}
+            <div className="sm:col-span-2">
+              <div className="rounded-r-sm border border-border bg-surface-2/50 p-3">
+                <Label>Categorías</Label>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CATEGORIAS.map((c) => {
+                    const meta = CATEGORIA_META[c];
+                    const marcada = categorias.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => toggleCategoria(c)}
+                        className={cn(
+                          'inline-flex w-full items-center gap-1.5 rounded-r-sm px-2.5 py-1.5 text-caption font-medium transition-colors duration-fast',
+                          marcada ? 'bg-brand text-white' : 'border border-border bg-surface text-ink-muted hover:text-ink',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border',
+                            marcada ? 'border-white bg-white text-brand' : 'border-ink-muted',
+                          )}
+                        >
+                          {marcada && <Check className="h-3 w-3" />}
+                        </span>
+                        <meta.icon className="h-3 w-3 shrink-0" />
+                        {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div className="sm:col-span-2">
               <Label>Horario</Label>
