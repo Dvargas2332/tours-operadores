@@ -15,10 +15,12 @@ import esBuscador from './es/buscador';
 import enBuscador from './en/buscador';
 import esDetalle from './es/detalle';
 import enDetalle from './en/detalle';
+import esShell from './es/shell';
+import enShell from './en/shell';
 
 const TEXTOS: Record<Idioma, Diccionario> = {
-  es: { ...esCommon, ...esWelcome, ...esBuscador, ...esDetalle },
-  en: { ...enCommon, ...enWelcome, ...enBuscador, ...enDetalle },
+  es: { ...esCommon, ...esWelcome, ...esBuscador, ...esDetalle, ...esShell },
+  en: { ...enCommon, ...enWelcome, ...enBuscador, ...enDetalle, ...enShell },
 };
 
 const IDIOMA_KEY = 'tours-idioma';
