@@ -38,7 +38,7 @@ import { useAuth } from '@/context/AuthContext';
 import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
-import { tarifasActivas } from '@/lib/tarifas';
+import { tarifasActivas, precioPublico } from '@/lib/tarifas';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { descargarPoliticaPdf, generarPoliticaPdf } from '@/lib/pdf';
@@ -305,7 +305,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         <motion.section variants={seccion} aria-label="Datos clave">
           <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
             <StatCelda icon={User} caption={tarifasVisibles.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
-              <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
+              <ValorCountUp valor={precioPublico(tour, tour.precio_adulto)} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
             <StatCelda icon={Clock} caption="horario del operador" index={1}>
               <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
@@ -341,7 +341,14 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Tarifas por rango de edad ===== */}
         <motion.section variants={seccion} aria-label="Tarifas">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-h3 text-ink">Tarifas</h2>
+            <h2 className="flex items-center gap-2 text-h3 text-ink">
+              Tarifas
+              {tour.operador.con_iva && (
+                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-caption font-medium text-ink-muted">
+                  IVA 13% incluido
+                </span>
+              )}
+            </h2>
             <button
               type="button"
               onClick={() => setReservaAbierta(true)}
@@ -377,7 +384,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                       <td className="px-4 py-2.5">
                         {t.max_edad != null ? `${t.min_edad} - ${t.max_edad} años` : `+${t.min_edad} años`}
                       </td>
-                      <td className="px-4 py-2.5 tnum font-medium text-ink">{formatPrecio(t.rack, tour.moneda)}</td>
+                      <td className="px-4 py-2.5 tnum font-medium text-ink">{formatPrecio(precioPublico(tour, t.rack), tour.moneda)}</td>
                       {autenticado && (
                         <td className="px-4 py-2.5 tnum text-brand">{t.neta != null ? formatPrecio(t.neta, tour.moneda) : '—'}</td>
                       )}

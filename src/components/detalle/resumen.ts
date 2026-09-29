@@ -9,6 +9,7 @@ import { formatPrecio, horariosLabel, horarioTieneLlegada } from '@/data/mock-to
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasSegunNacionalidad } from '@/i18n/tarifas';
+import { precioPublico } from '@/lib/tarifas';
 
 type TFn = (clave: string, vars?: Record<string, string | number>) => string;
 
@@ -51,13 +52,13 @@ function horariosTexto(tour: Tour, t?: TFn): string {
 function preciosLinea(tour: Tour, esCostaRica = true, t?: TFn): string {
   const visibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   if (visibles.length === 0) {
-    const precio = formatPrecio(tour.precio_adulto, tour.moneda);
+    const precio = formatPrecio(precioPublico(tour, tour.precio_adulto), tour.moneda);
     return t ? `${precio} ${t('detalle.resumen_nino_no_aplica')}` : `${precio} adulto · niño no aplica`;
   }
   const rangos = visibles
     .slice()
     .sort((a, b) => a.min_edad - b.min_edad)
-    .map((tar) => `${formatPrecio(tar.rack, tour.moneda)} ${labelRango(tar)}`);
+    .map((tar) => `${formatPrecio(precioPublico(tour, tar.rack), tour.moneda)} ${labelRango(tar)}`);
   return rangos.join(' · ');
 }
 

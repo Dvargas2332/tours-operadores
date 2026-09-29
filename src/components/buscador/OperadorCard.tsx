@@ -8,6 +8,7 @@ import type { Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
 import { formatPrecio } from '@/data/mock-tours';
+import { precioPublico } from '@/lib/tarifas';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 interface OperadorCardProps {
@@ -22,7 +23,7 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
   const categorias = [...new Set(tours.flatMap((t) => t.categorias))];
   const precios = tours.flatMap((t) => {
     const visibles = tarifasSegunNacionalidad(t.tarifas, esCostaRica);
-    return visibles.length ? visibles.map((tar) => tar.rack) : [t.precio_adulto];
+    return visibles.length ? visibles.map((tar) => precioPublico(t, tar.rack)) : [precioPublico(t, t.precio_adulto)];
   });
   const precioMin = Math.min(...precios);
   const precioMax = Math.max(...precios);

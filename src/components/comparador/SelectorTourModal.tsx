@@ -9,6 +9,7 @@ import { Search, X } from 'lucide-react';
 import { formatPrecio } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
+import { precioPublico } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n';
 
@@ -152,7 +153,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
                               </span>
                             </span>
                             <span className="shrink-0 text-sm font-semibold text-ink tnum">
-                              {formatPrecio(tour.precio_adulto, tour.moneda)}
+                              {formatPrecio(precioPublico(tour, tour.precio_adulto), tour.moneda)}
                             </span>
                           </button>
                         </motion.li>

@@ -6,6 +6,7 @@ import type { Categoria, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, HORARIO_META, INCLUYE_META, horarioBucket } from '@/lib/tour-meta';
 import type { HorarioKey } from '@/lib/tour-meta';
 import { formatUSD } from '@/data/mock-tours';
+import { precioPublico } from '@/lib/tarifas';
 
 export const PRECIO_MIN = 0;
 export const PRECIO_MAX = 300;
@@ -56,11 +57,16 @@ export function aplicarFiltros(tours: Tour[], f: Filtros, mostrarOperador = true
       }
     }
     if (f.precioActivo) {
-      if (t.precio_adulto < f.precio[0] || t.precio_adulto > f.precio[1]) return false;
+      // Se filtra sobre el precio público (con IVA cuando el operador lo tiene habilitado).
+      const adulto = precioPublico(t, t.precio_adulto);
+      if (adulto < f.precio[0] || adulto > f.precio[1]) return false;
       // Con el filtro de niños activo, también filtra por alguna tarifa de menor de edad
       if (f.aptoNinos) {
         const tarifaNino = t.tarifas.find((tar) => tar.max_edad != null && tar.max_edad < 18);
-        if (tarifaNino && (tarifaNino.rack < f.precio[0] || tarifaNino.rack > f.precio[1])) return false;
+        if (tarifaNino) {
+          const rackNino = precioPublico(t, tarifaNino.rack);
+          if (rackNino < f.precio[0] || rackNino > f.precio[1]) return false;
+        }
       }
     }
     if (f.zonas.length > 0 && !f.zonas.includes(t.zona)) return false;

@@ -101,3 +101,10 @@ alter table public.tours alter column duracion_horas set default 0;
 -- ----------------------------------------------------------------------------
 alter table public.operadores add column if not exists activo boolean not null default true;
 grant select (activo) on public.operadores to anon;
+
+-- ----------------------------------------------------------------------------
+-- 8) Switch de IVA por operador (con IVA = +13% en los precios públicos de sus tours)
+-- ----------------------------------------------------------------------------
+alter table public.operadores add column if not exists con_iva boolean not null default false;
+grant select (con_iva) on public.operadores to anon;
+notify pgrst, 'reload schema';

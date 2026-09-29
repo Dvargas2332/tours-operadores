@@ -25,6 +25,21 @@ export function precioActivoDesde(tour: Tour, esCostaRica = true): number {
   return Math.min(...activas.map((t) => t.rack));
 }
 
+/* ------------------------------------------------------------------ */
+/* IVA (13%) — switch por operador                                     */
+/* ------------------------------------------------------------------ */
+
+export const TASA_IVA = 0.13;
+
+/**
+ * Precio público final: si el operador tiene el IVA habilitado, le suma
+ * el 13% al precio. Si no, lo deja igual (nunca lo resta).
+ */
+export function precioPublico(tour: Tour, precio: number): number {
+  if (!tour.operador.con_iva) return precio;
+  return Math.round(precio * (1 + TASA_IVA) * 100) / 100;
+}
+
 /** Precio rack para un rango de edad aplicable. */
 export function tarifaActivaPorEdad(tour: Tour, edad: number, esCostaRica = true): Tarifa | undefined {
   const activas = tarifasActivas(tour, esCostaRica);

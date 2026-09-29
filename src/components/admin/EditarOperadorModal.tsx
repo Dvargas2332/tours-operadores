@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import PdfPreview from '@/components/PdfPreview';
 import { useMutation } from '@tanstack/react-query';
 import { actualizarOperador, subirLogo, subirPoliza } from '@/data/mutations';
@@ -33,6 +34,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   const [comision, setComision] = useState('');
   const [politica, setPolitica] = useState('');
   const [horario, setHorario] = useState('');
+  const [conIva, setConIva] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
@@ -50,6 +52,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       setComision(operador.comision != null ? String(operador.comision) : '');
       setPolitica(operador.politica_cancelacion || '');
       setHorario(operador.horario || '');
+      setConIva(operador.con_iva);
       setLogoPreview(operador.logo_url || null);
       setPolizaUrl(operador.poliza_url || null);
     }
@@ -162,6 +165,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       comision: comisionNum,
       politicaCancelacion: politica.trim(),
       horario: horario.trim(),
+      conIva,
       ...(logoUrl !== undefined && { logoUrl }),
       ...(nuevaPolizaUrl !== undefined && { polizaUrl: nuevaPolizaUrl }),
     });
@@ -226,6 +230,20 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
               onChange={(e) => setComision(e.target.value)}
               placeholder="Opcional"
               className="mt-1"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-r-sm border border-border bg-surface-2 px-4 py-3">
+            <div>
+              <Label htmlFor="op-con-iva">Con IVA (13%)</Label>
+              <p className="text-small text-ink-muted">
+                Suma el 13% de IVA a los precios públicos de todos los tours de este operador.
+              </p>
+            </div>
+            <Switch
+              id="op-con-iva"
+              checked={conIva}
+              onCheckedChange={setConIva}
+              disabled={isPending}
             />
           </div>
           <div className="sm:col-span-2">

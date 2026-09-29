@@ -24,6 +24,7 @@ export interface Operador {
   politica_cancelacion: string; // política de cancelación compartida por todos sus tours
   horario: string; // horario del operador (para tours que heredan su horario)
   activo: boolean; // si está desactivado, sus tours no se muestran en la vista pública
+  con_iva: boolean; // si está activo, los precios públicos de sus tours se muestran con +13% de IVA
 }
 
 export interface Tarifa {
@@ -181,6 +182,7 @@ type RowOperador = {
   politica_cancelacion: string | null;
   horario: string | null;
   activo: boolean | null;
+  con_iva: boolean | null;
 };
 
 type RowTarifa = {
@@ -236,6 +238,7 @@ function mapOperador(o: RowOperador): Operador {
     politica_cancelacion: o.politica_cancelacion ?? '',
     horario: o.horario ?? '',
     activo: o.activo ?? true,
+    con_iva: o.con_iva ?? false,
   };
 }
 
@@ -300,9 +303,9 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
-const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo';
+const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva';
 
 export async function fetchTours(): Promise<Tour[]> {
   const autenticado = await esAutenticado();

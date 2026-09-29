@@ -12,7 +12,7 @@ import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
 import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
-import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
+import { tarifasActivas, precioActivoDesde, precioPublico } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/i18n';
@@ -86,7 +86,7 @@ function tarifaNinoGlobal(tour: Tour, esCostaRica: boolean): Tarifa | undefined 
 }
 
 function precioDesdeGlobal(tour: Tour, esCostaRica: boolean): number {
-  return precioActivoDesde(tour, esCostaRica);
+  return precioPublico(tour, precioActivoDesde(tour, esCostaRica));
 }
 
 /* ---------- modelo de filas ---------- */
@@ -112,11 +112,13 @@ function useFilas(tours: Tour[]): FilaDef[] {
     const desde = tours.map(precioDesde);
     const mejorDesde = Math.min(...desde);
     const bases = tours.map(tarifaBase);
-    const adultos = bases.map((t) => t?.rack ?? 0);
+    // Los racks se comparan y muestran con IVA incluido cuando el operador lo tiene habilitado.
+    const adultos = bases.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : 0));
     const mejorAdulto = Math.min(...adultos);
     const ninos = tours.map(tarifaNino);
-    const conNino = ninos.filter(Boolean);
-    const mejorNino = conNino.length >= 2 ? Math.min(...(conNino.map((t) => t!.rack) as number[])) : null;
+    const ninosPublicos = ninos.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : null));
+    const conNinoPublicos = ninosPublicos.filter((v): v is number => v != null);
+    const mejorNino = conNinoPublicos.length >= 2 ? Math.min(...conNinoPublicos) : null;
 
     const filas: FilaDef[] = [
       {
@@ -136,17 +138,17 @@ function useFilas(tours: Tour[]): FilaDef[] {
         label: autenticado ? 'Tarifa rack adulto' : 'Tarifa adulto',
         valores: adultos,
         claseCelda: (t) => {
-          const base = tarifaBaseGlobal(t, esCostaRica)?.rack ?? 0;
-          return base === mejorAdulto ? 'bg-volcan-soft/60' : undefined;
+          const rack = tarifaBaseGlobal(t, esCostaRica)?.rack ?? 0;
+          return rack && precioPublico(t, rack) === mejorAdulto ? 'bg-volcan-soft/60' : undefined;
         },
         render: (t) => {
           const base = tarifaBaseGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-xl font-bold text-ink tnum">
-                {base ? formatPrecio(base.rack, t.moneda) : '—'}
+                {base ? formatPrecio(precioPublico(t, base.rack), t.moneda) : '—'}
               </span>
-              {base && base.rack === mejorAdulto && <PillMejorPrecio />}
+              {base && precioPublico(t, base.rack) === mejorAdulto && <PillMejorPrecio />}
             </div>
           );
         },
@@ -154,19 +156,21 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'precio-nino',
         label: autenticado ? 'Tarifa rack niño' : 'Tarifa niño',
-        valores: ninos.map((t) => t?.rack ?? null),
+        valores: ninosPublicos,
         claseCelda: (t) => {
           const n = tarifaNinoGlobal(t, esCostaRica);
-          return mejorNino != null && n?.rack === mejorNino ? 'bg-volcan-soft/60' : undefined;
+          return mejorNino != null && n != null && precioPublico(t, n.rack) === mejorNino
+            ? 'bg-volcan-soft/60'
+            : undefined;
         },
         render: (t) => {
           const n = tarifaNinoGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-xl font-bold text-ink tnum">
-                {n ? formatPrecio(n.rack, t.moneda) : '—'}
+                {n ? formatPrecio(precioPublico(t, n.rack), t.moneda) : '—'}
               </span>
-              {mejorNino != null && n?.rack === mejorNino && <PillMejorPrecio />}
+              {mejorNino != null && n != null && precioPublico(t, n.rack) === mejorNino && <PillMejorPrecio />}
             </div>
           );
         },

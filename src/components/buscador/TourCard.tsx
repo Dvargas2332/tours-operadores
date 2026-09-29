@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, INCLUYE_META } from '@/lib/tour-meta';
-import { precioActivoDesde } from '@/lib/tarifas';
+import { precioActivoDesde, precioPublico } from '@/lib/tarifas';
 import { tarifasSegunNacionalidad, useFormatos, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -49,7 +49,7 @@ function CheckComparar({ checked }: { checked: boolean }) {
 }
 
 function precioDesde(tour: Tour, esCostaRica: boolean): number {
-  return precioActivoDesde(tour, esCostaRica);
+  return precioPublico(tour, precioActivoDesde(tour, esCostaRica));
 }
 
 function FilaIncluye({ tour, compact = false }: { tour: Tour; compact?: boolean }) {

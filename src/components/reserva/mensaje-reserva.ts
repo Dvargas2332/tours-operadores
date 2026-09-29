@@ -1,5 +1,6 @@
 import { formatPrecio, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa, Horario } from '@/data/mock-tours';
+import { precioPublico } from '@/lib/tarifas';
 
 export interface LineaReserva {
   edad: string;
@@ -35,12 +36,13 @@ export function calcularLineasPorTarifas(tour: Tour, conteos: ConteoTarifas): Li
   for (const t of tour.tarifas) {
     const cantidad = conteos[t.id] ?? 0;
     if (cantidad <= 0) continue;
+    const rack = precioPublico(tour, t.rack);
     out.push({
       edad: labelTarifa(t),
       cantidad,
-      rack: t.rack,
+      rack,
       neta: t.neta,
-      totalRack: cantidad * t.rack,
+      totalRack: cantidad * rack,
     });
   }
   return out;
