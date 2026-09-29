@@ -30,12 +30,14 @@ import {
 } from '@/lib/filtros';
 import { cn } from '@/lib/utils';
 import { useCompare } from '@/context/CompareContext';
+import { useI18n } from '@/i18n';
 import type { Filtros, Orden } from '@/lib/filtros';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const VISTA_KEY = 'tourhub-vista';
 
 export default function Buscador() {
+  const { t, mostrarOperador } = useI18n();
   const data = useToursData();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -87,7 +89,7 @@ export default function Buscador() {
   const tours = data?.tours ?? [];
   const operadores = data?.operadores ?? [];
 
-  const filtrados = useMemo(() => aplicarFiltros(tours, filtrosAplicados), [tours, filtrosAplicados]);
+  const filtrados = useMemo(() => aplicarFiltros(tours, filtrosAplicados, mostrarOperador), [tours, filtrosAplicados, mostrarOperador]);
   const resultados = useMemo(
     () => ordenar(filtrados, orden, filtrosAplicados.texto),
     [filtrados, orden, filtrosAplicados.texto],
@@ -96,8 +98,8 @@ export default function Buscador() {
   const activos = contarActivos(filtrosAplicados);
   const mostrarResultados = hasBuscado || activos > 0 || filtrosAplicados.texto != null;
   const chips = useMemo(
-    () => chipsDeFiltros(filtrosAplicados, operadores),
-    [filtrosAplicados, operadores],
+    () => chipsDeFiltros(filtrosAplicados, operadores, t),
+    [filtrosAplicados, operadores, t],
   );
 
   // Al cambiar filtros, el scroll del grid vuelve arriba (instantáneo)
@@ -144,27 +146,35 @@ export default function Buscador() {
   const sugerenciaVacio = useMemo(() => {
     if (!data || resultados.length > 0 || activos === 0) return null;
     const f = filtrosAplicados;
+    const MARCA_PRECIO = 'precio';
     const candidatos: [string, Filtros][] = [];
-    for (const z of f.zonas) candidatos.push([`'${z}'`, { ...f, zonas: f.zonas.filter((x) => x !== z) }]);
-    if (f.precioActivo) candidatos.push(['subir el precio máximo', { ...f, precioActivo: false }]);
-    for (const c of f.categorias) candidatos.push([`la categoría`, { ...f, categorias: f.categorias.filter((x) => x !== c) }]);
-    for (const h of f.horarios) candidatos.push(['el horario', { ...f, horarios: f.horarios.filter((x) => x !== h) }]);
-    for (const i of f.incluye) candidatos.push([`'${i}' de "incluye"`, { ...f, incluye: f.incluye.filter((x) => x !== i) }]);
-    if (f.aptoNinos) candidatos.push(['"Apto para niños"', { ...f, aptoNinos: false }]);
+    for (const z of f.zonas)
+      candidatos.push([t('buscador.sugerencia_quitar_zona', { zona: z }), { ...f, zonas: f.zonas.filter((x) => x !== z) }]);
+    if (f.precioActivo) candidatos.push([MARCA_PRECIO, { ...f, precioActivo: false }]);
+    for (const c of f.categorias)
+      candidatos.push([t('buscador.sugerencia_quitar_categoria'), { ...f, categorias: f.categorias.filter((x) => x !== c) }]);
+    for (const h of f.horarios)
+      candidatos.push([t('buscador.sugerencia_quitar_horario'), { ...f, horarios: f.horarios.filter((x) => x !== h) }]);
+    for (const i of f.incluye)
+      candidatos.push([
+        t('buscador.sugerencia_quitar_incluye', { item: t(`buscador.incluye_${i}`) }),
+        { ...f, incluye: f.incluye.filter((x) => x !== i) },
+      ]);
+    if (f.aptoNinos) candidatos.push([t('buscador.sugerencia_quitar_ninos'), { ...f, aptoNinos: false }]);
     let mejor: string | null = null;
     let mejorN = 0;
     for (const [label, ff] of candidatos) {
-      const n = aplicarFiltros(tours, ff).length;
+      const n = aplicarFiltros(tours, ff, mostrarOperador).length;
       if (n > mejorN) {
         mejorN = n;
         mejor = label;
       }
     }
     if (!mejor) return null;
-    return mejor === 'subir el precio máximo'
-      ? 'Prueba subir el precio máximo o quitar otro filtro.'
-      : `Prueba quitar ${mejor}.`;
-  }, [data, resultados.length, activos, filtrosAplicados, tours]);
+    return mejor === MARCA_PRECIO
+      ? t('buscador.sugerencia_subir_precio_texto')
+      : t('buscador.sugerencia_quitar_algo', { item: mejor });
+  }, [data, resultados.length, activos, filtrosAplicados, tours, t, mostrarOperador]);
 
   const { toggle, estaSeleccionado } = useCompare();
   const mostrarSkeletons = !data || interpretando;
@@ -199,7 +209,7 @@ export default function Buscador() {
           transition={{ duration: 0.28, ease: EASE }}
           className="shrink-0 space-y-3 px-5 pt-5"
         >
-          <h1 className="hidden text-display text-ink lg:block">Buscar tours</h1>
+          <h1 className="hidden text-display text-ink lg:block">{t('buscador.titulo')}</h1>
           <SearchBar ref={inputRef} valor={query} onCambio={setQuery} onBuscar={() => ejecutarBusqueda()} interpretando={interpretando} />
           <ActiveChips
             textoIA={filtrosAplicados.texto}
@@ -277,7 +287,7 @@ export default function Buscador() {
         className="fixed bottom-6 right-6 z-40 flex h-12 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-white shadow-overlay transition-all duration-fast hover:bg-brand-hover active:scale-[0.98] lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4" />
-        Filtros{activos > 0 ? ` (${activos})` : ''}
+        {activos > 0 ? t('buscador.boton_filtros_n', { n: String(activos) }) : t('buscador.boton_filtros')}
       </button>
 
       {/* Sheet de filtros: bottom-sheet móvil / drawer izquierdo tablet */}

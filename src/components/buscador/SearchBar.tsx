@@ -7,12 +7,13 @@ import { forwardRef, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Baby, Leaf, Search, Sparkles, Sunset, Waves, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useI18n } from '@/i18n';
 
-const PLACEHOLDERS = [
-  'Ej.: canopy en Arenal para 2 adultos y 1 niño, menos de $250…',
-  'Ej.: rafting con almuerzo que salga temprano…',
-  'Ej.: algo tranquilo con aguas termales para hoy en la tarde…',
-];
+const PLACEHOLDER_KEYS = [
+  'buscador.placeholder_1',
+  'buscador.placeholder_2',
+  'buscador.placeholder_3',
+] as const;
 
 export interface Sugerencia {
   label: string;
@@ -39,11 +40,12 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
   { valor, onCambio, onBuscar, interpretando },
   ref,
 ) {
+  const { t } = useI18n();
   const [idxPlaceholder, setIdxPlaceholder] = useState(0);
 
   // Placeholder rotativo cada 6s (crossfade 250ms)
   useEffect(() => {
-    const id = setInterval(() => setIdxPlaceholder((i) => (i + 1) % PLACEHOLDERS.length), 6000);
+    const id = setInterval(() => setIdxPlaceholder((i) => (i + 1) % PLACEHOLDER_KEYS.length), 6000);
     return () => clearInterval(id);
   }, []);
 
@@ -63,7 +65,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
               transition={{ duration: 0.25 }}
               className="block truncate text-[15px] text-ink-faint"
             >
-              {PLACEHOLDERS[idxPlaceholder]}
+              {t(PLACEHOLDER_KEYS[idxPlaceholder])}
             </motion.span>
           </AnimatePresence>
         </div>
@@ -81,7 +83,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
             e.currentTarget.blur();
           }
         }}
-        aria-label="Búsqueda libre de tours"
+        aria-label={t('buscador.busqueda_aria')}
         className="h-[52px] w-full rounded-r-md border-[1.5px] border-border bg-surface pl-11 pr-[130px] text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-fast focus:border-brand focus:ring-[3px] focus:ring-brand/15"
       />
 
@@ -105,7 +107,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
         className="absolute right-1.5 top-1/2 flex h-10 w-[112px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-r-sm bg-volcan text-sm font-semibold text-white transition-all duration-fast hover:brightness-105 active:scale-[0.98] disabled:opacity-80"
       >
         <Sparkles className={interpretando ? 'h-4 w-4 animate-spin-soft' : 'h-4 w-4'} />
-        {interpretando ? 'Interpretando…' : 'Buscar'}
+        {interpretando ? t('buscador.interpretando') : t('acciones.buscar')}
       </button>
     </div>
   );

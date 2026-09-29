@@ -1,0 +1,42 @@
+import type { Diccionario } from '../types';
+
+/** Shared texts across the whole application. */
+const common: Diccionario = {
+  'acciones.guardar': 'Save',
+  'acciones.guardar_cambios': 'Save changes',
+  'acciones.cancelar': 'Cancel',
+  'acciones.cerrar': 'Close',
+  'acciones.volver': 'Back',
+  'acciones.ver': 'View',
+  'acciones.editar': 'Edit',
+  'acciones.eliminar': 'Delete',
+  'acciones.agregar': 'Add',
+  'acciones.buscar': 'Search',
+  'acciones.cargando': 'Loading…',
+  'acciones.ver_todos': 'View all',
+  'acciones.ver_menos': 'View less',
+  'acciones.copiar': 'Copy',
+  'acciones.comparar': 'Compare',
+  'acciones.reservar': 'Book',
+  'acciones.ver_detalle': 'View details',
+  'estados.activo': 'Active',
+  'estados.inactivo': 'Inactive',
+  'estados.hoy': 'Today',
+  'estados.ayer': 'Yesterday',
+  'fecha.horario_inicia': 'Starts at {hora}',
+  'fecha.mes_1': 'January',
+  'fecha.mes_2': 'February',
+  'fecha.mes_3': 'March',
+  'fecha.mes_4': 'April',
+  'fecha.mes_5': 'May',
+  'fecha.mes_6': 'June',
+  'fecha.mes_7': 'July',
+  'fecha.mes_8': 'August',
+  'fecha.mes_9': 'September',
+  'fecha.mes_10': 'October',
+  'fecha.mes_11': 'November',
+  'fecha.mes_12': 'December',
+  'footer.derechos': 'Tours Operators · by Kazehana Cloud',
+};
+
+export default common;

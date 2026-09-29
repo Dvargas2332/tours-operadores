@@ -20,8 +20,9 @@ import {
   sinSeccion,
 } from '@/lib/filtros';
 import type { Filtros } from '@/lib/filtros';
-import { CATEGORIA_META, CATEGORIAS, HORARIO_KEYS, HORARIO_META, INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
+import { CATEGORIA_META, CATEGORIAS, HORARIO_KEYS, HORARIO_META, INCLUYE_KEYS } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -133,16 +134,17 @@ export default function FilterPanel({
   onVerResultados,
 }: FilterPanelProps) {
   const activos = contarActivos(filtros);
+  const { t, mostrarOperador } = useI18n();
   const [buscaOp, setBuscaOp] = useState('');
   const [opOpen, setOpOpen] = useState(false);
 
   // Conteos dinámicos por zona (respetan el resto de filtros)
   const conteosZona = useMemo(() => {
-    const base = aplicarFiltros(tours, sinSeccion(filtros, 'zonas'));
+    const base = aplicarFiltros(tours, sinSeccion(filtros, 'zonas'), mostrarOperador);
     const mapa = new Map<string, number>();
     for (const t of base) mapa.set(t.zona, (mapa.get(t.zona) ?? 0) + 1);
     return mapa;
-  }, [tours, filtros]);
+  }, [tours, filtros, mostrarOperador]);
 
   const zonas = useMemo(() => {
     const set = new Map<string, number>();
@@ -164,7 +166,7 @@ export default function FilterPanel({
     <div className="flex h-full flex-col bg-surface">
       {/* Header */}
       <div className="flex items-center justify-between px-5 pb-3 pt-5">
-        <h2 className="text-h3 text-ink">Filtros</h2>
+        <h2 className="text-h3 text-ink">{t('buscador.panel_titulo')}</h2>
         <button
           type="button"
           disabled={activos === 0}
@@ -175,14 +177,14 @@ export default function FilterPanel({
           )}
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          {activos > 0 ? `Limpiar (${activos})` : 'Limpiar'}
+          {activos > 0 ? t('buscador.limpiar_n', { n: String(activos) }) : t('buscador.limpiar')}
         </button>
       </div>
 
       {/* Secciones */}
       <div className="flex-1 overflow-y-auto px-5 pb-4">
         {/* 1. Precio adulto */}
-        <Seccion titulo="Precio adulto" abiertoDefault>
+        <Seccion titulo={t('buscador.seccion_precio')} abiertoDefault>
           <div className="px-1 pt-2">
             <Slider
               min={PRECIO_MIN}
@@ -210,16 +212,16 @@ export default function FilterPanel({
                     set({ precio: nuevo, precioActivo: true });
                   }}
                   className="w-full bg-transparent text-ink outline-none"
-                  aria-label={i === 0 ? 'Precio mínimo' : 'Precio máximo'}
+                  aria-label={i === 0 ? t('buscador.precio_min') : t('buscador.precio_max')}
                 />
               </label>
             ))}
-            <span className="text-caption text-ink-faint">por persona</span>
+            <span className="text-caption text-ink-faint">{t('buscador.por_persona')}</span>
           </div>
         </Seccion>
 
         {/* 2. Zona */}
-        <Seccion titulo="Zona" abiertoDefault>
+        <Seccion titulo={t('buscador.seccion_zona')} abiertoDefault>
           <div className="-mx-1">
             {zonas.map((z) => (
               <CheckboxFila
@@ -247,7 +249,7 @@ export default function FilterPanel({
         </Seccion>
 
         {/* 3. Categoría */}
-        <Seccion titulo="Categoría" abiertoDefault>
+        <Seccion titulo={t('buscador.seccion_categoria')} abiertoDefault>
           <div className="grid grid-cols-2 gap-2">
             {CATEGORIAS.map((c) => {
               const meta = CATEGORIA_META[c];
@@ -266,7 +268,7 @@ export default function FilterPanel({
                   )}
                 >
                   <meta.icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{meta.label}</span>
+                  <span className="truncate">{t(`buscador.categoria_${c}`)}</span>
                 </button>
               );
             })}
@@ -274,7 +276,7 @@ export default function FilterPanel({
         </Seccion>
 
         {/* 5. Horario de salida */}
-        <Seccion titulo="Horario de salida">
+        <Seccion titulo={t('buscador.seccion_horario')}>
           <div className="flex flex-wrap gap-2">
             {HORARIO_KEYS.map((h) => {
               const meta = HORARIO_META[h];
@@ -293,7 +295,7 @@ export default function FilterPanel({
                   )}
                 >
                   <meta.icon className="h-3.5 w-3.5" />
-                  {meta.label}
+                  {t(`buscador.horario_${h}`)}
                 </button>
               );
             })}
@@ -301,31 +303,31 @@ export default function FilterPanel({
         </Seccion>
 
         {/* 6. Qué incluye */}
-        <Seccion titulo="Qué incluye">
+        <Seccion titulo={t('buscador.seccion_incluye')}>
           <div className="-mx-1">
             {INCLUYE_KEYS.map((k) => (
               <CheckboxFila
                 key={k}
                 checked={filtros.incluye.includes(k)}
                 onChange={() => set({ incluye: toggleLista(filtros.incluye, k) })}
-                label={INCLUYE_META[k].label}
+                label={t(`buscador.incluye_${k}`)}
               />
             ))}
           </div>
-          <p className="mt-2 px-1 text-caption text-ink-faint">El tour debe incluir todos los marcados.</p>
+          <p className="mt-2 px-1 text-caption text-ink-faint">{t('buscador.incluye_ayuda')}</p>
         </Seccion>
 
         {/* 7. Apto para niños */}
-        <Seccion titulo="Apto para niños">
+        <Seccion titulo={t('buscador.seccion_ninos')}>
           <div className="flex items-center justify-between gap-3 px-1">
             <div>
-              <div className="text-small font-medium text-ink">Apto para niños</div>
-              <div className="text-caption text-ink-faint">Muestra solo tours que aceptan menores</div>
+              <div className="text-small font-medium text-ink">{t('buscador.seccion_ninos')}</div>
+              <div className="text-caption text-ink-faint">{t('buscador.ninos_ayuda')}</div>
             </div>
             <Switch
               checked={filtros.aptoNinos}
               onCheckedChange={(v) => set({ aptoNinos: v, edadNino: v ? filtros.edadNino : null })}
-              aria-label="Apto para niños"
+              aria-label={t('buscador.seccion_ninos')}
               className="data-[state=checked]:bg-brand"
             />
           </div>
@@ -339,14 +341,14 @@ export default function FilterPanel({
                 className="overflow-hidden"
               >
                 <label className="mt-3 flex items-center gap-2 px-1 text-small text-ink-muted">
-                  Edad del niño
+                  {t('buscador.edad_nino')}
                   <input
                     type="number"
                     min={0}
                     max={17}
                     value={filtros.edadNino ?? ''}
                     onChange={(e) => set({ edadNino: e.target.value === '' ? null : Number(e.target.value) })}
-                    placeholder="Opcional"
+                    placeholder={t('buscador.opcional')}
                     className="h-9 w-24 rounded-r-sm border border-border bg-surface px-2 text-ink tnum outline-none focus:border-brand focus:ring-[3px] focus:ring-brand/15"
                   />
                 </label>
@@ -355,8 +357,9 @@ export default function FilterPanel({
           </AnimatePresence>
         </Seccion>
 
-        {/* 8. Operador */}
-        <Seccion titulo="Operador">
+        {/* 8. Operador (solo admin: los clientes no ven operadores) */}
+        {mostrarOperador && (
+        <Seccion titulo={t('buscador.seccion_operador')}>
           <Popover open={opOpen} onOpenChange={setOpOpen}>
             <PopoverTrigger asChild>
               <button
@@ -364,8 +367,10 @@ export default function FilterPanel({
                 className="flex h-10 w-full items-center justify-between rounded-r-sm border border-border bg-surface px-3 text-small text-ink-muted transition-colors duration-fast hover:border-brand"
               >
                 {filtros.operadores.length > 0
-                  ? `${filtros.operadores.length} seleccionado${filtros.operadores.length > 1 ? 's' : ''}`
-                  : 'Todos los operadores'}
+                  ? filtros.operadores.length === 1
+                    ? t('buscador.seleccionado_uno', { n: '1' })
+                    : t('buscador.seleccionados_varios', { n: String(filtros.operadores.length) })
+                  : t('buscador.todos_operadores')}
                 <ChevronDown className="h-4 w-4 text-ink-faint" />
               </button>
             </PopoverTrigger>
@@ -375,7 +380,7 @@ export default function FilterPanel({
                 <input
                   value={buscaOp}
                   onChange={(e) => setBuscaOp(e.target.value)}
-                  placeholder="Buscar operador…"
+                  placeholder={t('buscador.buscar_operador')}
                   className="w-full bg-transparent text-small text-ink outline-none placeholder:text-ink-faint"
                 />
               </div>
@@ -402,7 +407,7 @@ export default function FilterPanel({
                   );
                 })}
                 {operadoresFiltrados.length === 0 && (
-                  <div className="px-2 py-3 text-small text-ink-faint">Sin coincidencias</div>
+                  <div className="px-2 py-3 text-small text-ink-faint">{t('buscador.sin_coincidencias')}</div>
                 )}
               </div>
             </PopoverContent>
@@ -416,7 +421,7 @@ export default function FilterPanel({
                     {op?.nombre ?? id}
                     <button
                       type="button"
-                      aria-label={`Quitar ${op?.nombre}`}
+                      aria-label={t('buscador.quitar_nombre', { nombre: op?.nombre ?? id })}
                       onClick={() => set({ operadores: filtros.operadores.filter((x) => x !== id) })}
                       className="rounded-full hover:text-brand-hover"
                     >
@@ -428,6 +433,7 @@ export default function FilterPanel({
             </div>
           )}
         </Seccion>
+        )}
       </div>
 
       {/* Footer sticky: Ver N resultados */}
@@ -446,7 +452,7 @@ export default function FilterPanel({
                 onClick={onVerResultados}
                 className="h-10 w-full rounded-r-sm bg-brand text-sm font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover active:scale-[0.98]"
               >
-                Ver {totalFiltrados} resultado{totalFiltrados === 1 ? '' : 's'}
+                {t(totalFiltrados === 1 ? 'buscador.ver_resultado_uno' : 'buscador.ver_resultados_varios', { n: String(totalFiltrados) })}
               </button>
             </div>
           </motion.div>

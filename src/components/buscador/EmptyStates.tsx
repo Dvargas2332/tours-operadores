@@ -4,6 +4,7 @@
  */
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -11,11 +12,12 @@ const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 export function EstadoInicial({ totalTours }: {
   totalTours: number;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
         src="./logo/volcan.png"
-        alt="Volcán"
+        alt={t('buscador.alt_volcan')}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: EASE }}
@@ -34,7 +36,7 @@ export function EstadoInicial({ totalTours }: {
         transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
         className="mt-6 text-h3 text-ink"
       >
-        {totalTours > 0 ? 'Encuentra el tour perfecto' : 'Aún no hay tours cargados'}
+        {totalTours > 0 ? t('buscador.estado_inicial_titulo') : t('buscador.estado_inicial_vacio')}
       </motion.h2>
     </div>
   );
@@ -48,26 +50,27 @@ export function EstadoSinResultados({
   sugerencia: string | null;
   onLimpiar: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
         src="./empty-search.svg"
-        alt="Binoculares sobre un mapa con ruta punteada"
+        alt={t('buscador.alt_binoculares')}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: EASE }}
         className="w-[280px] max-w-full"
       />
-      <h2 className="mt-6 text-h3 text-ink">Sin tours con esos filtros</h2>
+      <h2 className="mt-6 text-h3 text-ink">{t('buscador.sin_resultados_titulo')}</h2>
       <p className="mt-2 max-w-md text-small text-ink-muted">
-        {sugerencia ?? 'Prueba quitar algún filtro o ampliar el rango de precio.'}
+        {sugerencia ?? t('buscador.sin_resultados_sugerencia')}
       </p>
       <button
         type="button"
         onClick={onLimpiar}
         className="mt-5 h-10 rounded-r-sm border border-border bg-surface px-4 text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
       >
-        Limpiar filtros
+        {t('buscador.limpiar_filtros')}
       </button>
     </div>
   );
@@ -75,19 +78,20 @@ export function EstadoSinResultados({
 
 /** Error de carga */
 export function EstadoError({ onReintentar }: { onReintentar: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-volcan-soft">
         <AlertTriangle className="h-7 w-7 text-warn" />
       </div>
-      <h2 className="mt-4 text-h3 text-ink">No pudimos cargar los tours</h2>
-      <p className="mt-2 text-small text-ink-muted">Revisa la conexión y reintenta.</p>
+      <h2 className="mt-4 text-h3 text-ink">{t('buscador.error_titulo')}</h2>
+      <p className="mt-2 text-small text-ink-muted">{t('buscador.error_subtitulo')}</p>
       <button
         type="button"
         onClick={onReintentar}
         className="mt-5 h-10 rounded-r-sm bg-brand px-5 text-sm font-semibold text-white transition-all duration-fast hover:-translate-y-px hover:bg-brand-hover active:scale-[0.98]"
       >
-        Reintentar
+        {t('buscador.reintentar')}
       </button>
     </div>
   );

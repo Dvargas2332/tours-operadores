@@ -39,6 +39,7 @@ import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas } from '@/lib/tarifas';
+import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { descargarPoliticaPdf, generarPoliticaPdf } from '@/lib/pdf';
 
@@ -168,6 +169,8 @@ export interface TourDetalleContenidoProps {
 export default function TourDetalleContenido({ tour, variante, scrolled = false, onCerrar }: TourDetalleContenidoProps) {
   const { toggle, estaSeleccionado } = useCompare();
   const { autenticado } = useAuth();
+  const { esCostaRica, mostrarOperador } = useI18n();
+  const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [politicaPreviewAbierta, setPoliticaPreviewAbierta] = useState(false);
@@ -203,7 +206,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   }, [toggle, tour.id]);
 
   const copiarResumen = async () => {
-    const ok = await copiarTexto(buildResumenTour(tour));
+    const ok = await copiarTexto(buildResumenTour(tour, esCostaRica, undefined, mostrarOperador));
     if (ok) {
       setCopiado(true);
       toast.success('Resumen copiado al portapapeles');
@@ -220,7 +223,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     if (generandoPolitica) return;
     setGenerandoPolitica(true);
     try {
-      const blob = await generarPoliticaPdf(tour);
+      const blob = await generarPoliticaPdf(tour, mostrarOperador);
       setPoliticaUrl(URL.createObjectURL(blob));
       setPoliticaPreviewAbierta(true);
     } catch {
@@ -301,7 +304,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         {/* ===== Franja de datos clave ===== */}
         <motion.section variants={seccion} aria-label="Datos clave">
           <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-            <StatCelda icon={User} caption={tour.tarifas.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
+            <StatCelda icon={User} caption={tarifasVisibles.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
               <ValorCountUp valor={tour.precio_adulto} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
             </StatCelda>
             <StatCelda icon={Clock} caption="horario del operador" index={1}>
@@ -360,8 +363,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 </tr>
               </thead>
               <tbody>
-                {tour.tarifas.map((t) => {
-                  const activa = tarifasActivas(tour).some((a) => a.id === t.id);
+                {tarifasVisibles.map((t) => {
+                  const activa = tarifasActivas(tour, esCostaRica).some((a) => a.id === t.id);
                   return (
                     <tr
                       key={t.id}
@@ -386,7 +389,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                     </tr>
                   );
                 })}
-                {tour.tarifas.length === 0 && (
+                {tarifasVisibles.length === 0 && (
                   <tr>
                     <td colSpan={autenticado ? 5 : 3} className="px-4 py-3 text-ink-muted">No hay tarifas cargadas.</td>
                   </tr>
@@ -408,7 +411,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               Incluye
             </h2>
               {tour.incluye.length > 0 ? (
-                <ul className="mt-3 space-y-2.5">
+                <ul className={cn('mt-3 grid grid-cols-2 gap-2.5', !esDrawer && 'sm:grid-cols-3')}>
                   {tour.incluye.map((key, i) => {
                     const meta = INCLUYE_META[key];
                     const Icon = meta?.icon ?? Check;
@@ -449,7 +452,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 label: 'Horarios de tours',
                 valor: tour.horarios.length ? (
                   <span className="tnum text-base">
-                    {horariosOrdenados.map(horarioLabel).join(' · ')}
+                    {horariosOrdenados.map(horarioLabel).join(' | ')}
                   </span>
                 ) : (
                   <span className="text-base text-ink-faint">{tour.operador.horario || 'No especificado'}</span>
@@ -507,7 +510,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               </button>
               <button
                 type="button"
-                onClick={() => descargarPoliticaPdf(tour)}
+                onClick={() => descargarPoliticaPdf(tour, mostrarOperador)}
                 className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
               >
                 <Download className="h-4 w-4" />
@@ -577,11 +580,13 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               </div>
               <div className="mt-0.5 text-caption text-ink-muted">{fresh.relativo}</div>
             </div>
+            {mostrarOperador && (
             <div>
               <div className="text-caption uppercase tracking-wide text-ink-faint">Operador</div>
               <div className="mt-1 text-small font-semibold text-ink">{tour.operador.nombre}</div>
               <div className="mt-0.5 text-caption text-ink-muted">tarifario vigente {anioVigencia}</div>
             </div>
+            )}
           </motion.div>
         </motion.section>
         )}

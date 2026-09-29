@@ -13,6 +13,8 @@ import Comparador from '@/pages/Comparador';
 import Admin from '@/pages/Admin';
 import CargarTarifario from '@/pages/CargarTarifario';
 import Login from '@/pages/Login';
+import Welcome from '@/pages/Welcome';
+import RequierePreferencias from '@/components/RequierePreferencias';
 
 export default function App() {
   return (
@@ -20,14 +22,15 @@ export default function App() {
       <CompareProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/bienvenida" element={<Welcome />} />
           <Route element={<Layout />}>
             {/* Vistas públicas (sin sesión) */}
-            <Route index element={<Dashboard />} />
-            <Route path="buscar" element={<Buscador />} />
-            <Route path="tour/:id" element={<TourDetalle />} />
-            <Route path="operador/:id" element={<OperadorDetalle />} />
-            <Route path="reservar/:id" element={<Reservar />} />
-            <Route path="comparar" element={<Comparador />} />
+            <Route index element={<RequierePreferencias><Dashboard /></RequierePreferencias>} />
+            <Route path="buscar" element={<RequierePreferencias><Buscador /></RequierePreferencias>} />
+            <Route path="tour/:id" element={<RequierePreferencias><TourDetalle /></RequierePreferencias>} />
+            <Route path="operador/:id" element={<RequierePreferencias><OperadorDetalle /></RequierePreferencias>} />
+            <Route path="reservar/:id" element={<RequierePreferencias><Reservar /></RequierePreferencias>} />
+            <Route path="comparar" element={<RequierePreferencias><Comparador /></RequierePreferencias>} />
             {/* Administración (requiere sesión) */}
             <Route path="admin" element={<RequireAuth><Admin /></RequireAuth>} />
             <Route path="admin/cargar" element={<RequireAuth><CargarTarifario /></RequireAuth>} />

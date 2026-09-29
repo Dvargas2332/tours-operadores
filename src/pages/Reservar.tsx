@@ -16,6 +16,7 @@ import type { Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useHotel } from '@/hooks/useHotel';
+import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -81,17 +82,18 @@ export default function Reservar() {
   const [pagoRecepcion, setPagoRecepcion] = useState(false);
   const { autenticado } = useAuth();
   const hotelInfo = useHotel();
+  const { esCostaRica } = useI18n();
 
   useEffect(() => {
     fetchTourById(Number(id)).then((t) => {
       setTour(t);
       setCargando(false);
       if (t) {
-        setConteos(Object.fromEntries(t.tarifas.map((tar) => [tar.id, 0])));
+        setConteos(Object.fromEntries(tarifasSegunNacionalidad(t.tarifas, esCostaRica).map((tar) => [tar.id, 0])));
         setHorario(horarioRepresentativo(t));
       }
     });
-  }, [id]);
+  }, [id, esCostaRica]);
 
   const irAPaso = (n: number) => {
     setDireccion(n > paso ? 1 : -1);
@@ -251,7 +253,7 @@ export default function Reservar() {
                   </p>
 
                   <div className="mt-4 space-y-3">
-                    {tour.tarifas
+                    {tarifasSegunNacionalidad(tour.tarifas, esCostaRica)
                       .slice()
                       .sort((a, b) => a.orden - b.orden)
                       .map((tarifa) => {

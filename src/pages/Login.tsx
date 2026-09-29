@@ -7,9 +7,11 @@ import { useLocation, useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/i18n';
 
 export default function Login() {
   const { iniciarSesion } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,7 +31,7 @@ export default function Login() {
       await iniciarSesion(email, contrasena);
       navigate(from, { replace: true });
     } catch (err) {
-      setError((err as Error)?.message ?? 'No pudimos iniciar sesión');
+      setError((err as Error)?.message ?? t('shell.login.error_generico'));
     } finally {
       setEnviando(false);
     }
@@ -57,7 +59,7 @@ export default function Login() {
         >
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-label text-ink">
-              Email
+              {t('shell.login.email')}
             </label>
             <input
               id="email"
@@ -65,7 +67,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              placeholder="correo@ejemplo.com"
+              placeholder={t('shell.login.email_placeholder')}
               required
               className="h-10 w-full rounded-r-sm border border-border bg-bg px-3 text-sm text-ink outline-none transition-colors duration-fast focus:border-brand"
             />
@@ -73,7 +75,7 @@ export default function Login() {
 
           <div className="space-y-1.5">
             <label htmlFor="contrasena" className="text-label text-ink">
-              Contraseña
+              {t('shell.login.contrasena')}
             </label>
             <input
               id="contrasena"
@@ -94,12 +96,12 @@ export default function Login() {
             className="flex h-10 w-full items-center justify-center gap-2 rounded-r-sm bg-brand text-sm font-semibold text-white transition-all duration-fast hover:bg-brand-hover active:scale-[0.99] disabled:opacity-60"
           >
             <LogIn className="h-4 w-4" />
-            {enviando ? 'Entrando…' : 'Entrar'}
+            {enviando ? t('shell.login.entrando') : t('shell.login.entrar')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-caption text-ink-faint">
-          © {new Date().getFullYear()} Tours Operadores · by Kazehana Cloud
+          © {new Date().getFullYear()} {t('footer.derechos')}
         </p>
       </motion.div>
     </div>

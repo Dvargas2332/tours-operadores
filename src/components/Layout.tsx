@@ -14,6 +14,7 @@ import Navbar from '@/components/Navbar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useI18n } from '@/i18n';
 
 function useReloj(): Date {
   const [ahora, setAhora] = useState(() => new Date());
@@ -36,20 +37,9 @@ const FMT_HORA = new Intl.DateTimeFormat('es-CR', {
   hour12: false,
 });
 
-function breadcrumb(pathname: string): string[] {
-  if (pathname === '/') return ['Dashboard'];
-  if (pathname === '/buscar') return ['Buscar'];
-  if (pathname.startsWith('/tour/')) return ['Detalle de tour'];
-  if (pathname.startsWith('/operador/')) return ['Operador'];
-  if (pathname.startsWith('/reservar/')) return ['Reservar tour'];
-  if (pathname.startsWith('/comparar')) return ['Comparador'];
-  if (pathname === '/admin') return ['Administración'];
-  if (pathname.startsWith('/admin/cargar')) return ['Administración', 'Cargar tarifario'];
-  return ['Tours Operadores'];
-}
-
 export default function Layout() {
   const { tema, toggle } = useTheme();
+  const { t } = useI18n();
   const { cerrarSesion, autenticado } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,7 +53,25 @@ export default function Layout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const migas = breadcrumb(location.pathname);
+  const ruta = location.pathname;
+  const migas: string[] =
+    ruta === '/'
+      ? [t('shell.miga.dashboard')]
+      : ruta === '/buscar'
+        ? [t('shell.miga.buscar')]
+        : ruta.startsWith('/tour/')
+          ? [t('shell.miga.detalle_tour')]
+          : ruta.startsWith('/operador/')
+            ? [t('shell.miga.operador')]
+            : ruta.startsWith('/reservar/')
+              ? [t('shell.miga.reservar')]
+              : ruta.startsWith('/comparar')
+                ? [t('shell.miga.comparador')]
+                : ruta === '/admin'
+                  ? [t('shell.miga.administracion')]
+                  : ruta.startsWith('/admin/cargar')
+                    ? [t('shell.miga.administracion'), t('shell.miga.cargar_tarifario')]
+                    : [t('shell.miga.inicio')];
 
   const salir = async () => {
     await cerrarSesion();
@@ -98,7 +106,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menú"
+            aria-label={t('shell.topbar.abrir_menu')}
             className="flex h-9 w-9 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink lg:hidden"
           >
             <Menu className="h-5 w-5" />
@@ -132,8 +140,8 @@ export default function Layout() {
               type="search"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar tours…"
-              aria-label="Buscar tours"
+              placeholder={t('shell.topbar.placeholder_buscar')}
+              aria-label={t('shell.topbar.aria_buscar')}
               className="h-9 w-32 rounded-r-sm border border-border bg-surface-2 pl-8 pr-2 text-sm text-ink outline-none transition-[width,border-color,box-shadow] duration-fast placeholder:text-ink-faint focus:w-52 focus:border-brand focus:ring-[3px] focus:ring-brand/15 sm:w-48"
             />
           </form>
@@ -147,7 +155,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={toggle}
-            aria-label={tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+            aria-label={tema === 'dark' ? t('shell.topbar.tema_claro') : t('shell.topbar.tema_oscuro')}
             className="flex h-9 w-9 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -168,21 +176,21 @@ export default function Layout() {
             <button
               type="button"
               onClick={salir}
-              aria-label="Cerrar sesión"
+              aria-label={t('shell.topbar.cerrar_sesion')}
               className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
             >
               <LogOut className="h-[18px] w-[18px]" />
-              <span className="hidden sm:inline">Salir</span>
+              <span className="hidden sm:inline">{t('shell.topbar.salir')}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => navigate('/login')}
-              aria-label="Iniciar sesión"
+              aria-label={t('shell.topbar.iniciar_sesion')}
               className="flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
             >
               <LogIn className="h-[18px] w-[18px]" />
-              <span className="hidden sm:inline">Ingresar</span>
+              <span className="hidden sm:inline">{t('shell.topbar.ingresar')}</span>
             </button>
           )}
         </header>
@@ -193,7 +201,7 @@ export default function Layout() {
         </main>
 
         <footer className="flex h-8 shrink-0 items-center justify-center gap-1 border-t border-border bg-surface px-4 text-caption text-ink-faint">
-          © {new Date().getFullYear()} Tours Operadores · by Kazehana Cloud
+          © {new Date().getFullYear()} {t('footer.derechos')}
         </footer>
       </div>
     </div>

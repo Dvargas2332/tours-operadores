@@ -41,7 +41,7 @@ export const FILTROS_INICIALES: Filtros = {
 /* Motor de filtrado                                                   */
 /* ------------------------------------------------------------------ */
 
-export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
+export function aplicarFiltros(tours: Tour[], f: Filtros, mostrarOperador = true): Tour[] {
   return tours.filter((t) => {
     if (f.texto) {
       const q = f.texto.trim().toLowerCase();
@@ -51,7 +51,7 @@ export function aplicarFiltros(tours: Tour[], f: Filtros): Tour[] {
           t.zona.toLowerCase().includes(q) ||
           t.categorias.some((c) => CATEGORIA_META[c].label.toLowerCase().includes(q)) ||
           t.observaciones.toLowerCase().includes(q) ||
-          t.operador.nombre.toLowerCase().includes(q);
+          (mostrarOperador && t.operador.nombre.toLowerCase().includes(q));
         if (!coincide) return false;
       }
     }
@@ -99,22 +99,44 @@ export interface ChipFiltro {
   label: string;
 }
 
+/** Traductor opcional (i18n) para etiquetas de chips según el idioma activo. */
+export type Traductor = (key: string, params?: Record<string, string>) => string;
+
 /** Chips de filtros activos en el orden del panel (buscador.md §3) */
-export function chipsDeFiltros(f: Filtros, operadores: Operador[]): ChipFiltro[] {
+export function chipsDeFiltros(f: Filtros, operadores: Operador[], t?: Traductor): ChipFiltro[] {
   const chips: ChipFiltro[] = [];
+  /** Resuelve la etiqueta: traducida si hay traductor, español por defecto. */
+  const L = (es: string, key: string, params?: Record<string, string>) => (t ? t(key, params) : es);
   if (f.precioActivo) {
     chips.push({ id: 'precio', label: `${formatUSD(f.precio[0])}–${formatUSD(f.precio[1])}` });
   }
-  for (const z of f.zonas) chips.push({ id: `zona:${z}`, label: `Zona: ${z}` });
-  for (const c of f.categorias) chips.push({ id: `cat:${c}`, label: `Categoría: ${CATEGORIA_META[c].label}` });
-  for (const h of f.horarios) chips.push({ id: `horario:${h}`, label: `Salida: ${HORARIO_META[h].label}` });
-  for (const i of f.incluye) chips.push({ id: `incluye:${i}`, label: `Incluye: ${INCLUYE_META[i]?.label ?? i}` });
+  for (const z of f.zonas) chips.push({ id: `zona:${z}`, label: L(`Zona: ${z}`, 'buscador.chip_zona', { zona: z }) });
+  for (const c of f.categorias) {
+    const nombre = L(CATEGORIA_META[c].label, `buscador.categoria_${c}`);
+    chips.push({ id: `cat:${c}`, label: L(`Categoría: ${CATEGORIA_META[c].label}`, 'buscador.chip_categoria', { categoria: nombre }) });
+  }
+  for (const h of f.horarios) {
+    const nombre = L(HORARIO_META[h].label, `buscador.horario_${h}`);
+    chips.push({ id: `horario:${h}`, label: L(`Salida: ${HORARIO_META[h].label}`, 'buscador.chip_horario', { horario: nombre }) });
+  }
+  for (const i of f.incluye) {
+    const nombre = L(INCLUYE_META[i]?.label ?? i, `buscador.incluye_${i}`);
+    chips.push({ id: `incluye:${i}`, label: L(`Incluye: ${INCLUYE_META[i]?.label ?? i}`, 'buscador.chip_incluye', { item: nombre }) });
+  }
   if (f.aptoNinos) {
-    chips.push({ id: 'ninos', label: f.edadNino ? `Apto niños (${f.edadNino} años)` : 'Apto para niños' });
+    chips.push({
+      id: 'ninos',
+      label: f.edadNino
+        ? L(`Apto niños (${f.edadNino} años)`, 'buscador.chip_ninos_edad', { n: String(f.edadNino) })
+        : L('Apto para niños', 'buscador.chip_ninos'),
+    });
   }
   for (const idOp of f.operadores) {
     const op = operadores.find((o) => o.id === idOp);
-    chips.push({ id: `operador:${idOp}`, label: `Operador: ${op?.nombre ?? idOp}` });
+    chips.push({
+      id: `operador:${idOp}`,
+      label: L(`Operador: ${op?.nombre ?? idOp}`, 'buscador.chip_operador', { nombre: op?.nombre ?? String(idOp) }),
+    });
   }
   return chips;
 }
@@ -139,12 +161,8 @@ export function quitarChip(f: Filtros, chipId: string): Filtros {
 
 export type Orden = 'relevancia' | 'precio-asc' | 'precio-desc' | 'nombre';
 
-export const ORDEN_OPCIONES: { key: Orden; label: string }[] = [
-  { key: 'relevancia', label: 'Relevancia' },
-  { key: 'precio-asc', label: 'Precio: menor a mayor' },
-  { key: 'precio-desc', label: 'Precio: mayor a menor' },
-  { key: 'nombre', label: 'Nombre A–Z' },
-];
+/** Claves de orden disponibles; el label se traduce en la UI (buscador.orden_*). */
+export const ORDENES: Orden[] = ['relevancia', 'precio-asc', 'precio-desc', 'nombre'];
 
 export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour[] {
   const arr = [...tours];

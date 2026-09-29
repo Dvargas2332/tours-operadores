@@ -15,6 +15,7 @@ import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -71,8 +72,8 @@ function TextoExpandible({ texto, muted = false }: { texto: string; muted?: bool
 
 /* ---------- utilidades de tarifas ---------- */
 
-function tarifaBase(tour: Tour): Tarifa | undefined {
-  const activas = tarifasActivas(tour);
+function tarifaBaseGlobal(tour: Tour, esCostaRica: boolean): Tarifa | undefined {
+  const activas = tarifasActivas(tour, esCostaRica);
   return (
     activas.find((t) => t.min_edad === 12 && t.max_edad === 64) ??
     activas.find((t) => t.max_edad == null || t.max_edad >= 18) ??
@@ -80,12 +81,12 @@ function tarifaBase(tour: Tour): Tarifa | undefined {
   );
 }
 
-function tarifaNino(tour: Tour): Tarifa | undefined {
-  return tarifasActivas(tour).find((t) => t.max_edad != null && t.max_edad < 18 && t.min_edad < 12);
+function tarifaNinoGlobal(tour: Tour, esCostaRica: boolean): Tarifa | undefined {
+  return tarifasActivas(tour, esCostaRica).find((t) => t.max_edad != null && t.max_edad < 18 && t.min_edad < 12);
 }
 
-function precioDesde(tour: Tour): number {
-  return precioActivoDesde(tour);
+function precioDesdeGlobal(tour: Tour, esCostaRica: boolean): number {
+  return precioActivoDesde(tour, esCostaRica);
 }
 
 /* ---------- modelo de filas ---------- */
@@ -102,7 +103,12 @@ interface FilaDef {
 
 function useFilas(tours: Tour[]): FilaDef[] {
   const { autenticado } = useAuth();
+  const { esCostaRica, mostrarOperador } = useI18n();
   return useMemo(() => {
+    // Helpers ligados a la nacionalidad del cliente (mismos nombres internos).
+    const precioDesde = (t: Tour) => precioDesdeGlobal(t, esCostaRica);
+    const tarifaBase = (t: Tour) => tarifaBaseGlobal(t, esCostaRica);
+    const tarifaNino = (t: Tour) => tarifaNinoGlobal(t, esCostaRica);
     const desde = tours.map(precioDesde);
     const mejorDesde = Math.min(...desde);
     const bases = tours.map(tarifaBase);
@@ -117,11 +123,11 @@ function useFilas(tours: Tour[]): FilaDef[] {
         key: 'precio-desde',
         label: autenticado ? 'Desde (rack)' : 'Desde',
         valores: desde,
-        claseCelda: (t) => (precioDesde(t) === mejorDesde ? 'bg-volcan-soft/60' : undefined),
+        claseCelda: (t) => (precioDesdeGlobal(t, esCostaRica) === mejorDesde ? 'bg-volcan-soft/60' : undefined),
         render: (t) => (
           <div>
-            <span className="font-display text-xl font-bold text-ink tnum">{formatPrecio(precioDesde(t), t.moneda)}</span>
-            {precioDesde(t) === mejorDesde && <PillMejorPrecio />}
+            <span className="font-display text-xl font-bold text-ink tnum">{formatPrecio(precioDesdeGlobal(t, esCostaRica), t.moneda)}</span>
+            {precioDesdeGlobal(t, esCostaRica) === mejorDesde && <PillMejorPrecio />}
           </div>
         ),
       },
@@ -130,11 +136,11 @@ function useFilas(tours: Tour[]): FilaDef[] {
         label: autenticado ? 'Tarifa rack adulto' : 'Tarifa adulto',
         valores: adultos,
         claseCelda: (t) => {
-          const base = tarifaBase(t)?.rack ?? 0;
+          const base = tarifaBaseGlobal(t, esCostaRica)?.rack ?? 0;
           return base === mejorAdulto ? 'bg-volcan-soft/60' : undefined;
         },
         render: (t) => {
-          const base = tarifaBase(t);
+          const base = tarifaBaseGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-xl font-bold text-ink tnum">
@@ -150,11 +156,11 @@ function useFilas(tours: Tour[]): FilaDef[] {
         label: autenticado ? 'Tarifa rack niño' : 'Tarifa niño',
         valores: ninos.map((t) => t?.rack ?? null),
         claseCelda: (t) => {
-          const n = tarifaNino(t);
+          const n = tarifaNinoGlobal(t, esCostaRica);
           return mejorNino != null && n?.rack === mejorNino ? 'bg-volcan-soft/60' : undefined;
         },
         render: (t) => {
-          const n = tarifaNino(t);
+          const n = tarifaNinoGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-xl font-bold text-ink tnum">
@@ -170,7 +176,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
         label: 'Tarifa neta adulto',
         valores: bases.map((t) => t?.neta ?? null),
         render: (t) => {
-          const base = tarifaBase(t);
+          const base = tarifaBaseGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-[17px] font-semibold text-brand tnum">
@@ -190,7 +196,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
         label: 'Tarifa neta niño',
         valores: ninos.map((t) => t?.neta ?? null),
         render: (t) => {
-          const n = tarifaNino(t);
+          const n = tarifaNinoGlobal(t, esCostaRica);
           return (
             <span className="font-display text-[17px] font-semibold text-brand tnum">
               {n?.neta != null ? formatPrecio(n.neta, t.moneda) : '—'}
@@ -217,21 +223,26 @@ function useFilas(tours: Tour[]): FilaDef[] {
           </span>
         ),
       },
-      {
-        key: 'operador',
-        label: 'Operador',
-        valores: tours.map((t) => t.operador.id),
-        render: (t) => (
-          <PopoverOperador operador={t.operador} tour={t}>
-            <button
-              type="button"
-              className="text-left text-[15px] font-medium text-ink underline decoration-border underline-offset-2 transition-colors duration-fast hover:text-brand"
-            >
-              {t.operador.nombre}
-            </button>
-          </PopoverOperador>
-        ),
-      },
+      // Operador: solo visible para el admin; los clientes ven tours anónimos.
+      ...(mostrarOperador
+        ? [
+            {
+              key: 'operador',
+              label: 'Operador',
+              valores: tours.map((t) => t.operador.id),
+              render: (t: Tour) => (
+                <PopoverOperador operador={t.operador} tour={t}>
+                  <button
+                    type="button"
+                    className="text-left text-[15px] font-medium text-ink underline decoration-border underline-offset-2 transition-colors duration-fast hover:text-brand"
+                  >
+                    {t.operador.nombre}
+                  </button>
+                </PopoverOperador>
+              ),
+            } satisfies FilaDef,
+          ]
+        : []),
       // Matriz "Qué incluye": una sub-fila por amenidad presente en alguno
       ...INCLUYE_KEYS.filter((key) => tours.some((t) => t.incluye.includes(key))).map(
         (key): FilaDef => ({
@@ -294,7 +305,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
       },
     ];
     return filas;
-  }, [tours]);
+  }, [tours, esCostaRica, mostrarOperador, autenticado]);
 }
 
 /* ---------- props ---------- */
@@ -308,10 +319,11 @@ interface TablaComparativaProps {
 
 export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar, onVerDetalle }: TablaComparativaProps) {
   const { autenticado } = useAuth();
+  const { esCostaRica, mostrarOperador } = useI18n();
   const filas = useFilas(tours).filter((f) => autenticado || (f.key !== 'neta-adulto' && f.key !== 'neta-nino'));
 
   const copiarResumen = async (tour: Tour) => {
-    const ok = await copiarTexto(buildResumenTour(tour));
+    const ok = await copiarTexto(buildResumenTour(tour, esCostaRica, undefined, mostrarOperador));
     if (ok) toast.success('Resumen copiado al portapapeles');
     else toast.error('No se pudo copiar el resumen');
   };
@@ -473,6 +485,7 @@ function AcordeonTour({
   onQuitar: (id: number) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const { esCostaRica, mostrarOperador } = useI18n();
 
   return (
     <div className="overflow-hidden rounded-r-md border border-border bg-surface shadow-card">
@@ -489,7 +502,7 @@ function AcordeonTour({
               {tour.nombre}
             </div>
             <div className="mt-0.5 text-caption text-ink-faint">
-              {tour.operador.nombre} · <span className="tnum">{formatPrecio(precioDesde(tour), tour.moneda)}</span> desde
+              {mostrarOperador && `${tour.operador.nombre} · `}<span className="tnum">{formatPrecio(precioDesdeGlobal(tour, esCostaRica), tour.moneda)}</span> desde
             </div>
           </div>
           <ChevronDown

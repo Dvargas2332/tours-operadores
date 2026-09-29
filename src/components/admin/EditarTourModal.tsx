@@ -180,13 +180,20 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
     if (modoHorario === 'propio') {
       for (let i = 0; i < horarios.length; i++) {
         const h = horarios[i];
-        if (!/^\d{2}:\d{2}$/.test(h.hora_salida) || !/^\d{2}:\d{2}$/.test(h.hora_llegada)) {
-          setError(`Horario ${i + 1} inválido (HH:MM)`);
+        if (!/^\d{2}:\d{2}$/.test(h.hora_salida)) {
+          setError(`Horario ${i + 1}: la hora de salida es inválida (HH:MM)`);
           return;
         }
-        if (h.hora_salida >= h.hora_llegada) {
-          setError(`En el horario ${i + 1} la salida debe ser antes de la llegada`);
-          return;
+        // La llegada es opcional: solo se valida si se escribió.
+        if (h.hora_llegada.trim() !== '') {
+          if (!/^\d{2}:\d{2}$/.test(h.hora_llegada)) {
+            setError(`Horario ${i + 1}: la hora de llegada es inválida (HH:MM)`);
+            return;
+          }
+          if (h.hora_salida >= h.hora_llegada) {
+            setError(`En el horario ${i + 1} la salida debe ser antes de la llegada`);
+            return;
+          }
         }
       }
     }
@@ -372,7 +379,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
               ) : (
                 <div className="mt-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <Label>Horarios de salida / llegada</Label>
+                    <Label>Horarios (salida obligatoria · llegada opcional)</Label>
                     <button
                       type="button"
                       onClick={agregarHorario}
@@ -390,14 +397,14 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                             value={h.hora_salida}
                             onChange={(e) => actualizarHorario(idx, { hora_salida: e.target.value })}
                             placeholder="HH:MM"
-                            className="w-24 tnum"
+                            className="w-20 tnum"
                           />
                           <span className="text-ink-muted">→</span>
                           <Input
                             value={h.hora_llegada}
                             onChange={(e) => actualizarHorario(idx, { hora_llegada: e.target.value })}
-                            placeholder="HH:MM"
-                            className="w-24 tnum"
+                            placeholder="Opcional"
+                            className="w-20 tnum"
                           />
                         </div>
                         <button

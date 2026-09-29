@@ -7,16 +7,18 @@ import { Columns3, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { MAX_COMPARAR, useCompare } from '@/context/CompareContext';
 import type { Tour } from '@/data/mock-tours';
+import { useI18n } from '@/i18n';
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 
 export default function CompareBar({ tours }: { tours: Tour[] }) {
   const { seleccionados, quitar } = useCompare();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const seleccionadosTours = seleccionados
-    .map((id) => tours.find((t) => t.id === id))
-    .filter((t): t is Tour => t != null);
+    .map((id) => tours.find((tour) => tour.id === id))
+    .filter((tour): tour is Tour => tour != null);
 
   return (
     <AnimatePresence>
@@ -32,9 +34,9 @@ export default function CompareBar({ tours }: { tours: Tour[] }) {
             {/* Miniaturas */}
             <div className="flex items-center gap-1.5">
               <AnimatePresence initial={false}>
-                {seleccionadosTours.map((t) => (
+                {seleccionadosTours.map((tour) => (
                   <motion.span
-                    key={t.id}
+                    key={tour.id}
                     layout
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -42,11 +44,11 @@ export default function CompareBar({ tours }: { tours: Tour[] }) {
                     transition={SPRING}
                     className="flex items-center gap-1 rounded-full bg-surface/15 px-2.5 py-1 text-caption"
                   >
-                    <span className="max-w-[110px] truncate">{t.nombre}</span>
+                    <span className="max-w-[110px] truncate">{tour.nombre}</span>
                     <button
                       type="button"
-                      aria-label={`Quitar ${t.nombre}`}
-                      onClick={() => quitar(t.id)}
+                      aria-label={t('buscador.quitar_nombre', { nombre: tour.nombre })}
+                      onClick={() => quitar(tour.id)}
                       className="rounded-full text-surface/70 transition-colors duration-fast hover:text-surface"
                     >
                       <X className="h-3 w-3" />
@@ -63,7 +65,7 @@ export default function CompareBar({ tours }: { tours: Tour[] }) {
               transition={SPRING}
               className="whitespace-nowrap text-caption text-surface/70 tnum"
             >
-              {seleccionados.length} de {MAX_COMPARAR} seleccionados
+              {t('buscador.seleccionados_n', { n: seleccionados.length, max: MAX_COMPARAR })}
             </motion.span>
 
             <button
@@ -73,7 +75,7 @@ export default function CompareBar({ tours }: { tours: Tour[] }) {
               className="flex h-9 items-center gap-1.5 rounded-full bg-volcan px-4 text-sm font-semibold text-white transition-all duration-fast enabled:hover:brightness-105 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Columns3 className="h-4 w-4" />
-              Comparar ahora
+              {t('buscador.comparar_ahora')}
             </button>
           </div>
         </motion.div>

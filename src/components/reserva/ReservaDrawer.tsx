@@ -18,6 +18,7 @@ import type { Tour, Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useHotel } from '@/hooks/useHotel';
+import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 interface ReservaDrawerProps {
   tour: Tour;
@@ -28,7 +29,9 @@ interface ReservaDrawerProps {
 export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawerProps) {
   const [fecha, setFecha] = useState<Date | undefined>();
   const [horario, setHorario] = useState<Horario | undefined>(() => horarioRepresentativo(tour));
-  const [conteos, setConteos] = useState<ConteoTarifas>(() => Object.fromEntries(tour.tarifas.map((t) => [t.id, 0])));
+  const { esCostaRica, mostrarOperador } = useI18n();
+  const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
+  const [conteos, setConteos] = useState<ConteoTarifas>(() => Object.fromEntries(tarifasVisibles.map((t) => [t.id, 0])));
   const [nombreCliente, setNombreCliente] = useState('');
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
@@ -91,7 +94,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
             <div>
               <SheetTitle className="text-h3 text-ink">Reservar tour</SheetTitle>
               <SheetDescription className="mt-1 text-small text-ink-muted">
-                {tour.nombre} · {tour.operador.nombre}
+                {mostrarOperador ? `${tour.nombre} · ${tour.operador.nombre}` : tour.nombre}
               </SheetDescription>
             </div>
           </div>
@@ -173,7 +176,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
               </p>
 
               <div className="mt-3 space-y-2">
-                {tour.tarifas
+                {tarifasVisibles
                   .slice()
                   .sort((a, b) => a.orden - b.orden)
                   .map((tarifa) => {

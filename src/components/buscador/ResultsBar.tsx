@@ -5,8 +5,9 @@
  */
 import { LayoutGrid, List } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { ORDEN_OPCIONES } from '@/lib/filtros';
+import { ORDENES } from '@/lib/filtros';
 import type { Orden } from '@/lib/filtros';
+import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 export type Vista = 'grid' | 'lista';
@@ -19,18 +20,19 @@ interface ResultsBarProps {
 }
 
 export default function ResultsBar({ orden, onCambioOrden, vista, onCambioVista }: ResultsBarProps) {
+  const { t } = useI18n();
   return (
     <div className="flex h-10 items-center gap-3">
       <label className="flex items-center gap-2 text-caption text-ink-muted">
-        Ordenar:
+        {t('buscador.ordenar')}
         <select
           value={orden}
           onChange={(e) => onCambioOrden(e.target.value as Orden)}
           className="h-8 rounded-r-sm border border-border bg-surface px-2 text-small font-medium text-ink outline-none transition-colors duration-fast focus:border-brand"
         >
-          {ORDEN_OPCIONES.map((op) => (
-            <option key={op.key} value={op.key}>
-              {op.label}
+          {ORDENES.map((op) => (
+            <option key={op} value={op}>
+              {t(`buscador.orden_${op}`)}
             </option>
           ))}
         </select>
@@ -39,11 +41,11 @@ export default function ResultsBar({ orden, onCambioOrden, vista, onCambioVista 
       <div className="flex-1" />
 
       {/* Toggle de vista */}
-      <div className="flex rounded-full bg-surface-2 p-0.5" role="tablist" aria-label="Vista de resultados">
+      <div className="flex rounded-full bg-surface-2 p-0.5" role="tablist" aria-label={t('buscador.vista_resultados')}>
         {(
           [
-            { key: 'grid', icon: LayoutGrid, label: 'Tarjetas' },
-            { key: 'lista', icon: List, label: 'Lista' },
+            { key: 'grid', icon: LayoutGrid, label: t('buscador.vista_tarjetas') },
+            { key: 'lista', icon: List, label: t('buscador.vista_lista') },
           ] as const
         ).map((op) => (
           <button

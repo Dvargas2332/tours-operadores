@@ -2,7 +2,7 @@
  * Página de detalle de operador: muestra todos los tours de un operador.
  */
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, FileText, MapPin, Package } from 'lucide-react';
 import TourCard from '@/components/buscador/TourCard';
@@ -12,6 +12,7 @@ import { useCompare } from '@/context/CompareContext';
 import { useToursData } from '@/hooks/useToursData';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn, polizaPreviewUrl } from '@/lib/utils';
+import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -19,6 +20,7 @@ export default function OperadorDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const data = useToursData();
+  const { mostrarOperador } = useI18n();
   const { toggle, estaSeleccionado } = useCompare();
   const [previewAbierto, setPreviewAbierto] = useState(false);
 
@@ -31,6 +33,11 @@ export default function OperadorDetalle() {
     () => data?.tours.filter((t) => t.operador.id === operadorId) ?? [],
     [data, operadorId],
   );
+
+  // Los clientes no ven páginas de operador: redirige al inicio.
+  if (!mostrarOperador) {
+    return <Navigate to="/" replace />;
+  }
 
   if (!data) {
     return (

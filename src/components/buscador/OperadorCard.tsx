@@ -8,6 +8,7 @@ import type { Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
 import { formatPrecio } from '@/data/mock-tours';
+import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 interface OperadorCardProps {
   operador: Operador;
@@ -16,9 +17,13 @@ interface OperadorCardProps {
 }
 
 export default function OperadorCard({ operador, tours, onVerOperador }: OperadorCardProps) {
+  const { t, esCostaRica } = useI18n();
   const zonas = [...new Set(tours.map((t) => t.zona))].sort((a, b) => a.localeCompare(b, 'es'));
   const categorias = [...new Set(tours.flatMap((t) => t.categorias))];
-  const precios = tours.flatMap((t) => (t.tarifas.length ? t.tarifas.map((tar) => tar.rack) : [t.precio_adulto]));
+  const precios = tours.flatMap((t) => {
+    const visibles = tarifasSegunNacionalidad(t.tarifas, esCostaRica);
+    return visibles.length ? visibles.map((tar) => tar.rack) : [t.precio_adulto];
+  });
   const precioMin = Math.min(...precios);
   const precioMax = Math.max(...precios);
   const moneda = tours[0]?.moneda ?? 'usd';
@@ -51,7 +56,7 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
         {operador.logo_url ? (
           <img
             src={operador.logo_url}
-            alt={`Logo de ${operador.nombre}`}
+            alt={t('buscador.logo_de', { nombre: operador.nombre })}
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
           />
@@ -85,7 +90,7 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
                   )}
                 >
                   <meta.icon className="h-3 w-3" />
-                  {meta.label}
+                  {t(`buscador.categoria_${c}`)}
                 </span>
               );
             })}
@@ -96,12 +101,12 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
 
           <div className="mt-2 flex items-center gap-1 text-small text-ink-muted">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
-            <span className="line-clamp-1">{zonas.join(', ') || 'Sin zona definida'}</span>
+            <span className="line-clamp-1">{zonas.join(', ') || t('buscador.sin_zona')}</span>
           </div>
         </div>
 
         <div className="mt-3 border-t border-border pt-2">
-          <p className="text-caption text-ink-faint">Desde</p>
+          <p className="text-caption text-ink-faint">{t('buscador.desde')}</p>
           <p className="text-precio text-ink">
             {formatPrecio(precioMin, moneda)}
             {precios.length > 1 && (

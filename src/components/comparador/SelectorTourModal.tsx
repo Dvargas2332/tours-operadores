@@ -10,6 +10,7 @@ import { formatPrecio } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -32,6 +33,7 @@ interface SelectorTourModalProps {
 export default function SelectorTourModal({ open, onClose, tours, seleccionados, onElegir }: SelectorTourModalProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const { mostrarOperador } = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +57,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
       ? disponibles.filter(
           (t) =>
             t.nombre.toLowerCase().includes(q) ||
-            t.operador.nombre.toLowerCase().includes(q) ||
+            (mostrarOperador && t.operador.nombre.toLowerCase().includes(q)) ||
             t.zona.toLowerCase().includes(q),
         )
       : disponibles;
@@ -67,7 +69,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
         0,
       );
     return [...filtrados].sort((a, b) => puntaje(b) - puntaje(a));
-  }, [disponibles, query, tours, seleccionados]);
+  }, [disponibles, query, tours, seleccionados, mostrarOperador]);
 
   return (
     <AnimatePresence>
@@ -146,7 +148,7 @@ export default function SelectorTourModal({ open, onClose, tours, seleccionados,
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-medium text-ink">{tour.nombre}</span>
                               <span className="block truncate text-caption text-ink-faint">
-                                {tour.operador.nombre} · {tour.zona}
+                                {mostrarOperador ? `${tour.operador.nombre} · ${tour.zona}` : tour.zona}
                               </span>
                             </span>
                             <span className="shrink-0 text-sm font-semibold text-ink tnum">

@@ -14,6 +14,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToursData } from '@/hooks/useToursData';
+import { useI18n } from '@/i18n';
 import { freshness } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
   const data = useToursData();
   const { seleccionados } = useCompare();
   const { autenticado } = useAuth();
+  const { t } = useI18n();
 
   const desactualizados = data
     ? data.tours.filter((t) => freshness(t.fecha_actualizacion).estado !== 'ok').length
@@ -47,7 +49,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
   const items: NavItem[] = [
     {
       to: '/',
-      label: 'Inicio',
+      label: t('shell.nav.inicio'),
       icon: Home,
       badge: null,
       badgeTono: 'neutro',
@@ -55,7 +57,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
     },
     {
       to: '/comparar',
-      label: 'Comparador',
+      label: t('shell.nav.comparador'),
       icon: Columns3,
       badge: seleccionados.length > 0 ? seleccionados.length : null,
       badgeTono: 'brand',
@@ -64,7 +66,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
       ? ([
           {
             to: '/admin',
-            label: 'Administración',
+            label: t('shell.nav.administracion'),
             icon: Building2,
             badge: desactualizados > 0 ? desactualizados : null,
             badgeTono: 'alerta',

@@ -12,7 +12,7 @@ function cargarImagen(url: string): Promise<HTMLImageElement> {
 }
 
 /** Construye el documento PDF con la política de cancelación. */
-async function construirDoc(tour: Tour): Promise<jsPDF> {
+async function construirDoc(tour: Tour, mostrarOperador = true): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margen = 20;
@@ -55,9 +55,12 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
   doc.text(infoTour, margen, cursor);
   cursor += infoTour.length * doc.getLineHeight() + 3;
 
-  const infoOperador = doc.splitTextToSize(`Operador: ${tour.operador.nombre}`, pageWidth - margen * 2);
-  doc.text(infoOperador, margen, cursor);
-  cursor += infoOperador.length * doc.getLineHeight() + 6;
+  // Operador: solo para el admin; los clientes reciben el PDF sin esta línea.
+  if (mostrarOperador) {
+    const infoOperador = doc.splitTextToSize(`Operador: ${tour.operador.nombre}`, pageWidth - margen * 2);
+    doc.text(infoOperador, margen, cursor);
+    cursor += infoOperador.length * doc.getLineHeight() + 6;
+  }
 
   // Política completa
   doc.setFontSize(11);
@@ -84,14 +87,14 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
 }
 
 /** Genera el PDF y devuelve el Blob (para vista previa). */
-export async function generarPoliticaPdf(tour: Tour): Promise<Blob> {
-  const doc = await construirDoc(tour);
+export async function generarPoliticaPdf(tour: Tour, mostrarOperador = true): Promise<Blob> {
+  const doc = await construirDoc(tour, mostrarOperador);
   return doc.output('blob');
 }
 
 /** Genera y descarga el PDF de la política de cancelación. */
-export async function descargarPoliticaPdf(tour: Tour): Promise<void> {
-  const doc = await construirDoc(tour);
+export async function descargarPoliticaPdf(tour: Tour, mostrarOperador = true): Promise<void> {
+  const doc = await construirDoc(tour, mostrarOperador);
   const nombreArchivo = `politica-${tour.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
   doc.save(nombreArchivo);
 }

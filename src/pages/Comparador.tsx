@@ -15,6 +15,7 @@ import SelectorTourModal from '@/components/comparador/SelectorTourModal';
 import TablaComparativa from '@/components/comparador/TablaComparativa';
 import { Switch } from '@/components/ui/switch';
 import { MAX_COMPARAR, useCompare } from '@/context/CompareContext';
+import { useI18n } from '@/i18n';
 import { useToursData } from '@/hooks/useToursData';
 import type { Tour } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
@@ -49,6 +50,7 @@ const Respiracion = memo(function Respiracion() {
 
 /** Slot lleno: mini-tarjeta del tour seleccionado */
 function SlotLleno({ tour, onQuitar }: { tour: Tour; onQuitar: () => void }) {
+  const { mostrarOperador } = useI18n();
   return (
     <motion.div
       layout="position"
@@ -60,7 +62,7 @@ function SlotLleno({ tour, onQuitar }: { tour: Tour; onQuitar: () => void }) {
     >
       <BadgeCategoria tour={tour} />
       <div className="mt-2 line-clamp-2 min-h-[2.6em] text-h3 text-ink">{tour.nombre}</div>
-      <div className="mt-0.5 truncate text-small text-ink-muted">{tour.operador.nombre}</div>
+      {mostrarOperador && <div className="mt-0.5 truncate text-small text-ink-muted">{tour.operador.nombre}</div>}
       <button
         type="button"
         onClick={onQuitar}
@@ -91,6 +93,7 @@ function SlotVacio({ onClick }: { onClick: () => void }) {
 export default function Comparador() {
   const navigate = useNavigate();
   const data = useToursData();
+  const { esCostaRica, mostrarOperador } = useI18n();
   const { seleccionados, toggle, quitar, limpiar } = useCompare();
 
   const [resaltar, setResaltar] = useState(true);
@@ -120,7 +123,7 @@ export default function Comparador() {
 
   const copiarComparacion = async () => {
     if (seleccionadosTours.length === 0) return;
-    const ok = await copiarTexto(buildResumenComparacion(seleccionadosTours));
+    const ok = await copiarTexto(buildResumenComparacion(seleccionadosTours, esCostaRica, undefined, mostrarOperador));
     if (ok) {
       setCopiado(true);
       toast.success('Comparación copiada');

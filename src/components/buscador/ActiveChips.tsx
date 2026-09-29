@@ -8,11 +8,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
 import { Sparkles, X } from 'lucide-react';
 import type { ChipFiltro } from '@/lib/filtros';
+import { useI18n } from '@/i18n';
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 
 /** Contador con tween GSAP ("24 tours") */
 export function ContadorResultados({ valor, total, hayFiltros }: { valor: number; total: number; hayFiltros: boolean }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(valor);
 
@@ -25,22 +27,23 @@ export function ContadorResultados({ valor, total, hayFiltros }: { valor: number
       duration: 0.4,
       ease: 'power2.out',
       onUpdate: () => {
-        nodo.textContent = `${Math.round(estado.n)} tour${Math.round(estado.n) === 1 ? '' : 's'}`;
+        const n = Math.round(estado.n);
+        nodo.textContent = t(n === 1 ? 'buscador.contador_tours_uno' : 'buscador.contador_tours_varios', { n: String(n) });
       },
     });
     prev.current = valor;
     return () => {
       tween.kill();
     };
-  }, [valor]);
+  }, [valor, t]);
 
   return (
     <div className="ml-auto shrink-0 pl-3 text-right">
       <span ref={ref} className="text-[15px] font-semibold text-ink tnum">
-        {valor} tours
+        {t(valor === 1 ? 'buscador.contador_tours_uno' : 'buscador.contador_tours_varios', { n: String(valor) })}
       </span>
       {hayFiltros && (
-        <div className="text-caption text-ink-faint tnum">de {total} en la base de datos</div>
+        <div className="text-caption text-ink-faint tnum">{t('buscador.contador_total', { total: String(total) })}</div>
       )}
     </div>
   );
@@ -56,6 +59,7 @@ interface ActiveChipsProps {
 }
 
 export default function ActiveChips({ textoIA, chips, onQuitar, onEditarTexto, onLimpiarTodo, contador }: ActiveChipsProps) {
+  const { t } = useI18n();
   const hayChips = textoIA != null || chips.length > 0;
 
   return (
@@ -68,7 +72,7 @@ export default function ActiveChips({ textoIA, chips, onQuitar, onEditarTexto, o
               layout
               type="button"
               onClick={onEditarTexto}
-              title="Editar búsqueda"
+              title={t('buscador.editar_busqueda')}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -92,7 +96,7 @@ export default function ActiveChips({ textoIA, chips, onQuitar, onEditarTexto, o
               {chip.label}
               <button
                 type="button"
-                aria-label={`Quitar filtro ${chip.label}`}
+                aria-label={t('buscador.quitar_filtro', { filtro: chip.label })}
                 onClick={() => onQuitar(chip.id)}
                 className="rounded-full transition-colors duration-fast hover:text-brand-hover"
               >
@@ -112,11 +116,11 @@ export default function ActiveChips({ textoIA, chips, onQuitar, onEditarTexto, o
               transition={SPRING}
               className="shrink-0 rounded-full px-2.5 py-1 text-caption font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-brand"
             >
-              Limpiar todo
+              {t('buscador.limpiar_todo')}
             </motion.button>
           )}
         </AnimatePresence>
-        {!hayChips && <span className="text-caption text-ink-faint">Sin filtros activos</span>}
+        {!hayChips && <span className="text-caption text-ink-faint">{t('buscador.sin_filtros')}</span>}
       </motion.div>
       {contador}
     </div>
