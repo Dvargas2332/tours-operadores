@@ -4,10 +4,11 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ArchivoSubido } from '@/components/admin/cargar/tipos';
 import { EXTENSIONES_OK, MAX_BYTES, formatBytes } from '@/components/admin/cargar/tipos';
+import { descargarMachote } from '@/components/admin/cargar/machote-excel';
 import { cn } from '@/lib/utils';
 
 interface PasoSubirProps {
@@ -164,12 +165,20 @@ export default function PasoSubir({
         )}
       </motion.div>
 
-      {/* Formato soportado */}
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* Formato soportado + machote */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-caption text-ink-muted">
           <FileSpreadsheet className="h-3.5 w-3.5 text-ink-faint" />
           Excel — lectura directa, instantánea
         </span>
+        <button
+          type="button"
+          onClick={descargarMachote}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-caption font-semibold text-brand transition-colors duration-fast hover:border-brand"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Descargar machote Excel
+        </button>
       </div>
     </div>
   );

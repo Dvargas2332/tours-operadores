@@ -3,7 +3,7 @@
  * y tarifas por tipo de pasajero (niño, adulto, adulto mayor).
  */
 import { useState } from 'react';
-import { Check, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, Download, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import { useMutation } from '@tanstack/react-query';
 import { actualizarTour, crearTour } from '@/data/mutations';
 import type { Categoria, Moneda, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, CATEGORIAS, INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
+import { descargarMachote } from '@/components/admin/cargar/machote-excel';
 import { cn } from '@/lib/utils';
 
 interface TarifaForm {
@@ -270,6 +271,19 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
               ? 'Completá los datos del nuevo tour, incluye y tarifas por edad.'
               : 'Modificá los datos del tour, incluye y tarifas por edad.'}
           </DialogDescription>
+          {esCrear && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-r-sm border border-border bg-surface-2 px-3 py-2.5">
+              <p className="text-small text-ink-muted">¿Vas a cargar muchos tours de una vez? Usá el Excel masivo.</p>
+              <button
+                type="button"
+                onClick={descargarMachote}
+                className="inline-flex h-8 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-brand transition-colors duration-fast hover:border-brand"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Descargar machote Excel
+              </button>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-2">

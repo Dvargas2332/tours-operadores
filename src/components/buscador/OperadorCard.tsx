@@ -1,15 +1,10 @@
 /**
  * Tarjeta de operador en el buscador principal.
- * Muestra el logo a la izquierda ocupando la mitad de la tarjeta.
+ * Muestra únicamente el logo del operador y, en la parte inferior, su nombre.
  */
 import { motion } from 'framer-motion';
-import { MapPin, Package } from 'lucide-react';
 import type { Operador, Tour } from '@/data/mock-tours';
-import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
-import { formatPrecio } from '@/data/mock-tours';
-import { precioPublico } from '@/lib/tarifas';
-import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 interface OperadorCardProps {
   operador: Operador;
@@ -17,18 +12,7 @@ interface OperadorCardProps {
   onVerOperador: () => void;
 }
 
-export default function OperadorCard({ operador, tours, onVerOperador }: OperadorCardProps) {
-  const { t, esCostaRica } = useI18n();
-  const zonas = [...new Set(tours.map((t) => t.zona))].sort((a, b) => a.localeCompare(b, 'es'));
-  const categorias = [...new Set(tours.flatMap((t) => t.categorias))];
-  const precios = tours.flatMap((t) => {
-    const visibles = tarifasSegunNacionalidad(t.tarifas, esCostaRica);
-    return visibles.length ? visibles.map((tar) => precioPublico(t, tar.rack)) : [precioPublico(t, t.precio_adulto)];
-  });
-  const precioMin = Math.min(...precios);
-  const precioMax = Math.max(...precios);
-  const moneda = tours[0]?.moneda ?? 'usd';
-
+export default function OperadorCard({ operador, onVerOperador }: OperadorCardProps) {
   const iniciales = operador.nombre
     .split(/\s+/)
     .slice(0, 2)
@@ -47,17 +31,17 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
         if (e.key === 'Enter') onVerOperador();
       }}
       className={cn(
-        'flex cursor-pointer flex-row overflow-hidden rounded-r-md border bg-surface shadow-card outline-none transition-[box-shadow,border-color,background-color] duration-fast',
+        'flex h-44 cursor-pointer flex-col overflow-hidden rounded-r-md border bg-surface-2 shadow-card outline-none transition-[box-shadow,border-color] duration-fast',
         'hover:border-brand/30 hover:shadow-hover focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
       )}
       onClick={onVerOperador}
     >
-      {/* Mitad izquierda: logo */}
-      <div className="relative w-1/2 overflow-hidden border-r border-border bg-surface-2">
+      {/* Logo a pantalla completa */}
+      <div className="relative min-h-0 flex-1">
         {operador.logo_url ? (
           <img
             src={operador.logo_url}
-            alt={t('buscador.logo_de', { nombre: operador.nombre })}
+            alt={operador.nombre}
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
           />
@@ -68,56 +52,9 @@ export default function OperadorCard({ operador, tours, onVerOperador }: Operado
         )}
       </div>
 
-      {/* Mitad derecha: datos */}
-      <div className="flex w-1/2 flex-col justify-between p-4">
-        <div>
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="line-clamp-2 text-h3 text-ink leading-tight">{operador.nombre}</h3>
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-caption font-medium text-brand">
-              <Package className="h-3 w-3" />
-              {tours.length}
-            </span>
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-1">
-            {categorias.slice(0, 2).map((c) => {
-              const meta = CATEGORIA_META[c];
-              return (
-                <span
-                  key={c}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium',
-                    meta.clases,
-                  )}
-                >
-                  <meta.icon className="h-3 w-3" />
-                  {t(`buscador.categoria_${c}`)}
-                </span>
-              );
-            })}
-            {categorias.length > 2 && (
-              <span className="text-caption text-ink-faint">+{categorias.length - 2}</span>
-            )}
-          </div>
-
-          <div className="mt-2 flex items-center gap-1 text-small text-ink-muted">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
-            <span className="line-clamp-1">{zonas.join(', ') || t('buscador.sin_zona')}</span>
-          </div>
-        </div>
-
-        <div className="mt-3 border-t border-border pt-2">
-          <p className="text-caption text-ink-faint">{t('buscador.desde')}</p>
-          <p className="text-precio text-ink">
-            {formatPrecio(precioMin, moneda)}
-            {precios.length > 1 && (
-              <span className="text-small font-normal text-ink-muted">
-                {' '}
-                - {formatPrecio(precioMax, moneda)}
-              </span>
-            )}
-          </p>
-        </div>
+      {/* Nombre en la parte inferior */}
+      <div className="shrink-0 border-t border-border bg-surface px-3 py-2.5">
+        <h3 className="truncate text-h3 text-ink">{operador.nombre}</h3>
       </div>
     </motion.div>
   );
