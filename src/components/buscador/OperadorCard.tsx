@@ -31,7 +31,7 @@ export default function OperadorCard({ operador, onVerOperador }: OperadorCardPr
         if (e.key === 'Enter') onVerOperador();
       }}
       className={cn(
-        'flex h-44 cursor-pointer flex-col overflow-hidden rounded-r-md border bg-surface-2 shadow-card outline-none transition-[box-shadow,border-color] duration-fast',
+        'flex h-64 cursor-pointer flex-col overflow-hidden rounded-r-md border bg-surface-2 shadow-card outline-none transition-[box-shadow,border-color] duration-fast',
         'hover:border-brand/30 hover:shadow-hover focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
       )}
       onClick={onVerOperador}
