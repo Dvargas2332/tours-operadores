@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Baby, Check, ChevronDown, Copy, MapPin, Minus, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
-import { buildResumenTour, copiarTexto } from '@/components/detalle/resumen';
+import { buildResumenTour, copiarTexto, politicaSinOperador } from '@/components/detalle/resumen';
 import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
@@ -283,8 +283,8 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'politica',
         label: 'Política de cancelación',
-        valores: tours.map((t) => t.politica_cancelacion),
-        render: (t) => <TextoExpandible texto={t.politica_cancelacion} />,
+        valores: tours.map((t) => (mostrarOperador ? t.politica_cancelacion : politicaSinOperador(t))),
+        render: (t) => <TextoExpandible texto={mostrarOperador ? t.politica_cancelacion : politicaSinOperador(t)} />,
       },
       {
         key: 'observaciones',

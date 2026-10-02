@@ -1,54 +1,22 @@
 /**
  * Página Detalle de Tour (`/tour/:id`) — tour-detalle.md.
  * Columna central de 760px con miga de pan, todo el contenido del tour
- * (componente compartido con el drawer de escritorio), tours similares
- * al final y estados de carga / no encontrado.
+ * (componente compartido con el drawer de escritorio) y estados de carga /
+ * no encontrado.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { BadgeCategoria } from '@/components/detalle/DetalleUI';
 import TourDetalleContenido, { TourDetalleSkeleton } from '@/components/detalle/TourDetalleContenido';
-import { useToursData } from '@/hooks/useToursData';
-import { fetchTourById, formatPrecio } from '@/data/mock-tours';
+import { fetchTourById } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-/** Tarjeta compacta de tour similar (versión densa: sin fila incluye) */
-function TarjetaRelacionada({ tour, index, onClick }: { tour: Tour; index: number; onClick: () => void }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.25, ease: EASE, delay: index * 0.06 }}
-      whileHover={{ y: -2 }}
-      className="flex flex-col rounded-r-md border border-border bg-surface p-4 text-left shadow-card transition-[box-shadow,border-color] duration-fast hover:border-brand/30 hover:shadow-hover"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <BadgeCategoria tour={tour} />
-        <span className="text-caption text-ink-faint tnum">{tour.zona}</span>
-      </div>
-      <div className="mt-2 line-clamp-2 min-h-[2.6em] text-h3 text-ink">{tour.nombre}</div>
-      <div className="truncate text-small text-ink-muted">{tour.operador.nombre}</div>
-      <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
-        <div>
-          <span className="text-precio text-ink">{formatPrecio(tour.precio_adulto, tour.moneda)}</span>
-          <span className="ml-1 text-caption text-ink-faint">adulto</span>
-        </div>
-      </div>
-    </motion.button>
-  );
-}
-
 export default function TourDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const data = useToursData();
   const tourId = Number(id);
   const idValido = Number.isInteger(tourId) && tourId > 0;
 
@@ -75,14 +43,6 @@ export default function TourDetalle() {
       vivo = false;
     };
   }, [tourId, idValido]);
-
-  // Tours similares: misma categoría o zona, máx. 3 (tour-detalle.md §8)
-  const relacionados =
-    tour && data
-      ? data.tours
-          .filter((t) => t.id !== tour.id && (t.categorias.some((c) => tour.categorias.includes(c)) || t.zona === tour.zona))
-          .slice(0, 3)
-      : [];
 
   return (
     <div
@@ -138,21 +98,7 @@ export default function TourDetalle() {
             </Link>
           </div>
         ) : (
-          <>
-            <TourDetalleContenido key={tour.id} tour={tour} variante="pagina" scrolled={scrolled} />
-
-            {/* Tours similares (solo página completa) */}
-            {relacionados.length > 0 && (
-              <section className="border-t border-border px-5 py-6" aria-label="Tours similares">
-                <h2 className="text-h2 text-ink">Tours similares</h2>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {relacionados.map((t, i) => (
-                    <TarjetaRelacionada key={t.id} tour={t} index={i} onClick={() => navigate(`/tour/${t.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
+          <TourDetalleContenido key={tour.id} tour={tour} variante="pagina" scrolled={scrolled} />
         )}
       </div>
     </div>

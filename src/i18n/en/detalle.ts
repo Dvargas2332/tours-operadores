@@ -53,7 +53,7 @@ const detalle: Diccionario = {
   // Policies + notes
   'detalle.aria_politicas': 'Policies and notes',
   'detalle.politica_cancelacion': 'Cancellation policy',
-  'detalle.politica_descripcion': 'See the full policy in PDF with the logo, the tour and the operator.',
+  'detalle.politica_descripcion': 'See the full policy in PDF with the logo and the tour.',
   'detalle.generando': 'Generating…',
   'detalle.vista_previa': 'Preview',
   'detalle.descargar_pdf': 'Download (PDF)',

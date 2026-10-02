@@ -13,6 +13,23 @@ import { precioPublico } from '@/lib/tarifas';
 
 type TFn = (clave: string, vars?: Record<string, string | number>) => string;
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Política de cancelación sin el nombre del operador: el huésped nunca ve
+ * qué operador da el tour, ni como línea propia ni dentro del texto.
+ */
+export function politicaSinOperador(tour: Tour): string {
+  const nombre = tour.operador.nombre.trim();
+  if (!nombre) return tour.politica_cancelacion;
+  return tour.politica_cancelacion
+    .replace(new RegExp(escapeRegExp(nombre), 'gi'), '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 /** "guía" → "Guía"; claves de INCLUYE_META usan su label oficial */
 export function labelIncluye(key: string, t?: TFn): string {
   if (t) return t(`buscador.incluye_${key}`);
@@ -81,8 +98,9 @@ export function buildResumenTour(tour: Tour, esCostaRica = true, t?: TFn, mostra
       : `Mínimo ${tour.minimo_personas} personas · ${apto}`,
   );
   if (tour.politica_cancelacion) {
+    const politica = mostrarOperador ? tour.politica_cancelacion : politicaSinOperador(tour);
     lineas.push(
-      t ? t('detalle.resumen_cancelacion', { politica: tour.politica_cancelacion }) : `Cancelación: ${tour.politica_cancelacion}`,
+      t ? t('detalle.resumen_cancelacion', { politica }) : `Cancelación: ${politica}`,
     );
   }
   return lineas.join('\n');
@@ -103,7 +121,7 @@ export function buildResumenComparacion(tours: Tour[], esCostaRica = true, t?: T
         ? `   ${t ? t('detalle.resumen_incluye', { items: incluyeCorto(tour, t) }) : `Incluye: ${incluyeCorto(tour)}`}`
         : null,
       tour.politica_cancelacion
-        ? `   ${t ? t('detalle.resumen_cancelacion', { politica: tour.politica_cancelacion }) : `Cancelación: ${tour.politica_cancelacion}`}`
+        ? `   ${t ? t('detalle.resumen_cancelacion', { politica: mostrarOperador ? tour.politica_cancelacion : politicaSinOperador(tour) }) : `Cancelación: ${mostrarOperador ? tour.politica_cancelacion : politicaSinOperador(tour)}`}`
         : null,
     ]
       .filter(Boolean)

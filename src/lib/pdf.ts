@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { Tour } from '@/data/mock-tours';
+import { politicaSinOperador } from '@/components/detalle/resumen';
 
 function cargarImagen(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -12,7 +13,7 @@ function cargarImagen(url: string): Promise<HTMLImageElement> {
 }
 
 /** Construye el documento PDF con la política de cancelación. */
-async function construirDoc(tour: Tour, mostrarOperador = true): Promise<jsPDF> {
+async function construirDoc(tour: Tour): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margen = 20;
@@ -48,24 +49,18 @@ async function construirDoc(tour: Tour, mostrarOperador = true): Promise<jsPDF> 
   doc.line(margen, cursor, pageWidth - margen, cursor);
   cursor += 10;
 
-  // Tour y operador (texto con salto de línea para nombres largos)
+  // Tour (texto con salto de línea para nombres largos)
   doc.setFontSize(12);
   doc.setTextColor(60);
   const infoTour = doc.splitTextToSize(`Tour: ${tour.nombre}`, pageWidth - margen * 2);
   doc.text(infoTour, margen, cursor);
-  cursor += infoTour.length * doc.getLineHeight() + 3;
+  cursor += infoTour.length * doc.getLineHeight() + 6;
 
-  // Operador: solo para el admin; los clientes reciben el PDF sin esta línea.
-  if (mostrarOperador) {
-    const infoOperador = doc.splitTextToSize(`Operador: ${tour.operador.nombre}`, pageWidth - margen * 2);
-    doc.text(infoOperador, margen, cursor);
-    cursor += infoOperador.length * doc.getLineHeight() + 6;
-  }
-
-  // Política completa
+  // Política completa. El nombre del operador nunca aparece en el PDF
+  // (ni como línea propia ni dentro del texto de la política).
   doc.setFontSize(11);
   doc.setTextColor(40);
-  const politica = tour.politica_cancelacion?.trim() || 'No especificada.';
+  const politica = tour.politica_cancelacion?.trim() ? politicaSinOperador(tour) : 'No especificada.';
   const lineas = doc.splitTextToSize(politica, pageWidth - margen * 2);
   doc.text(lineas, margen, cursor);
   cursor += lineas.length * doc.getLineHeight() + 8;
@@ -87,14 +82,14 @@ async function construirDoc(tour: Tour, mostrarOperador = true): Promise<jsPDF> 
 }
 
 /** Genera el PDF y devuelve el Blob (para vista previa). */
-export async function generarPoliticaPdf(tour: Tour, mostrarOperador = true): Promise<Blob> {
-  const doc = await construirDoc(tour, mostrarOperador);
+export async function generarPoliticaPdf(tour: Tour): Promise<Blob> {
+  const doc = await construirDoc(tour);
   return doc.output('blob');
 }
 
 /** Genera y descarga el PDF de la política de cancelación. */
-export async function descargarPoliticaPdf(tour: Tour, mostrarOperador = true): Promise<void> {
-  const doc = await construirDoc(tour, mostrarOperador);
+export async function descargarPoliticaPdf(tour: Tour): Promise<void> {
+  const doc = await construirDoc(tour);
   const nombreArchivo = `politica-${tour.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
   doc.save(nombreArchivo);
 }

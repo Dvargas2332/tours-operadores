@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Baby,
@@ -14,7 +14,6 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  Clock,
   Copy,
   Download,
   Eye,
@@ -22,7 +21,6 @@ import {
   MapPin,
   Scale,
   StickyNote,
-  User,
   Users,
   X,
 } from 'lucide-react';
@@ -53,27 +51,6 @@ const seccion = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE } },
 };
-
-/* Count-up de valores numéricos: solo la primera apertura por sesión
-   (tour-detalle.md §2) para no cansar. MotionValue → sin re-renders. */
-let conteoYaHecho = false;
-
-function ValorCountUp({ valor, formato }: { valor: number; formato: (n: number) => string }) {
-  const mv = useMotionValue(conteoYaHecho ? valor : 0);
-  const texto = useTransform(mv, (v) => formato(v));
-
-  useEffect(() => {
-    if (conteoYaHecho) {
-      mv.set(valor);
-      return;
-    }
-    conteoYaHecho = true;
-    const controls = animate(mv, valor, { duration: 0.3, ease: 'easeOut' });
-    return () => controls.stop();
-  }, [mv, valor]);
-
-  return <motion.span className="tnum">{texto}</motion.span>;
-}
 
 const OPERA_DIARIO = /todos los d[ií]as|diario|lunes a domingo/i;
 
@@ -128,32 +105,6 @@ function CheckDraw({ className }: { className?: string }) {
         transition={{ duration: 0.25, ease: 'easeOut' }}
       />
     </svg>
-  );
-}
-
-interface StatCeldaProps {
-  icon: React.ElementType;
-  caption: string;
-  children: React.ReactNode;
-  index: number;
-}
-
-function StatCelda({ icon: Icon, caption, children, index }: StatCeldaProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 30, delay: 0.15 + index * 0.05 }}
-      className="flex items-center gap-3 rounded-r-md bg-surface-2 px-4 py-3.5"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink-muted">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0">
-        <div className="font-display text-xl font-bold leading-tight text-ink">{children}</div>
-        <div className="text-caption text-ink-faint">{caption}</div>
-      </div>
-    </motion.div>
   );
 }
 
@@ -223,7 +174,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     if (generandoPolitica) return;
     setGenerandoPolitica(true);
     try {
-      const blob = await generarPoliticaPdf(tour, mostrarOperador);
+      const blob = await generarPoliticaPdf(tour);
       setPoliticaUrl(URL.createObjectURL(blob));
       setPoliticaPreviewAbierta(true);
     } catch {
@@ -301,18 +252,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
       </motion.header>
 
       <div className="space-y-6 px-5 py-5">
-        {/* ===== Franja de datos clave ===== */}
+        {/* ===== Badges informativos ===== */}
         <motion.section variants={seccion} aria-label="Datos clave">
-          <div className={cn('grid gap-2', esDrawer ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-            <StatCelda icon={User} caption={tarifasVisibles.length > 1 ? 'tarifas' : autenticado ? 'rack · adulto' : 'precio adulto'} index={0}>
-              <ValorCountUp valor={precioPublico(tour, tour.precio_adulto)} formato={(v) => formatPrecio(Math.round(v), tour.moneda)} />
-            </StatCelda>
-            <StatCelda icon={Clock} caption="horario del operador" index={1}>
-              <span className="text-small text-ink">{tour.operador.horario || '—'}</span>
-            </StatCelda>
-          </div>
-
-          {/* Badges informativos */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-caption font-medium text-ink-muted">
               <Users className="h-3 w-3" />
@@ -503,7 +444,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               Política de cancelación
             </h2>
             <p className="mt-2 text-small text-ink-muted">
-              Consulta la política completa en PDF con el logo, el tour y el operador.
+              Consulta la política completa en PDF con el logo y el tour.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -517,7 +458,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               </button>
               <button
                 type="button"
-                onClick={() => descargarPoliticaPdf(tour, mostrarOperador)}
+                onClick={() => descargarPoliticaPdf(tour)}
                 className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
               >
                 <Download className="h-4 w-4" />
