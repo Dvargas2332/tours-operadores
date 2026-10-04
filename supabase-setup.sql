@@ -107,4 +107,10 @@ grant select (activo) on public.operadores to anon;
 -- ----------------------------------------------------------------------------
 alter table public.operadores add column if not exists con_iva boolean not null default false;
 grant select (con_iva) on public.operadores to anon;
+
+-- ----------------------------------------------------------------------------
+-- 9) Activo/inactivo del tour (los desactivados no se muestran en la vista pública)
+-- ----------------------------------------------------------------------------
+alter table public.tours add column if not exists activo boolean not null default true;
+grant select (activo) on public.tours to anon;
 notify pgrst, 'reload schema';

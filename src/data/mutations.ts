@@ -38,6 +38,7 @@ export interface TourInput {
   incluye?: string[];
   minimoPersonas?: number;
   aptoNinos?: boolean;
+  activo?: boolean;
   politicaCancelacion?: string;
   observaciones?: string;
 }
@@ -95,6 +96,7 @@ function tourFieldsToRow(t: Partial<TourInput> & { operadorId?: number }): Recor
   if (t.incluye !== undefined) out.incluye = t.incluye;
   if (t.minimoPersonas !== undefined) out.minimo_personas = t.minimoPersonas;
   if (t.aptoNinos !== undefined) out.apto_ninos = t.aptoNinos;
+  if (t.activo !== undefined) out.activo = t.activo;
   if (t.politicaCancelacion !== undefined) out.politica_cancelacion = t.politicaCancelacion;
   if (t.observaciones !== undefined) out.observaciones = t.observaciones;
   return out;
@@ -335,6 +337,14 @@ export async function importarCatalogo(input: {
       operadoresCreados++;
     }
 
+    // Conservar el estado activo/inactivo de los tours existentes: al
+    // reimportar el tarifario, un tour desactivado no debe reaparecer.
+    const { data: toursExistentes } = await supabase
+      .from('tours')
+      .select('nombre, activo')
+      .eq('operador_id', operadorId);
+    const activoPorNombre = new Map((toursExistentes ?? []).map((t) => [t.nombre, t.activo]));
+
     await supabase.from('tours').delete().eq('operador_id', operadorId);
 
     if (op.tours.length) {
@@ -344,6 +354,7 @@ export async function importarCatalogo(input: {
           op.tours.map((t) => ({
             ...tourFieldsToRow(t),
             operador_id: operadorId,
+            activo: activoPorNombre.get(t.nombre) ?? true,
             fecha_actualizacion: input.fechaActualizacion,
             politica_cancelacion: t.politicaCancelacion || politicaOperador,
           })),

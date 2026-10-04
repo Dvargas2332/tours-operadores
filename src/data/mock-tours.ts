@@ -62,6 +62,7 @@ export interface Tour {
   incluye: string[]; // transporte, guia, almuerzo, entradas, equipo, seguro
   minimo_personas: number;
   apto_ninos: boolean;
+  activo: boolean; // si está desactivado, no se muestra en la vista pública
   politica_cancelacion: string;
   observaciones: string;
   fecha_actualizacion: string; // ISO date
@@ -217,6 +218,7 @@ type RowTour = {
   incluye: string[];
   minimo_personas: number;
   apto_ninos: boolean;
+  activo: boolean | null;
   politica_cancelacion: string | null;
   observaciones: string | null;
   fecha_actualizacion: string;
@@ -285,6 +287,7 @@ function mapTour(t: RowTour): Tour {
     incluye: t.incluye ?? [],
     minimo_personas: t.minimo_personas,
     apto_ninos: t.apto_ninos,
+    activo: t.activo ?? true,
     politica_cancelacion: t.politica_cancelacion ?? '',
     observaciones: t.observaciones ?? '',
     fecha_actualizacion: (t.fecha_actualizacion ?? '').slice(0, 10),
@@ -303,7 +306,7 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva';
 
@@ -311,7 +314,7 @@ export async function fetchTours(): Promise<Tour[]> {
   const autenticado = await esAutenticado();
   const select = autenticado ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
   let query = supabase.from('tours').select(select);
-  if (!autenticado) query = query.eq('operadores.activo', true);
+  if (!autenticado) query = query.eq('activo', true).eq('operadores.activo', true);
   const { data, error } = await query.order('precio_adulto');
   if (error) throw error;
   return ((data as unknown as RowTour[]) ?? []).filter((t) => t.operadores != null).map(mapTour);
@@ -331,7 +334,7 @@ export async function fetchTourById(id: number): Promise<Tour | undefined> {
   const autenticado = await esAutenticado();
   const select = autenticado ? TOURS_SELECT : TOURS_SELECT_PUBLICO;
   let query = supabase.from('tours').select(select);
-  if (!autenticado) query = query.eq('operadores.activo', true);
+  if (!autenticado) query = query.eq('activo', true).eq('operadores.activo', true);
   const { data, error } = await query.eq('id', id).maybeSingle();
   if (error) throw error;
   if (!data || (data as unknown as RowTour).operadores == null) return undefined;

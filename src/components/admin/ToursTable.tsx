@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Edit2, Eye, MapPin, Search, Trash2 } from 'lucide-react';
 import FreshnessPill from '@/components/admin/FreshnessPill';
+import { Switch } from '@/components/ui/switch';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
 import { freshness } from '@/data/mock-tours';
@@ -46,6 +47,7 @@ interface ToursTableProps {
   onFiltroOperadorChange: (id: number | null) => void;
   onEditar: (tour: Tour) => void;
   onEliminar: (tour: Tour) => void;
+  onToggleActivo: (tour: Tour, activo: boolean) => void;
 }
 
 export default function ToursTable({
@@ -55,6 +57,7 @@ export default function ToursTable({
   onFiltroOperadorChange,
   onEditar,
   onEliminar,
+  onToggleActivo,
 }: ToursTableProps) {
   const navigate = useNavigate();
   const { orden, ciclar } = useOrdenColumna<ColOrden>(ORDEN_DEFAULT);
@@ -184,10 +187,16 @@ export default function ToursTable({
                     className={cn(
                       'border-b border-border transition-colors duration-fast last:border-0 hover:bg-surface-2',
                       frescura.estado === 'danger' && 'bg-danger/[0.03]',
+                      !tour.activo && 'opacity-55',
                     )}
                   >
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
+                        <Switch
+                          checked={tour.activo}
+                          onCheckedChange={(v) => onToggleActivo(tour, v)}
+                          aria-label={`Activar o desactivar ${tour.nombre}`}
+                        />
                         {tour.categorias.map((c) => {
                           const meta = CATEGORIA_META[c];
                           const CatIcon = meta.icon;
@@ -205,6 +214,11 @@ export default function ToursTable({
                           );
                         })}
                         <span className="text-[14px] font-semibold leading-snug text-ink">{tour.nombre}</span>
+                        {!tour.activo && (
+                          <span className="rounded-full bg-volcan-soft px-2 py-0.5 text-caption font-medium text-warn">
+                            Inactivo
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-3 text-small text-ink-muted">{tour.operador.nombre}</td>

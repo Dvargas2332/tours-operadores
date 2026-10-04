@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { fetchOperadores, fetchTours, formatDateEs, freshness } from '@/data/mock-tours';
 import type { Operador, Tour } from '@/data/mock-tours';
 import { useMutation } from '@tanstack/react-query';
-import { actualizarOperador, eliminarOperador, eliminarTour } from '@/data/mutations';
+import { actualizarOperador, actualizarTour, eliminarOperador, eliminarTour } from '@/data/mutations';
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -210,6 +210,11 @@ export default function Admin() {
 
   const toggleActivoMutacion = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarOperador({ id, activo }),
+    onSuccess: () => refrescar(),
+  });
+
+  const toggleTourActivoMutacion = useMutation({
+    mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarTour({ id, activo }),
     onSuccess: () => refrescar(),
   });
 
@@ -516,6 +521,9 @@ export default function Admin() {
                         setErrorEliminar(null);
                         setTourAEliminar(tour);
                       }}
+                      onToggleActivo={(tour, activo) =>
+                        toggleTourActivoMutacion.mutate({ id: tour.id, activo })
+                      }
                     />
                   )}
                 </motion.div>
