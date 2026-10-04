@@ -5,6 +5,7 @@
  * en Supabase.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import PasoExito from '@/components/admin/cargar/PasoExito';
 import PasoExtraccion from '@/components/admin/cargar/PasoExtraccion';
@@ -16,7 +17,7 @@ import { filaAInput } from '@/components/admin/cargar/tipos';
 import type { OperadorCatalogo } from '@/components/admin/cargar/tarifario-excel';
 import { useMutation } from '@tanstack/react-query';
 import { importarCatalogo } from '@/data/mutations';
-import { clearToursCache } from '@/hooks/useToursData';
+import { clearToursCache, useToursData } from '@/hooks/useToursData';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const BORRADOR_KEY = 'tourhub-borrador-catalogo';
@@ -34,6 +35,15 @@ interface Resultado {
 }
 
 export default function CargarTarifario() {
+  // Alcance por operador: /admin/cargar?operador=<id> (botón «Actualizar» de la
+  // tabla de operadores) — solo se importan los tours de ese operador.
+  const [searchParams] = useSearchParams();
+  const operadorParam = searchParams.get('operador');
+  const operadorId = operadorParam && Number.isInteger(Number(operadorParam)) ? Number(operadorParam) : null;
+  const data = useToursData();
+  const operadorScope = operadorId != null ? data?.operadores.find((o) => o.id === operadorId) ?? null : null;
+  const nombreScope = operadorScope?.nombre ?? null;
+
   const [paso, setPaso] = useState(1);
   const [direccion, setDireccion] = useState(1);
   const [archivo, setArchivo] = useState<ArchivoSubido | null>(null);
@@ -95,24 +105,30 @@ export default function CargarTarifario() {
     [paso],
   );
 
-  const onExtraccionTerminada = useCallback(
-    (operadores: OperadorCatalogo[]) => {
-      const todas: FilaRevision[] = operadores.flatMap((op) => op.tours);
-      const comis: Record<string, number | null> = {};
-      for (const op of operadores) comis[op.nombre] = op.comision;
-      setFilas(todas);
-      setComisiones(comis);
-      irAPaso(3);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paso],
-  );
+  const onExtraccionTerminada = (operadores: OperadorCatalogo[]) => {
+    // Con alcance de operador, se descartan los tours de otros operadores.
+    let ops = operadores;
+    if (nombreScope) {
+      const n = nombreScope.trim().toLowerCase();
+      ops = operadores.filter((op) => op.nombre.trim().toLowerCase() === n);
+    }
+    const todas: FilaRevision[] = ops.flatMap((op) => op.tours);
+    const comis: Record<string, number | null> = {};
+    for (const op of ops) comis[op.nombre] = op.comision;
+    setFilas(todas);
+    setComisiones(comis);
+    irAPaso(3);
+  };
 
   const confirmar = () => {
     if (!archivo) return;
     setErrorConfirmacion(null);
 
     const activas = filas.filter((f) => !f.excluida);
+    if (nombreScope && activas.length === 0) {
+      setErrorConfirmacion(`nada que importar: el archivo no contiene tours de «${nombreScope}».`);
+      return;
+    }
     const porOperador = new Map<string, FilaRevision[]>();
     for (const f of activas) {
       const lista = porOperador.get(f.operador) ?? [];
@@ -162,6 +178,12 @@ export default function CargarTarifario() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-6">
+        {operadorId != null && (
+          <div className="mb-4 rounded-r-sm border border-brand/30 bg-brand-soft px-4 py-3 text-small text-ink">
+            Actualizando tarifas de <strong>{nombreScope ?? '…'}</strong>: solo se importarán los tours de este
+            operador, los demás se ignoran.
+          </div>
+        )}
         <Stepper paso={paso} />
 
         <div className={paso === 3 ? 'mt-6' : 'mx-auto mt-6 max-w-[860px]'}>

@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, Edit2, Eye, MapPin, Search, Trash2 } from 'l
 import FreshnessPill from '@/components/admin/FreshnessPill';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
-import { formatPrecio, freshness } from '@/data/mock-tours';
+import { freshness } from '@/data/mock-tours';
 import type { Frescura, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const POR_PAGINA = 25;
 
-type ColOrden = 'nombre' | 'operador' | 'precio' | 'estado';
+type ColOrden = 'nombre' | 'operador' | 'estado';
 
 const ORDEN_DEFAULT: OrdenColumna<ColOrden> = { key: 'estado', dir: 'asc' };
 
@@ -32,8 +32,6 @@ function comparar(a: Tour, b: Tour, orden: OrdenColumna<ColOrden>): number {
       return dir * a.nombre.localeCompare(b.nombre, 'es');
     case 'operador':
       return dir * a.operador.nombre.localeCompare(b.operador.nombre, 'es');
-    case 'precio':
-      return dir * (a.precio_adulto - b.precio_adulto);
     case 'estado':
     default:
       return dir * (RANGO_ESTADO[freshness(a.fecha_actualizacion).estado] - RANGO_ESTADO[freshness(b.fecha_actualizacion).estado]);
@@ -156,7 +154,7 @@ export default function ToursTable({
       {/* Tabla */}
       <div className="overflow-hidden rounded-r-md border border-border bg-surface shadow-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-left">
+          <table className="w-full min-w-[880px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border bg-surface">
                 <SortTh colKey="nombre" label="Tour" orden={orden} onCiclar={ciclar} />
@@ -164,7 +162,6 @@ export default function ToursTable({
                 <th scope="col" className="px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Zona
                 </th>
-                <SortTh colKey="precio" label="$ Base" orden={orden} onCiclar={ciclar} className="w-[90px]" />
                 <th scope="col" className="w-[80px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                   Tarifas
                 </th>
@@ -217,9 +214,6 @@ export default function ToursTable({
                         {tour.zona}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-[14px] font-medium text-ink tnum">
-                      {formatPrecio(tour.tarifas.length ? Math.min(...tour.tarifas.map((t) => t.rack)) : tour.precio_adulto, tour.moneda)}
-                    </td>
                     <td className="px-3 py-3 text-[14px] text-ink tnum">
                       <span className="rounded-full bg-surface-2 px-2 py-0.5 text-caption text-ink-muted">
                         {tour.tarifas.length || 1}
@@ -261,7 +255,7 @@ export default function ToursTable({
               })}
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-10 text-center text-small text-ink-muted">
+                  <td colSpan={7} className="px-3 py-10 text-center text-small text-ink-muted">
                     Ningún tour coincide con los filtros.
                   </td>
                 </tr>
