@@ -236,7 +236,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
             <div>
               <Label htmlFor="op-con-iva">Con IVA (13%)</Label>
               <p className="text-small text-ink-muted">
-                Suma el 13% de IVA a los precios públicos de todos los tours de este operador.
+                Suma el 13% de IVA a las tarifas rack y neta de todos los tours de este operador.
               </p>
             </div>
             <Switch

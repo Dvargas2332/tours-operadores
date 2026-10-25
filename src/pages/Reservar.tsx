@@ -14,6 +14,7 @@ import { telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
 import { fetchTourById, formatPrecio, horarioLabel, horarioRepresentativo } from '@/data/mock-tours';
 import type { Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
+import { precioPublico } from '@/lib/tarifas';
 import { useAuth } from '@/context/AuthContext';
 import { useHotel } from '@/hooks/useHotel';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
@@ -266,7 +267,7 @@ export default function Reservar() {
                             <div>
                               <p className="font-medium text-ink">{labelTarifa(tarifa)}</p>
                               <p className="text-caption text-ink-muted">
-                                {formatPrecio(tarifa.rack, tour.moneda)} por persona
+                                {formatPrecio(precioPublico(tour, tarifa.rack), tour.moneda)} por persona
                               </p>
                             </div>
                             <div className="flex items-center gap-3">

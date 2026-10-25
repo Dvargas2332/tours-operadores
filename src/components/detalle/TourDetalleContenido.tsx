@@ -36,7 +36,7 @@ import { useAuth } from '@/context/AuthContext';
 import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { INCLUYE_META } from '@/lib/tour-meta';
-import { tarifasActivas, precioPublico } from '@/lib/tarifas';
+import { tarifasActivas, precioConIva, precioPublico } from '@/lib/tarifas';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { descargarPoliticaPdf, generarPoliticaPdf } from '@/lib/pdf';
@@ -327,11 +327,15 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                       </td>
                       <td className="px-4 py-2.5 tnum font-medium text-ink">{formatPrecio(precioPublico(tour, t.rack), tour.moneda)}</td>
                       {autenticado && (
-                        <td className="px-4 py-2.5 tnum text-brand">{t.neta != null ? formatPrecio(t.neta, tour.moneda) : '—'}</td>
+                        <td className="px-4 py-2.5 tnum text-brand">
+                          {t.neta != null ? formatPrecio(precioConIva(tour, t.neta), tour.moneda) : '—'}
+                        </td>
                       )}
                       {autenticado && (
                         <td className="px-4 py-2.5 tnum text-ink-muted">
-                          {t.neta != null ? formatPrecio(t.rack - t.neta, tour.moneda) : '—'}
+                          {t.neta != null
+                            ? formatPrecio(precioPublico(tour, t.rack) - precioConIva(tour, t.neta), tour.moneda)
+                            : '—'}
                         </td>
                       )}
                     </tr>

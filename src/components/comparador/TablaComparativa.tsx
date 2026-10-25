@@ -12,7 +12,7 @@ import { buildResumenTour, copiarTexto, politicaSinOperador } from '@/components
 import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
 import type { Tour, Tarifa } from '@/data/mock-tours';
 import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
-import { tarifasActivas, precioActivoDesde, precioPublico } from '@/lib/tarifas';
+import { tarifasActivas, precioActivoDesde, precioConIva, precioPublico } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/i18n';
@@ -178,17 +178,17 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'neta-adulto',
         label: 'Tarifa neta adulto',
-        valores: bases.map((t) => t?.neta ?? null),
+        valores: bases.map((t, i) => (t?.neta != null ? precioConIva(tours[i], t.neta) : null)),
         render: (t) => {
           const base = tarifaBaseGlobal(t, esCostaRica);
           return (
             <div>
               <span className="font-display text-[17px] font-semibold text-brand tnum">
-                {base?.neta != null ? formatPrecio(base.neta, t.moneda) : '—'}
+                {base?.neta != null ? formatPrecio(precioConIva(t, base.neta), t.moneda) : '—'}
               </span>
               {base?.neta != null && (
                 <span className="ml-2 text-caption text-ink-faint">
-                  margen {formatPrecio(base.rack - base.neta, t.moneda)}
+                  margen {formatPrecio(precioPublico(t, base.rack) - precioConIva(t, base.neta), t.moneda)}
                 </span>
               )}
             </div>
@@ -198,12 +198,12 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'neta-nino',
         label: 'Tarifa neta niño',
-        valores: ninos.map((t) => t?.neta ?? null),
+        valores: ninos.map((t, i) => (t?.neta != null ? precioConIva(tours[i], t.neta) : null)),
         render: (t) => {
           const n = tarifaNinoGlobal(t, esCostaRica);
           return (
             <span className="font-display text-[17px] font-semibold text-brand tnum">
-              {n?.neta != null ? formatPrecio(n.neta, t.moneda) : '—'}
+              {n?.neta != null ? formatPrecio(precioConIva(t, n.neta), t.moneda) : '—'}
             </span>
           );
         },
