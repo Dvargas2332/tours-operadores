@@ -1,17 +1,20 @@
 /**
  * Página de detalle de operador: muestra todos los tours de un operador.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, FileText, MapPin, Package } from 'lucide-react';
 import TourCard from '@/components/buscador/TourCard';
+import VistaToggle from '@/components/buscador/VistaToggle';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PdfPreview from '@/components/PdfPreview';
 import { useCompare } from '@/context/CompareContext';
 import { useToursData } from '@/hooks/useToursData';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn, polizaPreviewUrl } from '@/lib/utils';
+import { VISTA_KEY, vistaInicial } from '@/lib/vista';
+import type { Vista } from '@/lib/vista';
 import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -23,6 +26,11 @@ export default function OperadorDetalle() {
   const { mostrarOperador } = useI18n();
   const { toggle, estaSeleccionado } = useCompare();
   const [previewAbierto, setPreviewAbierto] = useState(false);
+  const [vista, setVista] = useState<Vista>(vistaInicial);
+
+  useEffect(() => {
+    window.localStorage.setItem(VISTA_KEY, vista);
+  }, [vista]);
 
   const operadorId = Number(id);
   const operador = useMemo(
@@ -131,12 +139,20 @@ export default function OperadorDetalle() {
           </div>
         </motion.div>
 
-        {/* Grid de tours */}
+        {/* Toggle de vista */}
+        <div className="mt-6 flex justify-end">
+          <VistaToggle vista={vista} onCambioVista={setVista} />
+        </div>
+
+        {/* Tours del operador */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
-          className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4"
+          className={cn(
+            'mt-3',
+            vista === 'lista' ? 'flex flex-col gap-3' : 'grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4',
+          )}
         >
           <AnimatePresence initial={false}>
             {tours.map((tour, i) => (
@@ -144,7 +160,7 @@ export default function OperadorDetalle() {
                 key={tour.id}
                 tour={tour}
                 index={i}
-                vista="grid"
+                vista={vista}
                 seleccionado={estaSeleccionado(tour.id)}
                 onToggleComparar={() => toggle(tour.id)}
                 onVerDetalle={() => navigate(`/tour/${tour.id}`)}

@@ -13,7 +13,6 @@ import CompareBar from '@/components/buscador/CompareBar';
 import { EstadoInicial, EstadoSinResultados } from '@/components/buscador/EmptyStates';
 import FilterPanel from '@/components/buscador/FilterPanel';
 import ResultsBar from '@/components/buscador/ResultsBar';
-import type { Vista } from '@/components/buscador/ResultsBar';
 import SearchBar from '@/components/buscador/SearchBar';
 import TourCard, { TourCardSkeleton } from '@/components/buscador/TourCard';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -29,12 +28,13 @@ import {
   quitarChip,
 } from '@/lib/filtros';
 import { cn } from '@/lib/utils';
+import { VISTA_KEY, vistaInicial } from '@/lib/vista';
+import type { Vista } from '@/lib/vista';
 import { useCompare } from '@/context/CompareContext';
 import { useI18n } from '@/i18n';
 import type { Filtros, Orden } from '@/lib/filtros';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
-const VISTA_KEY = 'tourhub-vista';
 
 export default function Buscador() {
   const { t, mostrarOperador } = useI18n();
@@ -51,9 +51,7 @@ export default function Buscador() {
   const [interpretando, setInterpretando] = useState(false);
   const [hasBuscado, setHasBuscado] = useState(false);
   const [orden, setOrden] = useState<Orden>('precio-asc');
-  const [vista, setVista] = useState<Vista>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem(VISTA_KEY) === 'lista' ? 'lista' : 'grid',
-  );
+  const [vista, setVista] = useState<Vista>(vistaInicial);
   const [sheetFiltros, setSheetFiltros] = useState(false);
   const esMobile = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,

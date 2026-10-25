@@ -1,26 +1,18 @@
 /**
  * Tarjeta de tour comparable (buscador.md §5). Anatomía fija idéntica en
- * todas las tarjetas: header (categoría + frescura), título, operador,
- * precios adulto/niño, metadatos, fila "incluye", acciones.
+ * todas las tarjetas: header (categoría), título, operador + horario y
+ * mínimo de personas, fila "incluye", acciones.
  * Variante "lista": fila horizontal compacta para escaneo rápido.
  */
 import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Baby, Clock, ImageIcon, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatPrecio, horarioRepresentativo } from '@/data/mock-tours';
+import { horarioRepresentativo } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, INCLUYE_META } from '@/lib/tour-meta';
-import { precioActivoDesde, precioPublico } from '@/lib/tarifas';
-import { tarifasSegunNacionalidad, useFormatos, useI18n } from '@/i18n';
+import { useFormatos, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
-
-const DOT_FRESCURA: Record<string, string> = {
-  ok: 'bg-ok',
-  warn: 'bg-warn',
-  danger: 'bg-danger',
-};
 
 /** Checkbox "Comparar" con check animado (path draw 180ms) */
 function CheckComparar({ checked }: { checked: boolean }) {
@@ -46,10 +38,6 @@ function CheckComparar({ checked }: { checked: boolean }) {
       </svg>
     </span>
   );
-}
-
-function precioDesde(tour: Tour, esCostaRica: boolean): number {
-  return precioPublico(tour, precioActivoDesde(tour, esCostaRica));
 }
 
 function FilaIncluye({ tour, compact = false }: { tour: Tour; compact?: boolean }) {
@@ -104,12 +92,9 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
   { tour, seleccionado, onToggleComparar, onVerDetalle, vista, index },
   ref,
 ) {
-  const { autenticado } = useAuth();
-  const { t, esCostaRica, mostrarOperador } = useI18n();
-  const { formatFecha, frescura, horarioLabel } = useFormatos();
-  const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
+  const { t, mostrarOperador } = useI18n();
+  const { frescura, horarioLabel } = useFormatos();
   const fresh = frescura(tour.fecha_actualizacion);
-  const tooltipFrescura = `${fresh.label}: ${formatFecha(tour.fecha_actualizacion)}`;
   const horario = horarioRepresentativo(tour);
   const masHorarios = tour.horarios.length > 1;
   const delay = Math.min(index, 11) * 0.04;
@@ -144,18 +129,6 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
     );
   });
 
-  const dotFrescura = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="flex cursor-default items-center gap-1.5 text-caption text-ink-muted">
-          <span className={cn('h-2 w-2 rounded-full', DOT_FRESCURA[fresh.estado])} />
-          {fresh.relativo}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{tooltipFrescura}</TooltipContent>
-    </Tooltip>
-  );
-
   if (vista === 'lista') {
     return (
       <motion.div
@@ -176,40 +149,35 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {badgeCategoria}
-            {dotFrescura}
           </div>
           <div className="mt-1 truncate text-h3 text-ink">{tour.nombre}</div>
-          {mostrarOperador && (
-            <div className="flex items-center gap-1.5 truncate text-small text-ink-muted">
-              {tour.operador.logo_url ? (
-                <img
-                  src={tour.operador.logo_url}
-                  alt=""
-                  className="h-5 w-5 object-contain"
-                  loading="lazy"
-                />
-              ) : (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-soft text-[9px] font-bold text-brand">
-                  {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
-                </span>
-              )}
-              {tour.operador.nombre}
-            </div>
-          )}
-        </div>
-        <div className="hidden shrink-0 items-center gap-4 text-small text-ink-muted tnum md:flex">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {horario ? horarioLabel(horario) : '—'}
-          </span>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="text-precio text-ink">{formatPrecio(precioDesde(tour, esCostaRica), tour.moneda)}</div>
-          <div className="text-caption text-ink-faint">
-            {tarifasVisibles.length > 1 ? t('buscador.n_tarifas', { n: String(tarifasVisibles.length) }) : t('buscador.rack_adulto')}
-          </div>
-          <div className="text-caption text-ink-muted tnum">
-            {tarifasVisibles.length > 1 ? t('buscador.desde') : t('buscador.una_tarifa')}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-muted">
+            {mostrarOperador && (
+              <span className="flex min-w-0 items-center gap-1.5">
+                {tour.operador.logo_url ? (
+                  <img
+                    src={tour.operador.logo_url}
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[9px] font-bold text-brand">
+                    {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
+                  </span>
+                )}
+                <span className="truncate">{tour.operador.nombre}</span>
+              </span>
+            )}
+            <span className="flex shrink-0 items-center gap-1 tnum">
+              <Clock className="h-3.5 w-3.5" />
+              {horario ? horarioLabel(horario) : '—'}
+              {masHorarios && <span className="text-caption text-ink-faint">+{tour.horarios.length - 1}</span>}
+            </span>
+            <span className="flex shrink-0 items-center gap-1 tnum">
+              <Users className="h-3.5 w-3.5" />
+              {t('buscador.min_personas', { n: String(tour.minimo_personas) })}
+            </span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -254,64 +222,39 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
     >
       {cintaDesactualizada}
 
-      {/* Header: categoría + frescura */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Header: categoría */}
+      <div className="flex flex-wrap items-center gap-2">
         {badgeCategoria}
-        {dotFrescura}
       </div>
 
-      {/* Título + operador */}
+      {/* Título */}
       <h3 className="mt-2.5 line-clamp-2 min-h-[2.6em] text-h3 text-ink">{tour.nombre}</h3>
-      {mostrarOperador && (
-        <div className="flex items-center gap-1.5 truncate text-small text-ink-muted">
-          {tour.operador.logo_url ? (
-            <img
-              src={tour.operador.logo_url}
-              alt=""
-              className="h-4 w-4 object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-soft text-[8px] font-bold text-brand">
-              {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
-            </span>
-          )}
-          {tour.operador.nombre}
-        </div>
-      )}
 
-      {/* Precios */}
-      <div className="mt-3 flex gap-6 border-t border-border pt-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="cursor-default">
-              <div className="text-precio text-ink">{formatPrecio(precioDesde(tour, esCostaRica), tour.moneda)}</div>
-              <div className="text-caption text-ink-faint">
-                {tarifasVisibles.length > 1 ? t('buscador.n_tarifas', { n: String(tarifasVisibles.length) }) : t('buscador.rack_adulto')}
-              </div>
-              <div className="text-caption text-ink-muted tnum">
-                {tarifasVisibles.length > 1 ? t('buscador.desde') : t('buscador.una_tarifa')}
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {tarifasVisibles.length > 1
-              ? t('buscador.tooltip_precio_varios', { n: String(tarifasVisibles.length) })
-              : autenticado
-                ? t('buscador.tooltip_rack_interno')
-                : t('buscador.tooltip_tarifa_adulto')}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Metadatos */}
-      <div className="mt-3 flex items-center gap-4 border-t border-border pt-3 text-small text-ink-muted tnum">
-        <span className="flex items-center gap-1.5">
+      {/* Operador + horario + mínimo de personas */}
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-muted">
+        {mostrarOperador && (
+          <span className="flex min-w-0 items-center gap-1.5">
+            {tour.operador.logo_url ? (
+              <img
+                src={tour.operador.logo_url}
+                alt=""
+                className="h-4 w-4 shrink-0 object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[8px] font-bold text-brand">
+                {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
+              </span>
+            )}
+            <span className="truncate">{tour.operador.nombre}</span>
+          </span>
+        )}
+        <span className="flex shrink-0 items-center gap-1 tnum">
           <Clock className="h-3.5 w-3.5" />
           {horario ? horarioLabel(horario) : '—'}
           {masHorarios && <span className="text-caption text-ink-faint">+{tour.horarios.length - 1}</span>}
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1 tnum">
           <Users className="h-3.5 w-3.5" />
           {t('buscador.min_personas', { n: String(tour.minimo_personas) })}
         </span>
@@ -354,13 +297,9 @@ export function TourCardSkeleton() {
     <div className="flex flex-col rounded-r-md border border-border bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between">
         <div className="shimmer h-5 w-20 rounded-full" />
-        <div className="shimmer h-4 w-16 rounded-full" />
       </div>
       <div className="shimmer mt-3 h-5 w-4/5 rounded-md" />
-      <div className="shimmer mt-2 h-4 w-2/5 rounded-md" />
-      <div className="mt-3 border-t border-border pt-3">
-        <div className="shimmer h-7 w-24 rounded-md" />
-      </div>
+      <div className="shimmer mt-2 h-4 w-3/5 rounded-md" />
       <div className="mt-3 border-t border-border pt-3">
         <div className="shimmer h-4 w-full rounded-md" />
       </div>
