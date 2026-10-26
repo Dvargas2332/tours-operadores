@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import SiteBackground from '@/components/SiteBackground';
 import { NACIONALIDADES, useI18n, type Idioma } from '@/i18n';
 import { cn } from '@/lib/utils';
 
@@ -28,12 +29,13 @@ export default function Welcome() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-bg px-4 py-8 text-ink">
+    <div className="relative flex min-h-[100dvh] items-center justify-center bg-bg px-4 py-8 text-ink">
+      <SiteBackground />
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        className="w-full max-w-[460px] rounded-r-lg border border-border bg-surface p-6 shadow-card"
+        className="relative z-10 w-full max-w-[460px] rounded-r-lg border border-border bg-surface p-6 shadow-card"
       >
         {/* Logo */}
         <div className="flex flex-col items-center text-center">

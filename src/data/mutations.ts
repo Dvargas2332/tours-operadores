@@ -404,11 +404,27 @@ export async function subirPoliza(file: File): Promise<string> {
   return supabase.storage.from('polizas').getPublicUrl(path).data.publicUrl;
 }
 
+export async function subirFondo(file: File): Promise<string> {
+  const path = nombreSeguro(file);
+  const { error } = await supabase.storage.from('fondos').upload(path, file, {
+    contentType: file.type,
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  return supabase.storage.from('fondos').getPublicUrl(path).data.publicUrl;
+}
+
 /* ------------------------------------------------------------------ */
 /* Configuración del hotel                                             */
 /* ------------------------------------------------------------------ */
 
-export async function actualizarHotel(input: { nombre: string; whatsapp: string; email: string | null }) {
+export async function actualizarHotel(input: {
+  nombre: string;
+  whatsapp: string;
+  email: string | null;
+  fondo_url: string | null;
+}) {
   const { error } = await supabase.from('hotel').upsert({ id: 1, ...input });
   if (error) throw error;
   return { ok: true as const };

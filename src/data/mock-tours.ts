@@ -74,6 +74,7 @@ export interface Hotel {
   nombre: string;
   whatsapp: string;
   email: string | null;
+  fondo_url: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -232,7 +233,7 @@ function mapOperador(o: RowOperador): Operador {
   return {
     id: o.id,
     nombre: o.nombre,
-    telefono: o.telefono,
+    telefono: o.telefono ?? '',
     email: o.email ?? null,
     comision: o.comision == null ? null : Number(o.comision),
     logo_url: o.logo_url ?? null,
@@ -306,9 +307,9 @@ async function esAutenticado(): Promise<boolean> {
 
 const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, logo_url, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT = '*';
-const OPERADORES_SELECT_PUBLICO = 'id, nombre, telefono, email, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva';
+const OPERADORES_SELECT_PUBLICO = 'id, nombre, logo_url, horario, activo, con_iva';
 
 export async function fetchTours(): Promise<Tour[]> {
   const autenticado = await esAutenticado();

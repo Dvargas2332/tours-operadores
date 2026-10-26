@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { LogIn } from 'lucide-react';
+import SiteBackground from '@/components/SiteBackground';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/i18n';
 
@@ -38,12 +39,13 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-bg px-4">
+    <div className="relative flex min-h-[100dvh] items-center justify-center bg-bg px-4">
+      <SiteBackground />
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-sm"
+        className="relative z-10 w-full max-w-sm"
       >
         <div className="mb-6 flex items-center gap-3">
           <img src="./logo/volcan.png" alt="Tours Operadores" className="h-24 w-24 object-contain" />

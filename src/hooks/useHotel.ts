@@ -1,24 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchHotel } from '@/data/mock-tours';
 import type { Hotel } from '@/data/mock-tours';
 
-/** Datos de configuración del hotel (destino de reservas públicas). */
+/** Datos de configuración del hotel (destino de reservas públicas y fondo). */
 export function useHotel(): Hotel | null {
-  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const { data } = useQuery({
+    queryKey: ['hotel'],
+    queryFn: fetchHotel,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let vivo = true;
-    fetchHotel()
-      .then((h) => {
-        if (vivo) setHotel(h);
-      })
-      .catch(() => {
-        if (vivo) setHotel(null);
-      });
-    return () => {
-      vivo = false;
-    };
-  }, []);
-
-  return hotel;
+  return data ?? null;
 }

@@ -11,6 +11,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LogIn, LogOut, Menu, Moon, Search, Sun } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import SiteBackground from '@/components/SiteBackground';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
@@ -79,13 +80,15 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-bg text-ink">
+    <div className="relative flex h-[100dvh] overflow-hidden bg-bg text-ink">
+      <SiteBackground />
+
       {/* Sidebar escritorio (≥1024px) */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 64 : 232 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden h-full shrink-0 overflow-hidden border-r border-border lg:block"
+        className="relative z-10 hidden h-full shrink-0 overflow-hidden border-r border-border lg:block"
       >
         <div style={{ width: collapsed ? 64 : 232 }} className="h-full">
           <Navbar collapsed={collapsed} idPrefix="desk" />
@@ -100,7 +103,7 @@ export default function Layout() {
       </Sheet>
 
       {/* Columna principal */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         {/* Topbar 56px */}
         <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-[8px]">
           <button

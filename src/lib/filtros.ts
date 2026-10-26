@@ -6,7 +6,7 @@ import type { Categoria, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, HORARIO_META, INCLUYE_META, horarioBucket } from '@/lib/tour-meta';
 import type { HorarioKey } from '@/lib/tour-meta';
 import { formatUSD } from '@/data/mock-tours';
-import { precioPublico } from '@/lib/tarifas';
+import { precioActivoDesde, precioPublico } from '@/lib/tarifas';
 
 export const PRECIO_MIN = 0;
 export const PRECIO_MAX = 300;
@@ -57,8 +57,9 @@ export function aplicarFiltros(tours: Tour[], f: Filtros, mostrarOperador = true
       }
     }
     if (f.precioActivo) {
-      // Se filtra sobre el precio público (con IVA cuando el operador lo tiene habilitado).
-      const adulto = precioPublico(t, t.precio_adulto);
+      // Se filtra sobre el precio público de la tarifa activa más barata
+      // (con IVA cuando el operador lo tiene habilitado).
+      const adulto = precioPublico(t, precioActivoDesde(t));
       if (adulto < f.precio[0] || adulto > f.precio[1]) return false;
       // Con el filtro de niños activo, también filtra por alguna tarifa de menor de edad
       if (f.aptoNinos) {
@@ -172,16 +173,17 @@ export const ORDENES: Orden[] = ['relevancia', 'precio-asc', 'precio-desc', 'nom
 
 export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour[] {
   const arr = [...tours];
+  const precioDe = (t: Tour) => precioPublico(t, precioActivoDesde(t));
   switch (orden) {
     case 'precio-asc':
-      return arr.sort((a, b) => a.precio_adulto - b.precio_adulto);
+      return arr.sort((a, b) => precioDe(a) - precioDe(b));
     case 'precio-desc':
-      return arr.sort((a, b) => b.precio_adulto - a.precio_adulto);
+      return arr.sort((a, b) => precioDe(b) - precioDe(a));
     case 'nombre':
       return arr.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     case 'relevancia': {
       // Relevancia: coincidencias del texto en nombre/zona/categoría primero
-      if (!texto) return arr.sort((a, b) => a.precio_adulto - b.precio_adulto);
+      if (!texto) return arr.sort((a, b) => precioDe(a) - precioDe(b));
       const q = texto.toLowerCase();
       const score = (t: Tour) => {
         let s = 0;
@@ -193,7 +195,7 @@ export function ordenar(tours: Tour[], orden: Orden, texto: string | null): Tour
         }
         return s;
       };
-      return arr.sort((a, b) => score(b) - score(a) || a.precio_adulto - b.precio_adulto);
+      return arr.sort((a, b) => score(b) - score(a) || precioDe(a) - precioDe(b));
     }
   }
 }

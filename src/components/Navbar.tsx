@@ -39,7 +39,7 @@ const SPRING = { type: 'spring', stiffness: 380, damping: 30 } as const;
 export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: NavbarProps) {
   const data = useToursData();
   const { seleccionados } = useCompare();
-  const { autenticado } = useAuth();
+  const { esAdmin } = useAuth();
   const { t } = useI18n();
 
   const desactualizados = data
@@ -62,7 +62,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
       badge: seleccionados.length > 0 ? seleccionados.length : null,
       badgeTono: 'brand',
     },
-    ...(autenticado
+    ...(esAdmin
       ? ([
           {
             to: '/admin',

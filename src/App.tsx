@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import Layout from '@/components/Layout';
-import RequireAuth from '@/components/RequireAuth';
+import RequireAdmin from '@/components/RequireAdmin';
 import { CompareProvider } from '@/context/CompareContext';
 import Buscador from '@/pages/Buscador';
 import Dashboard from '@/pages/Dashboard';
@@ -31,9 +31,9 @@ export default function App() {
             <Route path="operador/:id" element={<RequierePreferencias><OperadorDetalle /></RequierePreferencias>} />
             <Route path="reservar/:id" element={<RequierePreferencias><Reservar /></RequierePreferencias>} />
             <Route path="comparar" element={<RequierePreferencias><Comparador /></RequierePreferencias>} />
-            {/* Administración (requiere sesión) */}
-            <Route path="admin" element={<RequireAuth><Admin /></RequireAuth>} />
-            <Route path="admin/cargar" element={<RequireAuth><CargarTarifario /></RequireAuth>} />
+            {/* Administración (requiere sesión y rol admin) */}
+            <Route path="admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
+            <Route path="admin/cargar" element={<RequireAdmin><CargarTarifario /></RequireAdmin>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
