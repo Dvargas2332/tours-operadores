@@ -8,6 +8,7 @@ import { ArrowLeft, FileText, MapPin, Package } from 'lucide-react';
 import TourCard from '@/components/buscador/TourCard';
 import VistaToggle from '@/components/buscador/VistaToggle';
 import { useCompare } from '@/context/CompareContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToursData } from '@/hooks/useToursData';
 import { CATEGORIA_META } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ export default function OperadorDetalle() {
   const navigate = useNavigate();
   const data = useToursData();
   const { mostrarOperador } = useI18n();
+  const { esAdmin } = useAuth();
   const { toggle, estaSeleccionado } = useCompare();
   const [vista, setVista] = useState<Vista>(vistaInicial);
 
@@ -105,7 +107,7 @@ export default function OperadorDetalle() {
                     {zonas.join(', ')}
                   </span>
                 )}
-                {operador.poliza_url && (
+                {operador.poliza_url && esAdmin && (
                   <button
                     type="button"
                     onClick={() => void abrirPoliza(operador.poliza_url)}

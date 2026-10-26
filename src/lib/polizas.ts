@@ -29,17 +29,38 @@ export async function firmarPoliza(valor: string, segundos = 600): Promise<strin
   if (!ruta) return null;
 
   const { data, error } = await supabase.storage.from('polizas').createSignedUrl(ruta, segundos);
-  if (error) return null;
+  if (error) {
+    console.error('No se pudo firmar la póliza', error);
+    return null;
+  }
   return data.signedUrl;
 }
 
 /** Abre la póliza en una pestaña nueva, firmando la URL si hace falta. */
 export async function abrirPoliza(valor: string | null | undefined): Promise<void> {
   if (!valor) return;
+
+  // Blobs/imágenes locales o URLs externas: no requieren firma.
+  if (/^(blob:|data:)/.test(valor) || (/^https?:\/\//.test(valor) && !valor.includes(MARCA))) {
+    window.open(valor, '_blank', 'noopener');
+    return;
+  }
+
+  // La pestaña se abre dentro del gesto del usuario. Si esperamos a
+  // createSignedUrl, Chrome/Safari pueden bloquearla como popup.
+  const ventana = window.open('', '_blank');
+  if (!ventana) {
+    toast.error('Permití las ventanas emergentes para abrir la póliza');
+    return;
+  }
+
   const url = await firmarPoliza(valor);
   if (!url) {
+    ventana.close();
     toast.error('No se pudo abrir la póliza');
     return;
   }
-  window.open(url, '_blank', 'noopener');
+
+  ventana.opener = null;
+  ventana.location.href = url;
 }
