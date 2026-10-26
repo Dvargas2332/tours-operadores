@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!vivo) return;
         // Sin fila en perfiles se asume el rol de menor privilegio.
         setRol(r ?? 'vendedor');
-      } catch {
+      } catch (error) {
+        console.error('No se pudo leer el rol del usuario', error);
         if (!vivo) return;
         setRol('vendedor');
       } finally {

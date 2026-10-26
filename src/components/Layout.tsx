@@ -41,7 +41,7 @@ const FMT_HORA = new Intl.DateTimeFormat('es-CR', {
 export default function Layout() {
   const { tema, toggle } = useTheme();
   const { t } = useI18n();
-  const { cerrarSesion, autenticado } = useAuth();
+  const { cerrarSesion, autenticado, rol } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ahora = useReloj();
@@ -153,6 +153,13 @@ export default function Layout() {
           <div className="hidden text-caption text-ink-muted tnum sm:block">
             {FMT_FECHA.format(ahora)} · {FMT_HORA.format(ahora)}
           </div>
+
+          {/* Rol resuelto de la sesión */}
+          {autenticado && rol && (
+            <span className="hidden rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-ink-muted sm:inline">
+              {rol === 'admin' ? 'Admin' : 'Vendedor'}
+            </span>
+          )}
 
           {/* Toggle de tema */}
           <button
