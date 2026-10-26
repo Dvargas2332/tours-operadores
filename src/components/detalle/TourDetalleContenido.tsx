@@ -14,20 +14,28 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  Copy,
   Download,
   ExternalLink,
   FileText,
+  Mail,
   MapPin,
+  MessageCircle,
   Scale,
+  Send,
   StickyNote,
   Users,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
-import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detalle/resumen';
+import { buildResumenTour, labelIncluye } from '@/components/detalle/resumen';
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
@@ -121,9 +129,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const { esCostaRica, mostrarOperador } = useI18n();
   const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [reservaAbierta, setReservaAbierta] = useState(false);
-  const [copiado, setCopiado] = useState(false);
   const [generandoPolitica, setGenerandoPolitica] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const politicaUrlRef = useRef<string | null>(null);
 
   const fresh = freshness(tour.fecha_actualizacion);
@@ -132,11 +138,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const esDrawer = variante === 'drawer';
   const horariosOrdenados = tour.horarios.slice().sort((a, b) => a.orden - b.orden);
 
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  // Libera el blob de la política al desmontar
   useEffect(() => () => {
     if (politicaUrlRef.current) URL.revokeObjectURL(politicaUrlRef.current);
   }, []);
@@ -153,16 +154,14 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, tour.id]);
 
-  const copiarResumen = async () => {
-    const ok = await copiarTexto(buildResumenTour(tour, esCostaRica, undefined, mostrarOperador));
-    if (ok) {
-      setCopiado(true);
-      toast.success('Resumen copiado al portapapeles');
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopiado(false), 1200);
-    } else {
-      toast.error('No se pudo copiar el resumen');
-    }
+  const enviarEmail = () => {
+    const texto = buildResumenTour(tour, esCostaRica, undefined, mostrarOperador);
+    window.location.href = `mailto:?subject=${encodeURIComponent(`Resumen: ${tour.nombre}`)}&body=${encodeURIComponent(texto)}`;
+  };
+
+  const enviarWhatsApp = () => {
+    const texto = buildResumenTour(tour, esCostaRica, undefined, mostrarOperador);
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
   };
 
   const anioVigencia = tour.fecha_actualizacion.slice(0, 4);
@@ -210,11 +209,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             >
               <Scale className="h-4 w-4" />
             </IconBoton>
-            {autenticado && (
-              <IconBoton label="Copiar resumen" onClick={copiarResumen}>
-                <Copy className="h-4 w-4" />
-              </IconBoton>
-            )}
             {esDrawer && onCerrar && (
               <IconBoton label="Cerrar (Esc)" onClick={onCerrar}>
                 <X className="h-4 w-4" />
@@ -544,22 +538,33 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
 
         <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
 
-        {/* ===== Copiar resumen (solo admin) ===== */}
+        {/* ===== Enviar resumen (solo admin) ===== */}
         {autenticado && (
         <motion.section variants={seccion}>
-          <motion.button
-            type="button"
-            onClick={copiarResumen}
-            whileTap={{ scale: 0.98 }}
-            className={cn(
-              'flex h-11 items-center justify-center gap-2 rounded-r-sm text-sm font-semibold text-white transition-colors duration-200',
-              esDrawer ? 'w-full' : 'w-full sm:w-auto sm:px-8',
-              copiado ? 'bg-ok' : 'bg-brand hover:bg-brand-hover',
-            )}
-          >
-            {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copiado ? 'Copiado ✓' : 'Copiar resumen para el huésped'}
-          </motion.button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'flex h-11 items-center justify-center gap-2 rounded-r-sm bg-brand text-sm font-semibold text-white transition-colors duration-200 hover:bg-brand-hover',
+                  esDrawer ? 'w-full' : 'w-full sm:w-auto sm:px-8',
+                )}
+              >
+                <Send className="h-4 w-4" />
+                Enviar
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onSelect={enviarEmail}>
+                <Mail className="h-4 w-4" />
+                Correo
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={enviarWhatsApp}>
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </motion.section>
         )}
 
