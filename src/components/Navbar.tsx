@@ -111,7 +111,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
                 'group relative flex h-10 items-center gap-3 rounded-r-sm px-3 text-sm font-medium transition-colors duration-fast',
                 collapsed && 'justify-center px-0',
                 isActive
-                  ? 'bg-brand-soft text-brand'
+                  ? 'bg-nav-active text-brand'
                   : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
               )
             }

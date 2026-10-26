@@ -63,6 +63,11 @@ module.exports = {
           hover: "var(--brand-hover)",
           soft: "var(--brand-soft)",
         },
+        nav: {
+          DEFAULT: "var(--nav)",
+          active: "var(--nav-active)",
+          hover: "var(--nav-hover)",
+        },
         volcan: {
           DEFAULT: "var(--accent)",
           soft: "var(--accent-soft)",

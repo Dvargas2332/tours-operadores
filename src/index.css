@@ -15,6 +15,9 @@
     --brand: #12855A;
     --brand-hover: #0C6B47;
     --brand-soft: #DCF1E4;
+    --nav: #F2F8D4;
+    --nav-active: #E3F2B0;
+    --nav-hover: #EAF4C2;
     --accent: #DE7A35;
     --accent-soft: #F7E8D6;
     --ok: #2E8B4F;
@@ -64,6 +67,9 @@
     --brand: #3FB27F;
     --brand-hover: #5AC795;
     --brand-soft: #1B3327;
+    --nav: color-mix(in srgb, #A3E635 9%, var(--surface));
+    --nav-active: color-mix(in srgb, #A3E635 18%, var(--surface));
+    --nav-hover: color-mix(in srgb, #A3E635 13%, var(--surface));
     --accent: #F09555;
     --accent-soft: #3A2716;
     --ok: #4ADE80;

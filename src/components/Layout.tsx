@@ -7,11 +7,12 @@
  * <Route> anidados (react-dev.md "Layout + routing contract", patrón B).
  */
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LogIn, LogOut, Menu, Moon, Search, Sun } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import SiteBackground from '@/components/SiteBackground';
+import TopNav from '@/components/TopNav';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
@@ -47,32 +48,11 @@ export default function Layout() {
   const ahora = useReloj();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const collapsed = false;
 
   // Cierra el drawer móvil al cambiar de ruta
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
-
-  const ruta = location.pathname;
-  const migas: string[] =
-    ruta === '/'
-      ? [t('shell.miga.dashboard')]
-      : ruta === '/buscar'
-        ? [t('shell.miga.buscar')]
-        : ruta.startsWith('/tour/')
-          ? [t('shell.miga.detalle_tour')]
-          : ruta.startsWith('/operador/')
-            ? [t('shell.miga.operador')]
-            : ruta.startsWith('/reservar/')
-              ? [t('shell.miga.reservar')]
-              : ruta.startsWith('/comparar')
-                ? [t('shell.miga.comparador')]
-                : ruta === '/admin'
-                  ? [t('shell.miga.administracion')]
-                  : ruta.startsWith('/admin/cargar')
-                    ? [t('shell.miga.administracion'), t('shell.miga.cargar_tarifario')]
-                    : [t('shell.miga.inicio')];
 
   const salir = async () => {
     await cerrarSesion();
@@ -83,18 +63,6 @@ export default function Layout() {
     <div className="relative flex h-[100dvh] overflow-hidden bg-bg text-ink">
       <SiteBackground />
 
-      {/* Sidebar escritorio (≥1024px) */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 64 : 232 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 hidden h-full shrink-0 overflow-hidden border-r border-border lg:block"
-      >
-        <div style={{ width: collapsed ? 64 : 232 }} className="h-full">
-          <Navbar collapsed={collapsed} idPrefix="desk" />
-        </div>
-      </motion.aside>
-
       {/* Sidebar móvil/tablet: drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-[280px] border-border bg-surface p-0">
@@ -104,8 +72,8 @@ export default function Layout() {
 
       {/* Columna principal */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        {/* Topbar 56px */}
-        <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-[8px]">
+        {/* Barra superior con navegación horizontal (estilo Booking) */}
+        <header className="z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-nav px-4 backdrop-blur-[8px]">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -115,15 +83,17 @@ export default function Layout() {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Breadcrumb */}
-          <nav aria-label="breadcrumb" className="flex min-w-0 items-center gap-1.5 text-caption text-ink-muted">
-            {migas.map((miga, i) => (
-              <span key={miga} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-ink-faint">/</span>}
-                <span className={i === migas.length - 1 ? 'font-medium text-ink' : undefined}>{miga}</span>
+          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Inicio">
+            <img src="./logo/volcan.png" alt="" className="h-9 w-9 object-contain" />
+            <span className="hidden min-w-0 sm:block">
+              <span className="block font-display text-[15px] font-bold leading-tight text-[#6F4E37]">
+                Tours Operadores
               </span>
-            ))}
-          </nav>
+              <span className="block text-[10px] leading-tight text-[#8B7355]">Lavas Tacotal</span>
+            </span>
+          </Link>
+
+          <TopNav />
 
           <div className="flex-1" />
 
@@ -150,13 +120,13 @@ export default function Layout() {
           </form>
 
           {/* Reloj de recepción */}
-          <div className="hidden text-caption text-ink-muted tnum sm:block">
+          <div className="hidden text-caption text-ink-muted tnum xl:block">
             {FMT_FECHA.format(ahora)} · {FMT_HORA.format(ahora)}
           </div>
 
           {/* Rol resuelto de la sesión */}
           {autenticado && rol && (
-            <span className="hidden rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-ink-muted sm:inline">
+            <span className="hidden rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-ink-muted xl:inline">
               {rol === 'admin' ? 'Admin' : 'Vendedor'}
             </span>
           )}
