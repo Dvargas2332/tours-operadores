@@ -7,7 +7,6 @@
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import { Edit2, Eye, FileText, Mail, Phone, Trash2, Upload, Download } from 'lucide-react';
-import FreshnessPill from '@/components/admin/FreshnessPill';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
 import { freshness } from '@/data/mock-tours';
@@ -73,7 +72,6 @@ export default function OperadoresTable({ filas, onVerTours, onDescargarMachote,
               <SortTh colKey="operador" label="Operador" orden={orden} onCiclar={ciclar} />
               <SortTh colKey="tours" label="Tours" orden={orden} onCiclar={ciclar} center className="w-[90px]" />
               <SortTh colKey="comision" label="Comisión" orden={orden} onCiclar={ciclar} className="w-[110px]" />
-              <SortTh colKey="estado" label="Estado" orden={orden} onCiclar={ciclar} className="w-[150px]" />
               <th scope="col" className="w-[250px] px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted">
                 Acciones
               </th>
@@ -136,13 +134,6 @@ export default function OperadoresTable({ filas, onVerTours, onDescargarMachote,
                       </>
                     ) : (
                       <span className="text-ink-faint">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">
-                    {frescuraFila ? (
-                      <FreshnessPill frescura={frescuraFila} />
-                    ) : (
-                      <span className="text-caption text-ink-faint">Sin tarifario</span>
                     )}
                   </td>
                   <td className="px-3 py-3">

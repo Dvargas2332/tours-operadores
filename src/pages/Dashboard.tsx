@@ -34,9 +34,9 @@ export default function Dashboard() {
           <h1 className="text-display text-ink">
             {mostrarOperador ? t('shell.dash.titulo') : t('shell.dash.titulo_tours')}
           </h1>
-          <p className="mt-1 text-small text-ink-muted">
-            {mostrarOperador ? t('shell.dash.subtitulo') : t('shell.dash.subtitulo_tours')}
-          </p>
+          {!mostrarOperador && (
+            <p className="mt-1 text-small text-ink-muted">{t('shell.dash.subtitulo_tours')}</p>
+          )}
         </motion.div>
 
         {mostrarOperador ? (

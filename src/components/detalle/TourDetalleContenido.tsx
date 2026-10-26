@@ -274,7 +274,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
 
         {/* ===== Tarifas por rango de edad ===== */}
         <motion.section variants={seccion} aria-label="Tarifas">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-h3 text-ink">
               Tarifas
               {tour.operador.con_iva && (
@@ -283,14 +283,39 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 </span>
               )}
             </h2>
-            <button
-              type="button"
-              onClick={() => setReservaAbierta(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
-            >
-              <Calendar className="h-4 w-4" />
-              Reservar
-            </button>
+            <div className="flex items-center gap-2">
+              {autenticado && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                    >
+                      <Send className="h-4 w-4" />
+                      Enviar
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onSelect={enviarEmail}>
+                      <Mail className="h-4 w-4" />
+                      Correo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={enviarWhatsApp}>
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <button
+                type="button"
+                onClick={() => setReservaAbierta(true)}
+                className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
+              >
+                <Calendar className="h-4 w-4" />
+                Reservar
+              </button>
+            </div>
           </div>
           <div className="overflow-hidden rounded-r-md border border-border bg-surface">
             <table className="w-full text-left text-small">
@@ -537,36 +562,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         )}
 
         <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
-
-        {/* ===== Enviar resumen (solo admin) ===== */}
-        {autenticado && (
-        <motion.section variants={seccion}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  'flex h-11 items-center justify-center gap-2 rounded-r-sm bg-brand text-sm font-semibold text-white transition-colors duration-200 hover:bg-brand-hover',
-                  esDrawer ? 'w-full' : 'w-full sm:w-auto sm:px-8',
-                )}
-              >
-                <Send className="h-4 w-4" />
-                Enviar
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onSelect={enviarEmail}>
-                <Mail className="h-4 w-4" />
-                Correo
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={enviarWhatsApp}>
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </motion.section>
-        )}
 
         {/* En página, link discreto de regreso al final */}
         {!esDrawer && (
