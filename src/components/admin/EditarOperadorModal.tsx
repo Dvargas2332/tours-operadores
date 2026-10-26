@@ -14,7 +14,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import PdfPreview from '@/components/PdfPreview';
 import { useMutation } from '@tanstack/react-query';
 import { actualizarOperador, subirLogo, subirPoliza } from '@/data/mutations';
 import type { Operador } from '@/data/mock-tours';
@@ -41,7 +40,6 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   const [polizaFile, setPolizaFile] = useState<File | null>(null);
   const [polizaUrl, setPolizaUrl] = useState<string | null>(null);
   const [subiendoPoliza, setSubiendoPoliza] = useState(false);
-  const [previewAbierto, setPreviewAbierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -172,8 +170,6 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   };
 
   const isPending = mutacion.isPending || subiendoLogo || subiendoPoliza;
-
-  const previewUrl = polizaUrl;
 
   return (
     <>
@@ -328,14 +324,15 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
               <div className="flex flex-1 flex-col gap-2">
                 {polizaUrl ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewAbierto(true)}
+                    <a
+                      href={polizaUrl}
+                      target="_blank"
+                      rel="noreferrer"
                       className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
                     >
                       <Eye className="h-4 w-4" />
                       Ver póliza
-                    </button>
+                    </a>
                     <button
                       type="button"
                       onClick={handleQuitarPoliza}
@@ -392,22 +389,6 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
           </button>
         </DialogFooter>
       </DialogContent>
-      </Dialog>
-
-      {/* Vista previa de la póliza */}
-      <Dialog open={previewAbierto} onOpenChange={setPreviewAbierto}>
-        <DialogContent className="max-w-4xl border-border bg-surface text-ink">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="text-h3 text-ink">Vista previa de la póliza</DialogTitle>
-          </DialogHeader>
-          <div className="min-h-0 flex-1">
-            {previewUrl ? (
-              <PdfPreview url={previewUrl} />
-            ) : (
-              <p className="text-small text-ink-muted">No hay póliza para mostrar.</p>
-            )}
-          </div>
-        </DialogContent>
       </Dialog>
     </>
   );

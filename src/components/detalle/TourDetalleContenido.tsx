@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
-  Eye,
+  ExternalLink,
   FileText,
   MapPin,
   Scale,
@@ -27,9 +27,7 @@ import {
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto, labelIncluye } from '@/components/detalle/resumen';
-import PdfPreview from '@/components/PdfPreview';
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
@@ -124,10 +122,9 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [copiado, setCopiado] = useState(false);
-  const [politicaPreviewAbierta, setPoliticaPreviewAbierta] = useState(false);
-  const [politicaUrl, setPoliticaUrl] = useState<string | null>(null);
   const [generandoPolitica, setGenerandoPolitica] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const politicaUrlRef = useRef<string | null>(null);
 
   const fresh = freshness(tour.fecha_actualizacion);
   const seleccionado = estaSeleccionado(tour.id);
@@ -139,10 +136,10 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
-  // Libera el blob de la vista previa al desmontar
+  // Libera el blob de la política al desmontar
   useEffect(() => () => {
-    if (politicaUrl) URL.revokeObjectURL(politicaUrl);
-  }, [politicaUrl]);
+    if (politicaUrlRef.current) URL.revokeObjectURL(politicaUrlRef.current);
+  }, []);
 
   // Atajo `c`: marca/desmarca comparar (tour-detalle.md §10)
   useEffect(() => {
@@ -175,10 +172,12 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     setGenerandoPolitica(true);
     try {
       const blob = await generarPoliticaPdf(tour);
-      setPoliticaUrl(URL.createObjectURL(blob));
-      setPoliticaPreviewAbierta(true);
+      if (politicaUrlRef.current) URL.revokeObjectURL(politicaUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      politicaUrlRef.current = url;
+      window.open(url, '_blank', 'noopener');
     } catch {
-      toast.error('No se pudo generar la vista previa de la política');
+      toast.error('No se pudo abrir la política');
     } finally {
       setGenerandoPolitica(false);
     }
@@ -457,8 +456,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 disabled={generandoPolitica}
                 className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Eye className="h-4 w-4" />
-                {generandoPolitica ? 'Generando…' : 'Vista previa'}
+                <ExternalLink className="h-4 w-4" />
+                {generandoPolitica ? 'Generando…' : 'Abrir PDF'}
               </button>
               <button
                 type="button"
@@ -544,18 +543,6 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         )}
 
         <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
-
-        {/* Vista previa de la política de cancelación */}
-        <Dialog open={politicaPreviewAbierta} onOpenChange={setPoliticaPreviewAbierta}>
-          <DialogContent className="max-h-[92vh] max-w-5xl grid-rows-[auto_minmax(0,1fr)] border-border bg-surface text-ink">
-            <DialogHeader className="shrink-0">
-              <DialogTitle className="text-h3 text-ink">Vista previa — Política de cancelación</DialogTitle>
-            </DialogHeader>
-            <div className="min-h-0 flex-1">
-              {politicaUrl ? <PdfPreview url={politicaUrl} /> : null}
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* ===== Copiar resumen (solo admin) ===== */}
         {autenticado && (

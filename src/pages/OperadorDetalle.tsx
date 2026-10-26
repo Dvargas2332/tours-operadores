@@ -7,8 +7,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, FileText, MapPin, Package } from 'lucide-react';
 import TourCard from '@/components/buscador/TourCard';
 import VistaToggle from '@/components/buscador/VistaToggle';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import PdfPreview from '@/components/PdfPreview';
 import { useCompare } from '@/context/CompareContext';
 import { useToursData } from '@/hooks/useToursData';
 import { CATEGORIA_META } from '@/lib/tour-meta';
@@ -25,7 +23,6 @@ export default function OperadorDetalle() {
   const data = useToursData();
   const { mostrarOperador } = useI18n();
   const { toggle, estaSeleccionado } = useCompare();
-  const [previewAbierto, setPreviewAbierto] = useState(false);
   const [vista, setVista] = useState<Vista>(vistaInicial);
 
   useEffect(() => {
@@ -108,14 +105,15 @@ export default function OperadorDetalle() {
                   </span>
                 )}
                 {operador.poliza_url && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewAbierto(true)}
+                  <a
+                    href={polizaPreviewUrl(operador.poliza_url)}
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex items-center gap-1 rounded-r-sm bg-brand-soft px-2 py-0.5 font-medium text-brand transition-colors duration-fast hover:bg-brand hover:text-white"
                   >
                     <FileText className="h-3.5 w-3.5" />
                     Ver póliza
-                  </button>
+                  </a>
                 )}
               </div>
             </div>
@@ -176,17 +174,6 @@ export default function OperadorDetalle() {
         )}
       </div>
       </div>
-
-      <Dialog open={previewAbierto} onOpenChange={setPreviewAbierto}>
-        <DialogContent className="max-w-4xl border-border bg-surface text-ink">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="text-h3 text-ink">Vista previa de la póliza</DialogTitle>
-          </DialogHeader>
-          <div className="min-h-0 flex-1">
-            {operador.poliza_url ? <PdfPreview url={polizaPreviewUrl(operador.poliza_url)} /> : null}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
