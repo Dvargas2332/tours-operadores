@@ -40,7 +40,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
   const [pagoLink, setPagoLink] = useState(false);
   const [pagoTransferencia, setPagoTransferencia] = useState(false);
   const [pagoSinpe, setPagoSinpe] = useState(false);
-  const { autenticado } = useAuth();
+  const { autenticado, rol } = useAuth();
   const hotelInfo = useHotel();
 
   const lineas = useMemo(() => calcularLineasPorTarifas(tour, conteos), [tour, conteos]);
@@ -77,6 +77,8 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
     if (autenticado || !hotelInfo?.email || !mensajeReserva) return null;
     return `mailto:${hotelInfo.email}?subject=${encodeURIComponent(`Reserva: ${tour.nombre}`)}&body=${encodeURIComponent(mensajeReserva)}`;
   }, [autenticado, hotelInfo, mensajeReserva, tour]);
+
+  if (rol === 'reservas') return null;
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);

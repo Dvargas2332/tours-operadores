@@ -308,11 +308,36 @@ async function esAutenticado(): Promise<boolean> {
   return data.session != null;
 }
 
-const TOURS_SELECT = '*, operadores(*), tour_tarifas(*), tour_horarios(*)';
+const TOURS_SELECT =
+  '*, operadores(id, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
   'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, logo_url, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
-const OPERADORES_SELECT = '*';
+const OPERADORES_SELECT =
+  'id, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, logo_url, horario, activo, con_iva';
+
+interface ContactoOperador {
+  telefono: string;
+  email: string | null;
+}
+
+/** El contacto vive en una vista que solo devuelve filas a admin/vendedor. */
+async function fetchContactosOperadores(ids: number[]): Promise<Map<number, ContactoOperador>> {
+  const out = new Map<number, ContactoOperador>();
+  if (ids.length === 0) return out;
+  const { data, error } = await supabase
+    .from('operadores_contacto')
+    .select('id, telefono, email')
+    .in('id', ids);
+  if (error) {
+    console.error('No se pudo leer el contacto de operadores', error);
+    return out;
+  }
+  for (const row of (data ?? []) as { id: number; telefono: string | null; email: string | null }[]) {
+    out.set(row.id, { telefono: row.telefono ?? '', email: row.email ?? null });
+  }
+  return out;
+}
 
 export async function fetchTours(): Promise<Tour[]> {
   const autenticado = await esAutenticado();
@@ -321,7 +346,20 @@ export async function fetchTours(): Promise<Tour[]> {
   if (!autenticado) query = query.eq('activo', true).eq('operadores.activo', true);
   const { data, error } = await query.order('precio_adulto');
   if (error) throw error;
-  return ((data as unknown as RowTour[]) ?? []).filter((t) => t.operadores != null).map(mapTour);
+  const tours = ((data as unknown as RowTour[]) ?? []).filter((t) => t.operadores != null).map(mapTour);
+
+  if (autenticado) {
+    const contactos = await fetchContactosOperadores([...new Set(tours.map((t) => t.operador.id))]);
+    for (const tour of tours) {
+      const contacto = contactos.get(tour.operador.id);
+      if (contacto) {
+        tour.operador.telefono = contacto.telefono;
+        tour.operador.email = contacto.email;
+      }
+    }
+  }
+
+  return tours;
 }
 
 export async function fetchOperadores(): Promise<Operador[]> {
@@ -331,7 +369,20 @@ export async function fetchOperadores(): Promise<Operador[]> {
   if (!autenticado) query = query.eq('activo', true);
   const { data, error } = await query.order('nombre');
   if (error) throw error;
-  return ((data as unknown as RowOperador[]) ?? []).map(mapOperador);
+  const operadores = ((data as unknown as RowOperador[]) ?? []).map(mapOperador);
+
+  if (autenticado) {
+    const contactos = await fetchContactosOperadores(operadores.map((o) => o.id));
+    for (const operador of operadores) {
+      const contacto = contactos.get(operador.id);
+      if (contacto) {
+        operador.telefono = contacto.telefono;
+        operador.email = contacto.email;
+      }
+    }
+  }
+
+  return operadores;
 }
 
 export async function fetchTourById(id: number): Promise<Tour | undefined> {
@@ -342,7 +393,17 @@ export async function fetchTourById(id: number): Promise<Tour | undefined> {
   const { data, error } = await query.eq('id', id).maybeSingle();
   if (error) throw error;
   if (!data || (data as unknown as RowTour).operadores == null) return undefined;
-  return mapTour(data as unknown as RowTour);
+
+  const tour = mapTour(data as unknown as RowTour);
+  if (autenticado) {
+    const contactos = await fetchContactosOperadores([tour.operador.id]);
+    const contacto = contactos.get(tour.operador.id);
+    if (contacto) {
+      tour.operador.telefono = contacto.telefono;
+      tour.operador.email = contacto.email;
+    }
+  }
+  return tour;
 }
 
 export async function fetchHotel(): Promise<Hotel | null> {

@@ -128,7 +128,7 @@ function operadorToRow(o: OperadorInput) {
 export async function crearOperadores(nuevos: OperadorInput[]) {
   const { data: existentes } = await supabase
     .from('operadores')
-    .select('id, nombre, email, logo_url, poliza_url, politica_cancelacion');
+    .select('id, nombre, logo_url, poliza_url, politica_cancelacion');
   const porNombre = new Map((existentes ?? []).map((o) => [o.nombre, o]));
 
   let creados = 0;
@@ -142,17 +142,15 @@ export async function crearOperadores(nuevos: OperadorInput[]) {
 
     const existente = porNombre.get(nombre);
     if (existente) {
-      await supabase
-        .from('operadores')
-        .update({
-          telefono: n.telefono ?? '',
-          email: n.email ?? existente.email,
-          comision: n.comision ?? null,
-          logo_url: n.logoUrl ?? existente.logo_url,
-          poliza_url: n.polizaUrl ?? existente.poliza_url,
-          politica_cancelacion: n.politicaCancelacion ?? existente.politica_cancelacion,
-        })
-        .eq('id', existente.id);
+      const update: Record<string, unknown> = {
+        comision: n.comision ?? null,
+        logo_url: n.logoUrl ?? existente.logo_url,
+        poliza_url: n.polizaUrl ?? existente.poliza_url,
+        politica_cancelacion: n.politicaCancelacion ?? existente.politica_cancelacion,
+      };
+      if (n.telefono?.trim()) update.telefono = n.telefono;
+      if (n.email != null) update.email = n.email;
+      await supabase.from('operadores').update(update).eq('id', existente.id);
       actualizados++;
     } else {
       await supabase.from('operadores').insert(operadorToRow(n));
@@ -309,7 +307,7 @@ export async function importarCatalogo(input: {
 
     const { data: existentes } = await supabase
       .from('operadores')
-      .select('id, telefono, email, comision, logo_url, poliza_url, politica_cancelacion')
+      .select('id, comision, logo_url, poliza_url, politica_cancelacion')
       .eq('nombre', nombre)
       .limit(1);
 
@@ -319,17 +317,15 @@ export async function importarCatalogo(input: {
     if (existentes && existentes.length) {
       operadorId = existentes[0].id;
       politicaOperador = op.politicaCancelacion ?? existentes[0].politica_cancelacion ?? '';
-      await supabase
-        .from('operadores')
-        .update({
-          telefono: op.telefono?.trim() ? op.telefono : existentes[0].telefono ?? '',
-          email: op.email ?? existentes[0].email,
-          comision: op.comision ?? existentes[0].comision ?? null,
-          logo_url: op.logoUrl ?? existentes[0].logo_url,
-          poliza_url: op.polizaUrl ?? existentes[0].poliza_url,
-          politica_cancelacion: politicaOperador,
-        })
-        .eq('id', operadorId);
+      const update: Record<string, unknown> = {
+        comision: op.comision ?? existentes[0].comision ?? null,
+        logo_url: op.logoUrl ?? existentes[0].logo_url,
+        poliza_url: op.polizaUrl ?? existentes[0].poliza_url,
+        politica_cancelacion: politicaOperador,
+      };
+      if (op.telefono?.trim()) update.telefono = op.telefono;
+      if (op.email != null) update.email = op.email;
+      await supabase.from('operadores').update(update).eq('id', operadorId);
       operadoresActualizados++;
     } else {
       const { data: creado, error } = await supabase

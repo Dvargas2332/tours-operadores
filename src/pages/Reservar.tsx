@@ -2,7 +2,7 @@
  * Página de reserva: wizard de fecha → personas → resumen → WhatsApp.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Clock, Mail, MessageCircle, Minus, Plus, Users } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -83,7 +83,7 @@ export default function Reservar() {
   const [pagoLink, setPagoLink] = useState(false);
   const [pagoTransferencia, setPagoTransferencia] = useState(false);
   const [pagoSinpe, setPagoSinpe] = useState(false);
-  const { autenticado } = useAuth();
+  const { autenticado, rol } = useAuth();
   const hotelInfo = useHotel();
   const { esCostaRica } = useI18n();
 
@@ -137,6 +137,10 @@ export default function Reservar() {
     if (autenticado || !hotelInfo?.email || !mensajeReserva) return null;
     return `mailto:${hotelInfo.email}?subject=${encodeURIComponent(`Reserva: ${tour?.nombre ?? ''}`)}&body=${encodeURIComponent(mensajeReserva)}`;
   }, [autenticado, hotelInfo, mensajeReserva, tour]);
+
+  if (rol === 'reservas') {
+    return <Navigate to="/" replace />;
+  }
 
   if (cargando) {
     return (

@@ -125,7 +125,8 @@ export interface TourDetalleContenidoProps {
 
 export default function TourDetalleContenido({ tour, variante, scrolled = false, onCerrar }: TourDetalleContenidoProps) {
   const { toggle, estaSeleccionado } = useCompare();
-  const { autenticado } = useAuth();
+  const { autenticado, rol } = useAuth();
+  const esReservas = rol === 'reservas';
   const { esCostaRica, mostrarOperador } = useI18n();
   const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [reservaAbierta, setReservaAbierta] = useState(false);
@@ -284,7 +285,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               )}
             </h2>
             <div className="flex items-center gap-2">
-              {autenticado && (
+              {autenticado && !esReservas && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -307,14 +308,16 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <button
-                type="button"
-                onClick={() => setReservaAbierta(true)}
-                className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
-              >
-                <Calendar className="h-4 w-4" />
-                Reservar
-              </button>
+              {!esReservas && (
+                <button
+                  type="button"
+                  onClick={() => setReservaAbierta(true)}
+                  className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Reservar
+                </button>
+              )}
             </div>
           </div>
           <div className="overflow-hidden rounded-r-md border border-border bg-surface">
@@ -522,7 +525,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               {fresh.estado === 'warn'
                 ? 'Este tarifario tiene más de 90 días — considera confirmar el precio.'
                 : 'Tarifario desactualizado (>6 meses). Confirma con el operador antes de cotizar al huésped.'}
-              {fresh.estado === 'danger' && (
+              {fresh.estado === 'danger' && !esReservas && (
                 <PopoverOperador operador={tour.operador} tour={tour}>
                   <button
                     type="button"
@@ -561,7 +564,9 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         </motion.section>
         )}
 
-        <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
+        {!esReservas && (
+          <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
+        )}
 
         {/* En página, link discreto de regreso al final */}
         {!esDrawer && (

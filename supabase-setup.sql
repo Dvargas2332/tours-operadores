@@ -126,11 +126,11 @@ alter table public.tours add column if not exists activo boolean not null defaul
 grant select (activo) on public.tours to anon;
 
 -- ----------------------------------------------------------------------------
--- 10) Perfiles y roles (admin = acceso total, vendedor = solo lectura)
+-- 10) Perfiles y roles (admin = acceso total, vendedor y reservas = solo lectura)
 -- ----------------------------------------------------------------------------
 create table if not exists public.perfiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  rol text not null default 'vendedor' check (rol in ('admin', 'vendedor')),
+  rol text not null default 'vendedor' check (rol in ('admin', 'vendedor', 'reservas')),
   creado_en timestamptz not null default now()
 );
 
@@ -166,6 +166,30 @@ $$;
 
 revoke all on function public.mi_rol() from public;
 grant execute on function public.mi_rol() to authenticated;
+
+-- Contacto del operador: solo admin y vendedor. El rol "reservas" no lo ve.
+create or replace function public.puede_ver_contacto()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.perfiles
+     where user_id = auth.uid() and rol in ('admin', 'vendedor')
+  );
+$$;
+
+revoke all on function public.puede_ver_contacto() from public;
+grant execute on function public.puede_ver_contacto() to authenticated;
+
+create or replace view public.operadores_contacto as
+  select id, telefono, email
+    from public.operadores
+   where public.puede_ver_contacto();
+
+grant select on public.operadores_contacto to authenticated;
 
 drop policy if exists "perfiles_propio" on public.perfiles;
 create policy "perfiles_propio" on public.perfiles
@@ -296,6 +320,10 @@ create policy "tour_horarios_lectura_publica" on public.tour_horarios
 
 -- El sitio público no necesita el contacto ni la póliza del operador.
 revoke select (telefono, email, poliza_url, politica_cancelacion) on public.operadores from anon;
+
+-- Los usuarios autenticados leen el contacto solo a través de la vista
+-- operadores_contacto, que filtra por rol (admin y vendedor).
+revoke select (telefono, email) on public.operadores from authenticated;
 
 -- Storage: subir/borrar solo administradores.
 drop policy if exists "logos_upload" on storage.objects;

@@ -83,7 +83,8 @@ interface PopoverOperadorProps {
 /** Popover con datos del operador; la comisión va marcada "Uso interno" */
 export function PopoverOperador({ operador, children, open, onOpenChange, tour }: PopoverOperadorProps) {
   const [interno, setInterno] = useState(false);
-  const { autenticado } = useAuth();
+  const { autenticado, rol } = useAuth();
+  const puedeContacto = autenticado && rol !== 'reservas';
   const controlado = open !== undefined;
   const abierto = controlado ? open : interno;
   const setAbierto = (v: boolean) => {
@@ -91,8 +92,8 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
     onOpenChange?.(v);
   };
 
-  const telefono = tour ? telefonoDeContacto(operador.telefono) : null;
-  const hrefWhatsApp = tour && telefono ? urlWhatsApp(telefono, buildResumenTour(tour)) : null;
+  const telefono = puedeContacto && tour ? telefonoDeContacto(operador.telefono) : null;
+  const hrefWhatsApp = puedeContacto && tour && telefono ? urlWhatsApp(telefono, buildResumenTour(tour)) : null;
 
   return (
     <Popover open={abierto} onOpenChange={setAbierto}>
@@ -107,18 +108,20 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
             <div className="text-caption text-ink-faint">Operador</div>
           </div>
         </div>
-        <div className="mt-3 border-t border-border pt-3">
-          <div className="text-label text-ink-muted">Contacto</div>
-          {operador.telefono && (
-            <div className="mt-0.5 text-small text-ink">{operador.telefono}</div>
-          )}
-          {operador.email && (
-            <div className="mt-0.5 text-small text-ink">{operador.email}</div>
-          )}
-          {!operador.telefono && !operador.email && (
-            <div className="mt-0.5 text-small text-ink-faint">Sin datos de contacto</div>
-          )}
-        </div>
+        {puedeContacto && (
+          <div className="mt-3 border-t border-border pt-3">
+            <div className="text-label text-ink-muted">Contacto</div>
+            {operador.telefono && (
+              <div className="mt-0.5 text-small text-ink">{operador.telefono}</div>
+            )}
+            {operador.email && (
+              <div className="mt-0.5 text-small text-ink">{operador.email}</div>
+            )}
+            {!operador.telefono && !operador.email && (
+              <div className="mt-0.5 text-small text-ink-faint">Sin datos de contacto</div>
+            )}
+          </div>
+        )}
         {hrefWhatsApp && (
           <a
             href={hrefWhatsApp}
@@ -130,7 +133,7 @@ export function PopoverOperador({ operador, children, open, onOpenChange, tour }
             Enviar por WhatsApp
           </a>
         )}
-        {autenticado && operador.comision != null && (
+        {puedeContacto && operador.comision != null && (
           <div className="mt-3 border-t border-border pt-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-label text-ink-muted">Comisión</span>

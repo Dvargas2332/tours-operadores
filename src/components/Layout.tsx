@@ -127,7 +127,7 @@ export default function Layout() {
           {/* Rol resuelto de la sesión */}
           {autenticado && rol && (
             <span className="hidden rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-ink-muted xl:inline">
-              {rol === 'admin' ? 'Admin' : 'Vendedor'}
+              {rol === 'admin' ? 'Admin' : rol === 'vendedor' ? 'Vendedor' : 'Reservas'}
             </span>
           )}
 
