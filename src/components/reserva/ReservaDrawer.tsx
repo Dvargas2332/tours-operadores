@@ -30,6 +30,7 @@ interface ReservaDrawerProps {
 export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawerProps) {
   const [fecha, setFecha] = useState<Date | undefined>();
   const [horario, setHorario] = useState<Horario | undefined>(() => horarioRepresentativo(tour));
+  const [calendarioAbierto, setCalendarioAbierto] = useState(false);
   const { esCostaRica, mostrarOperador } = useI18n();
   const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [conteos, setConteos] = useState<ConteoTarifas>(() => Object.fromEntries(tarifasVisibles.map((t) => [t.id, 0])));
@@ -37,7 +38,8 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
   const [pagoLink, setPagoLink] = useState(false);
-  const [pagoRecepcion, setPagoRecepcion] = useState(false);
+  const [pagoTransferencia, setPagoTransferencia] = useState(false);
+  const [pagoSinpe, setPagoSinpe] = useState(false);
   const { autenticado } = useAuth();
   const hotelInfo = useHotel();
 
@@ -62,10 +64,11 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
       notas: notas || undefined,
       metodosPago: [
         ...(pagoLink ? ['Link de pago'] : []),
-        ...(pagoRecepcion ? ['Pago en recepción'] : []),
+        ...(pagoTransferencia ? ['Transferencia'] : []),
+        ...(pagoSinpe ? ['SINPE Móvil'] : []),
       ],
     });
-  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoRecepcion]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoTransferencia, pagoSinpe]);
   const hrefWhatsApp = useMemo(
     () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
     [telefono, mensajeReserva],
@@ -109,7 +112,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                 <CalendarIcon className="h-5 w-5 text-brand" />
                 Fecha y horario
               </h3>
-              <Popover>
+              <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -127,7 +130,10 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                   <Calendar
                     mode="single"
                     selected={fecha}
-                    onSelect={setFecha}
+                    onSelect={(d) => {
+                      setFecha(d);
+                      if (d) setCalendarioAbierto(false);
+                    }}
                     disabled={(date) => date < hoy}
                     className="rounded-r-md border-0 bg-bg p-3 text-base"
                     classNames={{
@@ -259,19 +265,25 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label>Método de pago</Label>
-                <div className="mt-2 space-y-2">
-                  <label className="flex items-center gap-2 text-small text-ink">
-                    <input type="checkbox" checked={pagoLink} onChange={(e) => setPagoLink(e.target.checked)} className="h-4 w-4" />
-                    Link de pago
-                  </label>
-                  <label className="flex items-center gap-2 text-small text-ink">
-                    <input type="checkbox" checked={pagoRecepcion} onChange={(e) => setPagoRecepcion(e.target.checked)} className="h-4 w-4" />
-                    Pago en recepción
-                  </label>
+              {!autenticado && (
+                <div>
+                  <Label>Método de pago</Label>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center gap-2 text-small text-ink">
+                      <input type="checkbox" checked={pagoLink} onChange={(e) => setPagoLink(e.target.checked)} className="h-4 w-4" />
+                      Link de pago
+                    </label>
+                    <label className="flex items-center gap-2 text-small text-ink">
+                      <input type="checkbox" checked={pagoTransferencia} onChange={(e) => setPagoTransferencia(e.target.checked)} className="h-4 w-4" />
+                      Transferencia
+                    </label>
+                    <label className="flex items-center gap-2 text-small text-ink">
+                      <input type="checkbox" checked={pagoSinpe} onChange={(e) => setPagoSinpe(e.target.checked)} className="h-4 w-4" />
+                      SINPE Móvil
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {/* Resumen */}

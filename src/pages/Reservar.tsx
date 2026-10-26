@@ -75,12 +75,14 @@ export default function Reservar() {
 
   const [fecha, setFecha] = useState<Date | undefined>();
   const [horario, setHorario] = useState<Horario | undefined>();
+  const [calendarioAbierto, setCalendarioAbierto] = useState(() => fecha == null);
   const [conteos, setConteos] = useState<ConteoTarifas>({});
   const [nombreCliente, setNombreCliente] = useState('');
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
   const [pagoLink, setPagoLink] = useState(false);
-  const [pagoRecepcion, setPagoRecepcion] = useState(false);
+  const [pagoTransferencia, setPagoTransferencia] = useState(false);
+  const [pagoSinpe, setPagoSinpe] = useState(false);
   const { autenticado } = useAuth();
   const hotelInfo = useHotel();
   const { esCostaRica } = useI18n();
@@ -122,10 +124,11 @@ export default function Reservar() {
       notas: notas || undefined,
       metodosPago: [
         ...(pagoLink ? ['Link de pago'] : []),
-        ...(pagoRecepcion ? ['Pago en recepción'] : []),
+        ...(pagoTransferencia ? ['Transferencia'] : []),
+        ...(pagoSinpe ? ['SINPE Móvil'] : []),
       ],
     });
-  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoRecepcion]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoTransferencia, pagoSinpe]);
   const hrefWhatsApp = useMemo(
     () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
     [telefono, mensajeReserva],
@@ -196,15 +199,33 @@ export default function Reservar() {
               {paso === 1 && (
                 <div>
                   <h2 className="text-h3 text-ink">¿Qué día querés hacer el tour?</h2>
-                  <div className="mt-4 flex justify-center">
-                    <Calendar
-                      mode="single"
-                      selected={fecha}
-                      onSelect={setFecha}
-                      disabled={(date) => date < hoy}
-                      className="rounded-r-md border border-border"
-                    />
-                  </div>
+                  {calendarioAbierto ? (
+                    <div className="mt-4 flex justify-center">
+                      <Calendar
+                        mode="single"
+                        selected={fecha}
+                        onSelect={(d) => {
+                          setFecha(d);
+                          if (d) setCalendarioAbierto(false);
+                        }}
+                        disabled={(date) => date < hoy}
+                        className="rounded-r-md border border-border"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCalendarioAbierto(true)}
+                      className="mt-4 flex w-full items-center justify-between gap-3 rounded-r-md border border-border bg-surface px-4 py-3 text-left transition-colors duration-fast hover:border-brand"
+                    >
+                      <span className="text-small font-medium text-ink">
+                        {fecha
+                          ? fecha.toLocaleDateString('es-CR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                          : 'Elegir fecha'}
+                      </span>
+                      <span className="text-caption font-semibold text-brand">Cambiar</span>
+                    </button>
+                  )}
 
                   {tour.horarios.length > 0 && (
                     <div className="mt-6">
@@ -374,19 +395,25 @@ export default function Reservar() {
                       <Label htmlFor="notas">Notas adicionales</Label>
                       <Input id="notas" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" />
                     </div>
-                    <div>
-                      <Label>Método de pago</Label>
-                      <div className="mt-2 space-y-2">
-                        <label className="flex items-center gap-2 text-small text-ink">
-                          <input type="checkbox" checked={pagoLink} onChange={(e) => setPagoLink(e.target.checked)} className="h-4 w-4" />
-                          Link de pago
-                        </label>
-                        <label className="flex items-center gap-2 text-small text-ink">
-                          <input type="checkbox" checked={pagoRecepcion} onChange={(e) => setPagoRecepcion(e.target.checked)} className="h-4 w-4" />
-                          Pago en recepción
-                        </label>
+                    {!autenticado && (
+                      <div>
+                        <Label>Método de pago</Label>
+                        <div className="mt-2 space-y-2">
+                          <label className="flex items-center gap-2 text-small text-ink">
+                            <input type="checkbox" checked={pagoLink} onChange={(e) => setPagoLink(e.target.checked)} className="h-4 w-4" />
+                            Link de pago
+                          </label>
+                          <label className="flex items-center gap-2 text-small text-ink">
+                            <input type="checkbox" checked={pagoTransferencia} onChange={(e) => setPagoTransferencia(e.target.checked)} className="h-4 w-4" />
+                            Transferencia
+                          </label>
+                          <label className="flex items-center gap-2 text-small text-ink">
+                            <input type="checkbox" checked={pagoSinpe} onChange={(e) => setPagoSinpe(e.target.checked)} className="h-4 w-4" />
+                            SINPE Móvil
+                          </label>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="mt-6 flex items-center justify-between gap-3">
