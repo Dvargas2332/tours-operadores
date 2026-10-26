@@ -12,6 +12,7 @@ import { AlertTriangle, Building2, FileSpreadsheet, Info, MapPinned, Plus, Trash
 import type { LucideIcon } from 'lucide-react';
 import AgregarOperadoresModal from '@/components/admin/AgregarOperadoresModal';
 import HotelConfig from '@/components/admin/HotelConfig';
+import { descargarMachoteOperador } from '@/components/admin/cargar/machote-excel';
 import EditarOperadorModal from '@/components/admin/EditarOperadorModal';
 import EditarTourModal from '@/components/admin/EditarTourModal';
 import OperadoresTable from '@/components/admin/OperadoresTable';
@@ -252,6 +253,11 @@ export default function Admin() {
   const irAOperadores = () => {
     setTab('operadores');
     window.setTimeout(() => tablaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+
+  const descargarMachote = (fila: FilaOperador) => {
+    const toursOperador = tours.filter((t) => t.operador.id === fila.operador.id);
+    descargarMachoteOperador(fila.operador, toursOperador);
   };
 
   /* ----- Render ----- */
@@ -500,6 +506,7 @@ export default function Admin() {
                     <OperadoresTable
                       filas={filasOperadores}
                       onVerTours={verToursDeOperador}
+                      onDescargarMachote={descargarMachote}
                       onEditar={(fila) => setOperadorAEditar(fila)}
                       onEliminar={(fila) => {
                         setErrorEliminar(null);

@@ -151,6 +151,22 @@ as $$
   );
 $$;
 
+create or replace function public.mi_rol()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select rol from public.perfiles where user_id = auth.uid()),
+    'vendedor'
+  );
+$$;
+
+revoke all on function public.mi_rol() from public;
+grant execute on function public.mi_rol() to authenticated;
+
 drop policy if exists "perfiles_propio" on public.perfiles;
 create policy "perfiles_propio" on public.perfiles
   for select to authenticated
@@ -314,5 +330,32 @@ drop policy if exists "fondos_delete" on storage.objects;
 create policy "fondos_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'fondos' and public.es_admin());
+
+-- ----------------------------------------------------------------------------
+-- 12) Código único de tour (actualización sin duplicar)
+-- ----------------------------------------------------------------------------
+create sequence if not exists public.tours_codigo_seq;
+
+alter table public.tours add column if not exists codigo text;
+
+update public.tours
+   set codigo = 'T-' || id
+ where codigo is null or codigo = '';
+
+select setval(
+  'public.tours_codigo_seq',
+  greatest(
+    (select last_value from public.tours_codigo_seq),
+    coalesce((select max(id) from public.tours), 0),
+    1
+  ),
+  true
+);
+
+alter table public.tours
+  alter column codigo set default ('T-' || nextval('public.tours_codigo_seq'));
+alter table public.tours alter column codigo set not null;
+create unique index if not exists tours_codigo_key on public.tours (codigo);
+grant usage on sequence public.tours_codigo_seq to authenticated;
 
 notify pgrst, 'reload schema';

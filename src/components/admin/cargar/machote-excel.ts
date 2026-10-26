@@ -8,6 +8,7 @@
  * palabra clave RACK (precio público) o NETA (costo interno).
  */
 import * as XLSX from 'xlsx';
+import type { Operador, Tour } from '@/data/mock-tours';
 
 const ENCABEZADOS = [
   '#',
@@ -73,4 +74,155 @@ export function descargarMachote(): void {
   XLSX.utils.book_append_sheet(wb, hojaConAnchos(crc), 'EJEMPLO COLONES');
 
   XLSX.writeFile(wb, 'machote-catalogo-tours.xlsx');
+}
+
+/* ------------------------------------------------------------------ */
+/* Machote por operador (actualización)                                */
+/* ------------------------------------------------------------------ */
+
+interface RangoMachote {
+  min: number;
+  max: number | null;
+  key: string;
+  label: string;
+}
+
+function claveRango(min: number, max: number | null): string {
+  return `${min}-${max ?? '+'}`;
+}
+
+function etiquetaRango(min: number, max: number | null): string {
+  if (min === 12 && max === 64) return 'ADULTO';
+  if (min === 0 && max === 11) return 'NIÑO';
+  if (min === 65 && max == null) return 'ADULTO MAYOR';
+  return max == null ? `RANGO ${min}+` : `RANGO ${min}-${max}`;
+}
+
+function rangosDe(tours: Tour[]): RangoMachote[] {
+  const map = new Map<string, RangoMachote>();
+  const agregar = (min: number, max: number | null) => {
+    const key = claveRango(min, max);
+    if (!map.has(key)) map.set(key, { min, max, key, label: etiquetaRango(min, max) });
+  };
+  agregar(12, 64);
+  agregar(0, 11);
+  agregar(65, null);
+  for (const t of tours) {
+    for (const tar of t.tarifas) agregar(tar.min_edad, tar.max_edad);
+  }
+  const orden = (r: RangoMachote) => {
+    if (r.min === 12 && r.max === 64) return 0;
+    if (r.min === 0 && r.max === 11) return 1;
+    if (r.min === 65 && r.max == null) return 2;
+    return 3;
+  };
+  return [...map.values()].sort(
+    (a, b) => orden(a) - orden(b) || a.min - b.min || (a.max ?? 999) - (b.max ?? 999),
+  );
+}
+
+function nombreHoja(nombre: string): string {
+  return (nombre.replace(/[\\/?*[\]:]/g, ' ').trim() || 'OPERADOR').slice(0, 31);
+}
+
+function slugArchivo(texto: string): string {
+  return (
+    texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'operador'
+  );
+}
+
+/**
+ * Machote de un operador con sus tours de la base: código único, precios de
+ * cada rango, horarios y todos los campos editables. Las filas sin código se
+ * crean nuevas al subir; las que tienen código actualizan el tour existente.
+ */
+export function descargarMachoteOperador(operador: Operador, tours: Tour[]): void {
+  const rangos = rangosDe(tours);
+  const encabezados = [
+    '#',
+    'CÓDIGO',
+    'TOUR',
+    ...rangos.flatMap((r) => [`${r.label} RACK`, `${r.label} NETA`]),
+    'PICK UP',
+    'DROP OFF',
+    'INCLUYE',
+    'DETALLES',
+    'COMISIÓN',
+    'ZONA',
+    'CATEGORÍA',
+    'DURACIÓN (H)',
+    'MÍNIMO PERSONAS',
+    'APTO NIÑOS',
+    'POLÍTICA CANCELACIÓN',
+  ];
+
+  const filas = tours
+    .slice()
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    .map((t, i) => {
+      const porRango = new Map(t.tarifas.map((tar) => [claveRango(tar.min_edad, tar.max_edad), tar]));
+      const precios = rangos.flatMap((r) => {
+        const tar = porRango.get(r.key);
+        return [tar?.rack ?? '', tar?.neta ?? ''];
+      });
+      const horario = t.horarios[0];
+      return [
+        String(i + 1),
+        t.codigo,
+        t.nombre,
+        ...precios,
+        horario?.hora_salida ?? '',
+        horario?.hora_llegada ?? '',
+        t.incluye.join('; '),
+        t.observaciones,
+        operador.comision != null ? `${operador.comision}%` : '',
+        t.zona,
+        t.categorias.join(', '),
+        t.duracion_horas,
+        t.minimo_personas,
+        t.apto_ninos ? 'SI' : 'NO',
+        t.politica_cancelacion,
+      ];
+    });
+
+  const wb = XLSX.utils.book_new();
+  const esCrc = tours.length > 0 && tours.every((t) => t.moneda === 'crc');
+  const cuerpo = esCrc
+    ? [['Precios en colones ₡ — todos los precios de esta hoja se toman en CRC'], encabezados, ...filas]
+    : [encabezados, ...filas];
+  const ws = XLSX.utils.aoa_to_sheet(cuerpo);
+  const primerPrecio = 3;
+  const ultimoPrecio = primerPrecio + rangos.length * 2 - 1;
+  ws['!cols'] = encabezados.map((h, i) => {
+    if (i === 0) return { wch: 5 };
+    if (i === 1) return { wch: 14 };
+    if (i === 2) return { wch: 40 };
+    if (i >= primerPrecio && i <= ultimoPrecio) return { wch: 14 };
+    if (i >= ultimoPrecio + 3 && i <= ultimoPrecio + 4) return { wch: 38 };
+    return { wch: Math.max(12, h.length + 2) };
+  });
+  XLSX.utils.book_append_sheet(wb, ws, nombreHoja(operador.nombre));
+
+  const instrucciones = [
+    [`MACHOTE DE ACTUALIZACIÓN — ${operador.nombre}`],
+    [''],
+    ['1) Este archivo trae los tours que ya están en la base, con su CÓDIGO único.'],
+    ['2) Para actualizar un tour, dejá su CÓDIGO y cambiá los datos que necesites.'],
+    ['3) Para crear un tour nuevo, agregá una fila con el CÓDIGO vacío.'],
+    ['4) No cambies el código de un tour existente: se usa para encontrarlo y actualizarlo.'],
+    ['5) Los tours que no estén en este archivo NO se borran.'],
+    ['6) RACK = precio público; NETA = costo del operador. Los rangos de edad son los de la base.'],
+    ['7) INCLUYE: separá con punto y coma. APTO NIÑOS: SI/NO.'],
+    ['8) Al terminar, subí el archivo en Admin → Cargar tarifario (con el operador seleccionado).'],
+  ];
+  const wsInstr = XLSX.utils.aoa_to_sheet(instrucciones);
+  wsInstr['!cols'] = [{ wch: 110 }];
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'INSTRUCCIONES');
+
+  XLSX.writeFile(wb, `machote-${slugArchivo(operador.nombre)}.xlsx`);
 }

@@ -6,7 +6,7 @@
  */
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { Edit2, Eye, FileText, Mail, Phone, Trash2, Upload } from 'lucide-react';
+import { Edit2, Eye, FileText, Mail, Phone, Trash2, Upload, Download } from 'lucide-react';
 import FreshnessPill from '@/components/admin/FreshnessPill';
 import SortTh, { useOrdenColumna } from '@/components/admin/SortTh';
 import type { OrdenColumna } from '@/components/admin/SortTh';
@@ -53,12 +53,13 @@ function comparar(a: FilaOperador, b: FilaOperador, orden: OrdenColumna<ColOrden
 interface OperadoresTableProps {
   filas: FilaOperador[];
   onVerTours: (operadorId: number) => void;
+  onDescargarMachote: (fila: FilaOperador) => void;
   onEditar: (fila: FilaOperador) => void;
   onEliminar: (fila: FilaOperador) => void;
   onToggleActivo: (operadorId: number, activo: boolean) => void;
 }
 
-export default function OperadoresTable({ filas, onVerTours, onEditar, onEliminar, onToggleActivo }: OperadoresTableProps) {
+export default function OperadoresTable({ filas, onVerTours, onDescargarMachote, onEditar, onEliminar, onToggleActivo }: OperadoresTableProps) {
   const { orden, ciclar } = useOrdenColumna<ColOrden>(ORDEN_DEFAULT);
 
   const ordenadas = [...filas].sort((a, b) => comparar(a, b, orden ?? ORDEN_DEFAULT));
@@ -169,6 +170,15 @@ export default function OperadoresTable({ filas, onVerTours, onEditar, onElimina
                         <Upload className="h-3.5 w-3.5" />
                         Actualizar
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => onDescargarMachote(fila)}
+                        title="Descargar machote de este operador"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-2.5 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Machote
+                      </button>
                       {operador.poliza_url && (
                         <button
                           type="button"

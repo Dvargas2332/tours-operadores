@@ -48,6 +48,7 @@ export interface Horario {
 
 export interface Tour {
   id: number;
+  codigo: string; // código único para actualizaciones
   operador: Operador;
   nombre: string;
   zona: string;
@@ -208,6 +209,7 @@ type RowHorario = {
 
 type RowTour = {
   id: number;
+  codigo: string;
   nombre: string;
   zona: string;
   categoria: string | null;
@@ -274,6 +276,7 @@ function mapTour(t: RowTour): Tour {
   }
   return {
     id: t.id,
+    codigo: t.codigo ?? '',
     operador: mapOperador(t.operadores),
     nombre: t.nombre,
     zona: t.zona,

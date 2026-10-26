@@ -31,6 +31,8 @@ interface Borrador {
 interface Resultado {
   operadores: number;
   tours: number;
+  creados: number;
+  actualizados: number;
   fecha: string;
 }
 
@@ -70,7 +72,9 @@ export default function CargarTarifario() {
       setHayBorrador(false);
       setResultado({
         operadores: res.operadoresCreados + res.operadoresActualizados,
-        tours: res.toursInsertados,
+        tours: res.toursCreados + res.toursActualizados,
+        creados: res.toursCreados,
+        actualizados: res.toursActualizados,
         fecha: new Date().toISOString().slice(0, 10),
       });
       setDireccion(1);
@@ -181,7 +185,8 @@ export default function CargarTarifario() {
         {operadorId != null && (
           <div className="mb-4 rounded-r-sm border border-brand/30 bg-brand-soft px-4 py-3 text-small text-ink">
             Actualizando tarifas de <strong>{nombreScope ?? '…'}</strong>: solo se importarán los tours de este
-            operador, los demás se ignoran.
+            operador, los demás se ignoran. Las filas con <strong>CÓDIGO</strong> actualizan el tour existente;
+            las filas sin código crean tours nuevos.
           </div>
         )}
         <Stepper paso={paso} />
@@ -234,6 +239,8 @@ export default function CargarTarifario() {
                 <PasoExito
                   operadores={resultado.operadores}
                   tours={resultado.tours}
+                  creados={resultado.creados}
+                  actualizados={resultado.actualizados}
                   fecha={resultado.fecha}
                   onCargarOtro={reiniciarWizard}
                 />

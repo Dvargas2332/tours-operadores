@@ -24,6 +24,7 @@ export interface HorarioInput {
 }
 
 export interface TourInput {
+  codigo?: string;
   nombre: string;
   zona: string;
   categorias?: Categoria[];
@@ -41,6 +42,8 @@ export interface TourInput {
   activo?: boolean;
   politicaCancelacion?: string;
   observaciones?: string;
+  /** Metadatos del importador: qué campos trajo el Excel (no va a la base). */
+  camposPresentes?: Record<string, boolean>;
 }
 
 export interface OperadorInput {
@@ -84,6 +87,7 @@ function horarioToRow(h: HorarioInput, i: number) {
 function tourFieldsToRow(t: Partial<TourInput> & { operadorId?: number }): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (t.operadorId !== undefined) out.operador_id = t.operadorId;
+  if (t.codigo !== undefined) out.codigo = t.codigo;
   if (t.nombre !== undefined) out.nombre = t.nombre;
   if (t.zona !== undefined) out.zona = t.zona;
   if (t.categorias !== undefined) out.categoria = serializarCategorias(t.categorias);
@@ -296,7 +300,8 @@ export async function importarCatalogo(input: {
 }) {
   let operadoresCreados = 0;
   let operadoresActualizados = 0;
-  let toursInsertados = 0;
+  let toursCreados = 0;
+  let toursActualizados = 0;
 
   for (const op of input.operadores) {
     const nombre = op.nombre.trim();
@@ -304,7 +309,7 @@ export async function importarCatalogo(input: {
 
     const { data: existentes } = await supabase
       .from('operadores')
-      .select('id, email, logo_url, poliza_url, politica_cancelacion')
+      .select('id, telefono, email, comision, logo_url, poliza_url, politica_cancelacion')
       .eq('nombre', nombre)
       .limit(1);
 
@@ -317,9 +322,9 @@ export async function importarCatalogo(input: {
       await supabase
         .from('operadores')
         .update({
-          telefono: op.telefono ?? '',
+          telefono: op.telefono?.trim() ? op.telefono : existentes[0].telefono ?? '',
           email: op.email ?? existentes[0].email,
-          comision: op.comision ?? null,
+          comision: op.comision ?? existentes[0].comision ?? null,
           logo_url: op.logoUrl ?? existentes[0].logo_url,
           poliza_url: op.polizaUrl ?? existentes[0].poliza_url,
           politica_cancelacion: politicaOperador,
@@ -337,40 +342,104 @@ export async function importarCatalogo(input: {
       operadoresCreados++;
     }
 
-    // Conservar el estado activo/inactivo de los tours existentes: al
-    // reimportar el tarifario, un tour desactivado no debe reaparecer.
-    const { data: toursExistentes } = await supabase
+    // Actualización por código: los tours que no vienen en el archivo se
+    // conservan (no se borra nada). Las filas sin código se crean nuevas.
+    const { data: toursExistentes, error: errExistentes } = await supabase
       .from('tours')
-      .select('nombre, activo')
+      .select('id, codigo, activo')
       .eq('operador_id', operadorId);
-    const activoPorNombre = new Map((toursExistentes ?? []).map((t) => [t.nombre, t.activo]));
+    if (errExistentes) throw errExistentes;
+    const porCodigo = new Map((toursExistentes ?? []).map((t) => [t.codigo, t]));
 
-    await supabase.from('tours').delete().eq('operador_id', operadorId);
+    for (const t of op.tours) {
+      const codigo = (t.codigo ?? '').trim();
+      const existente = codigo ? porCodigo.get(codigo) : undefined;
 
-    if (op.tours.length) {
-      const { data: insertados, error } = await supabase
-        .from('tours')
-        .insert(
-          op.tours.map((t) => ({
-            ...tourFieldsToRow(t),
-            operador_id: operadorId,
-            activo: activoPorNombre.get(t.nombre) ?? true,
-            fecha_actualizacion: input.fechaActualizacion,
-            politica_cancelacion: t.politicaCancelacion || politicaOperador,
-          })),
-        )
-        .select('id');
+      if (existente) {
+        const update = tourFieldsToRow(t);
+        const campos = t.camposPresentes ?? {};
+        const opcionales: [string, string][] = [
+          ['zona', 'zona'],
+          ['categorias', 'categoria'],
+          ['duracion', 'duracion_horas'],
+          ['minimo', 'minimo_personas'],
+          ['aptoNinos', 'apto_ninos'],
+          ['politica', 'politica_cancelacion'],
+          ['observaciones', 'observaciones'],
+          ['incluye', 'incluye'],
+          ['moneda', 'moneda'],
+        ];
+        for (const [flag, columna] of opcionales) {
+          if (!campos[flag]) delete update[columna];
+        }
+        if (!campos.tarifas) {
+          delete update.precio_adulto;
+          delete update.precio_nino;
+          delete update.precio_neto_adulto;
+          delete update.precio_neto_nino;
+        }
+        delete update.activo;
+        update.operador_id = operadorId;
+        update.fecha_actualizacion = input.fechaActualizacion;
+
+        const { error } = await supabase.from('tours').update(update).eq('id', existente.id);
+        if (error) throw error;
+
+        if (campos.tarifas && t.tarifas) {
+          await supabase.from('tour_tarifas').delete().eq('tour_id', existente.id);
+          if (t.tarifas.length) {
+            await supabase
+              .from('tour_tarifas')
+              .insert(t.tarifas.map((x, i) => ({ ...tarifaToRow(x, i), tour_id: existente.id })));
+          }
+        }
+        if (campos.horarios && t.horarios) {
+          await supabase.from('tour_horarios').delete().eq('tour_id', existente.id);
+          if (t.horarios.length) {
+            await supabase
+              .from('tour_horarios')
+              .insert(t.horarios.map((h, i) => ({ ...horarioToRow(h, i), tour_id: existente.id })));
+          }
+        }
+        toursActualizados++;
+        continue;
+      }
+
+      if (codigo) {
+        const { data: dueno, error: errDueno } = await supabase
+          .from('tours')
+          .select('operador_id, nombre')
+          .eq('codigo', codigo)
+          .maybeSingle();
+        if (errDueno) throw errDueno;
+        if (dueno && dueno.operador_id !== operadorId) {
+          throw new Error(`El código ${codigo} ya pertenece a otro operador (${dueno.nombre}).`);
+        }
+      }
+
+      const row = {
+        ...tourFieldsToRow(t),
+        operador_id: operadorId,
+        ...(codigo ? { codigo } : {}),
+        fecha_actualizacion: input.fechaActualizacion,
+        politica_cancelacion: t.politicaCancelacion || politicaOperador,
+        activo: true,
+      };
+      const { data: creado, error } = await supabase.from('tours').insert(row).select('id').single();
       if (error) throw error;
 
-      for (let i = 0; i < (insertados ?? []).length; i++) {
-        const tourId = insertados[i].id;
-        await insertarTarifasYHorarios(tourId, op.tours[i]?.tarifas, op.tours[i]?.horarios);
-      }
-      toursInsertados += op.tours.length;
+      await insertarTarifasYHorarios(creado.id, t.tarifas, t.horarios);
+      toursCreados++;
     }
   }
 
-  return { operadoresCreados, operadoresActualizados, toursInsertados };
+  return {
+    operadoresCreados,
+    operadoresActualizados,
+    toursCreados,
+    toursActualizados,
+    toursInsertados: toursCreados,
+  };
 }
 
 /* ------------------------------------------------------------------ */

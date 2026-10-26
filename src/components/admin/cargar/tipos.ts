@@ -33,8 +33,26 @@ export interface HorarioRevision {
   llegada: string; // "12:30"
 }
 
+/** Campos que el archivo trajo explícitamente (para no pisar datos existentes). */
+export interface CamposPresentes {
+  nombre?: boolean;
+  zona?: boolean;
+  categorias?: boolean;
+  duracion?: boolean;
+  minimo?: boolean;
+  aptoNinos?: boolean;
+  politica?: boolean;
+  observaciones?: boolean;
+  incluye?: boolean;
+  horarios?: boolean;
+  tarifas?: boolean;
+  moneda?: boolean;
+  comision?: boolean;
+}
+
 export interface FilaRevision {
   key: string;
+  codigo: string; // vacío = tour nuevo
   operador: string; // nombre del operador (hoja del catálogo)
   moneda: Moneda; // usd | crc
   nombre: string;
@@ -50,6 +68,7 @@ export interface FilaRevision {
   observaciones: string;
   excluida: boolean;
   advertencias: string[];
+  camposPresentes: CamposPresentes;
 }
 
 export type ErroresFila = Partial<Record<'nombre' | 'zona' | 'tarifas' | 'duracion' | 'horarios', string>>;
@@ -126,6 +145,7 @@ export function nuevaKey(): string {
 export function filaVacia(operador = '', moneda: Moneda = 'usd'): FilaRevision {
   return {
     key: nuevaKey(),
+    codigo: '',
     operador,
     moneda,
     nombre: '',
@@ -141,6 +161,7 @@ export function filaVacia(operador = '', moneda: Moneda = 'usd'): FilaRevision {
     observaciones: '',
     excluida: false,
     advertencias: [],
+    camposPresentes: {},
   };
 }
 
@@ -176,6 +197,7 @@ export function filaAInput(f: FilaRevision) {
   const tarifaNino = tarifasBackend.find((t) => t.maxEdad != null && t.maxEdad < 18 && t.minEdad < 12);
 
   return {
+    codigo: (f.codigo ?? '').trim() || undefined,
     nombre: f.nombre.trim(),
     zona: f.zona.trim(),
     categorias: f.categorias,
@@ -192,5 +214,6 @@ export function filaAInput(f: FilaRevision) {
     aptoNinos: f.aptoNinos || tarifasBackend.some((t) => t.maxEdad != null && t.maxEdad < 18),
     politicaCancelacion: f.politicaCancelacion,
     observaciones: f.observaciones,
+    camposPresentes: f.camposPresentes as Record<string, boolean>,
   };
 }

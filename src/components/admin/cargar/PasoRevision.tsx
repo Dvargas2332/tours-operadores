@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Categoria } from '@/data/mock-tours';
-import type { FilaRevision, TarifaRevision } from '@/components/admin/cargar/tipos';
+import type { CamposPresentes, FilaRevision, TarifaRevision } from '@/components/admin/cargar/tipos';
 import { ZONAS_BASE, advertenciasNeta, filaVacia, validarFila } from '@/components/admin/cargar/tipos';
 import { CATEGORIA_META, CATEGORIAS, INCLUYE_META, INCLUYE_KEYS } from '@/lib/tour-meta';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,22 @@ const INPUT_BASE =
   'h-8 w-full rounded-r-sm border bg-surface px-2 text-small text-ink transition-colors duration-fast focus:outline-none focus:ring-[3px]';
 const INPUT_OK = 'border-transparent hover:border-border focus:border-brand focus:ring-brand/15';
 const INPUT_ERR = 'border-danger focus:border-danger focus:ring-danger/15';
+
+const FLAG_POR_CAMPO: Record<string, keyof CamposPresentes> = {
+  nombre: 'nombre',
+  zona: 'zona',
+  categorias: 'categorias',
+  duracionHoras: 'duracion',
+  minimoPersonas: 'minimo',
+  aptoNinos: 'aptoNinos',
+  politica: 'politica',
+  politicaCancelacion: 'politica',
+  observaciones: 'observaciones',
+  incluye: 'incluye',
+  horarios: 'horarios',
+  tarifas: 'tarifas',
+  moneda: 'moneda',
+};
 
 interface PasoRevisionProps {
   filas: FilaRevision[];
@@ -61,7 +77,18 @@ export default function PasoRevision({
   }, []);
 
   const actualizar = (key: string, campo: string, patch: Partial<FilaRevision>) => {
-    onFilasChange(filas.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+    const flag = FLAG_POR_CAMPO[campo];
+    onFilasChange(
+      filas.map((f) =>
+        f.key === key
+          ? {
+              ...f,
+              ...patch,
+              ...(flag ? { camposPresentes: { ...f.camposPresentes, [flag]: true } } : {}),
+            }
+          : f,
+      ),
+    );
     setFlash(`${key}:${campo}`);
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => setFlash(null), 600);
@@ -249,10 +276,11 @@ export default function PasoRevision({
       {/* Tabla editable */}
       <div className="mt-3 overflow-hidden rounded-r-md border border-border bg-surface shadow-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1340px] border-collapse text-left">
+          <table className="w-full min-w-[1450px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border bg-surface">
                 <th className="w-[52px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">#</th>
+                <th className="w-[110px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Código</th>
                 <th className="min-w-[180px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Nombre del tour</th>
                 <th className="w-[150px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Zona</th>
                 <th className="w-[140px] px-2 py-2.5 text-label uppercase tracking-wide text-ink-muted">Categoría</th>
@@ -299,6 +327,19 @@ export default function PasoRevision({
                           </button>
                           <span className="text-caption text-ink-faint tnum">{idx + 1}</span>
                         </div>
+                      </td>
+
+                      {/* Código único: vacío = tour nuevo */}
+                      <td className="px-2 py-2.5">
+                        {fila.codigo ? (
+                          <span className="inline-flex rounded-full bg-brand-soft px-2 py-0.5 text-caption font-medium text-brand">
+                            {fila.codigo}
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-ink-muted">
+                            Nuevo
+                          </span>
+                        )}
                       </td>
 
                       {/* Nombre */}
@@ -598,7 +639,7 @@ export default function PasoRevision({
                     /* Panel expandible: campos largos */
                     expandida && (
                       <tr key={`${fila.key}-exp`} className="border-b border-border bg-surface-2/40">
-                        <td colSpan={12} className="px-4 py-3">
+                        <td colSpan={13} className="px-4 py-3">
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
@@ -716,7 +757,7 @@ export default function PasoRevision({
               </AnimatePresence>
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-small text-ink-muted">
+                  <td colSpan={13} className="px-4 py-8 text-center text-small text-ink-muted">
                     Ningún tour del lote coincide con la búsqueda.
                   </td>
                 </tr>

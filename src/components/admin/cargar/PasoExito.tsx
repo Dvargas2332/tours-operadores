@@ -21,11 +21,13 @@ interface Particula {
 interface PasoExitoProps {
   operadores: number;
   tours: number;
+  creados: number;
+  actualizados: number;
   fecha: string; // ISO
   onCargarOtro: () => void;
 }
 
-export default function PasoExito({ operadores, tours, fecha, onCargarOtro }: PasoExitoProps) {
+export default function PasoExito({ operadores, tours, creados, actualizados, fecha, onCargarOtro }: PasoExitoProps) {
   const particulas = useMemo<Particula[]>(
     () =>
       Array.from({ length: 20 }, (_, i) => ({
@@ -72,7 +74,10 @@ export default function PasoExito({ operadores, tours, fecha, onCargarOtro }: Pa
       >
         <ul className="space-y-1.5 text-small text-ink-muted">
           <li className="tnum">
-            {operadores} operadores · {tours} tours guardados
+            {operadores} operadores · {tours} tours procesados
+          </li>
+          <li className="tnum">
+            {creados} tours nuevos · {actualizados} tours actualizados
           </li>
           <li>
             Fecha de actualización: <span className="font-medium text-ink tnum">{formatDateEs(fecha)}</span>

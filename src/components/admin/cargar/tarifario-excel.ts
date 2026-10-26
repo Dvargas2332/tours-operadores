@@ -7,7 +7,7 @@
  * categoría/zona por defecto para corregir en la revisión.
  */
 import * as XLSX from 'xlsx';
-import type { Moneda } from '@/data/mock-tours';
+import type { Categoria, Moneda } from '@/data/mock-tours';
 import type { FilaRevision, TarifaRevision } from './tipos';
 import { nuevaKey } from './tipos';
 
@@ -110,6 +110,37 @@ function parsearIncluye(raw: string): string[] {
   return out;
 }
 
+const ALIASES_CATEGORIA: Record<string, Categoria> = {
+  aventura: 'aventura',
+  naturaleza: 'naturaleza',
+  acuatico: 'acuatico',
+  acuatica: 'acuatico',
+  water: 'acuatico',
+  cultural: 'cultural',
+  cultura: 'cultural',
+  termas: 'termas',
+  termales: 'termas',
+  spa: 'termas',
+};
+
+function parsearCategorias(raw: string): Categoria[] {
+  const out: Categoria[] = [];
+  for (const token of raw.split(/[;,|/]+/)) {
+    const t = normalizar(token);
+    const cat = ALIASES_CATEGORIA[t];
+    if (cat && !out.includes(cat)) out.push(cat);
+  }
+  return out;
+}
+
+function parsearSiNo(raw: string): boolean | null {
+  const n = normalizar(raw);
+  if (!n) return null;
+  if (['si', 'yes', 'true', '1', 'x'].includes(n)) return true;
+  if (['no', 'false', '0'].includes(n)) return false;
+  return null;
+}
+
 interface TarifaColumna {
   minEdad: number;
   maxEdad: number | null;
@@ -117,7 +148,21 @@ interface TarifaColumna {
 }
 
 interface ColumnaDetectada {
-  tipo: 'nombre' | 'tarifa' | 'horario' | 'horarioLlegada' | 'incluye' | 'detalles' | 'comision';
+  tipo:
+    | 'nombre'
+    | 'codigo'
+    | 'tarifa'
+    | 'horario'
+    | 'horarioLlegada'
+    | 'incluye'
+    | 'detalles'
+    | 'comision'
+    | 'zona'
+    | 'categorias'
+    | 'duracion'
+    | 'minimo'
+    | 'aptoNinos'
+    | 'politica';
   tarifa?: TarifaColumna;
 }
 
@@ -125,8 +170,9 @@ interface ColumnaDetectada {
 function extraerRango(header: string): { minEdad: number; maxEdad: number | null } | null {
   const n = normalizar(header);
 
-  // Rangos explícitos: 0-5, 6-11, 12-64, 11-18
-  const rango = n.match(/(\d+)\s*[-a]\s*(\d+)/);
+  // Rangos explícitos: 0-5, 6-11, 12-64, 11-18. Se leen del header original
+  // porque normalizar() convierte el guion en espacio.
+  const rango = header.match(/(\d+)\s*[-a]\s*(\d+)/i);
   if (rango) {
     const min = Number(rango[1]);
     const max = Number(rango[2]);
@@ -134,7 +180,9 @@ function extraerRango(header: string): { minEdad: number; maxEdad: number | null
   }
 
   // "+65", "65+", "mayor 65", "adulto mayor"
-  const mayor = n.match(/(?:\+|mayor\s*|adulto\s*mayor\s*|tercera\s*edad\s*)(\d+)/);
+  const mayor =
+    header.match(/(?:\+|mayor\s*|adulto\s*mayor\s*|tercera\s*edad\s*)(\d+)/i) ??
+    header.match(/(\d+)\s*\+/);
   if (mayor) {
     const min = Number(mayor[1]);
     if (min > 0) return { minEdad: min, maxEdad: null };
@@ -157,6 +205,30 @@ function extraerRango(header: string): { minEdad: number; maxEdad: number | null
 function campoDe(h: string): ColumnaDetectada | null {
   const n = normalizar(h);
   if (!n) return null;
+
+  if (n === 'codigo' || n === 'code' || n === 'tour code' || n === 'id tour' || n === 'tour id') {
+    return { tipo: 'codigo' };
+  }
+  if (n === 'zona' || n === 'zona tour') return { tipo: 'zona' };
+  if (n === 'categoria' || n === 'categorias' || n === 'category' || n === 'categories') {
+    return { tipo: 'categorias' };
+  }
+  if (n === 'duracion' || n === 'duracion h' || n === 'duracion horas' || n === 'duration' || n === 'horas') {
+    return { tipo: 'duracion' };
+  }
+  if (
+    n === 'minimo' ||
+    n === 'minimo personas' ||
+    n === 'minimo pax' ||
+    n === 'min pax' ||
+    n === 'min people'
+  ) {
+    return { tipo: 'minimo' };
+  }
+  if (n === 'apto ninos' || n === 'apto para ninos') return { tipo: 'aptoNinos' };
+  if (n.includes('politica') && (n.includes('cancel') || n === 'politica')) {
+    return { tipo: 'politica' };
+  }
 
   if (n === 'tour' || n === 'detalle' || n === 'actividad' || n === 'zonas') return { tipo: 'nombre' };
 
@@ -200,34 +272,55 @@ function esFilaHeader(celdas: string[]): boolean {
 
 interface MapaColumnas {
   nombre: number | null;
+  codigo: number | null;
   tarifas: { col: number; tarifa: TarifaColumna }[];
   horario: number | null;
   horarioLlegada: number | null;
   incluye: number | null;
   detalles: number | null;
   comision: number | null;
+  zona: number | null;
+  categorias: number | null;
+  duracion: number | null;
+  minimo: number | null;
+  aptoNinos: number | null;
+  politica: number | null;
 }
 
 function construirMapa(celdas: string[]): MapaColumnas {
   const mapa: MapaColumnas = {
     nombre: null,
+    codigo: null,
     tarifas: [],
     horario: null,
     horarioLlegada: null,
     incluye: null,
     detalles: null,
     comision: null,
+    zona: null,
+    categorias: null,
+    duracion: null,
+    minimo: null,
+    aptoNinos: null,
+    politica: null,
   };
   celdas.forEach((c, ci) => {
     const campo = campoDe(c);
     if (!campo) return;
     if (campo.tipo === 'nombre' && mapa.nombre == null) mapa.nombre = ci;
+    else if (campo.tipo === 'codigo' && mapa.codigo == null) mapa.codigo = ci;
     else if (campo.tipo === 'tarifa' && campo.tarifa) mapa.tarifas.push({ col: ci, tarifa: campo.tarifa });
     else if (campo.tipo === 'horario' && mapa.horario == null) mapa.horario = ci;
     else if (campo.tipo === 'horarioLlegada' && mapa.horarioLlegada == null) mapa.horarioLlegada = ci;
     else if (campo.tipo === 'incluye' && mapa.incluye == null) mapa.incluye = ci;
     else if (campo.tipo === 'detalles' && mapa.detalles == null) mapa.detalles = ci;
     else if (campo.tipo === 'comision' && mapa.comision == null) mapa.comision = ci;
+    else if (campo.tipo === 'zona' && mapa.zona == null) mapa.zona = ci;
+    else if (campo.tipo === 'categorias' && mapa.categorias == null) mapa.categorias = ci;
+    else if (campo.tipo === 'duracion' && mapa.duracion == null) mapa.duracion = ci;
+    else if (campo.tipo === 'minimo' && mapa.minimo == null) mapa.minimo = ci;
+    else if (campo.tipo === 'aptoNinos' && mapa.aptoNinos == null) mapa.aptoNinos = ci;
+    else if (campo.tipo === 'politica' && mapa.politica == null) mapa.politica = ci;
   });
   return mapa;
 }
@@ -272,6 +365,7 @@ function nuevaFila(
 ): FilaRevision {
   return {
     key: nuevaKey(),
+    codigo: '',
     operador,
     moneda,
     nombre,
@@ -287,6 +381,7 @@ function nuevaFila(
     observaciones: '',
     excluida: false,
     advertencias: [],
+    camposPresentes: {},
     ...extras,
   };
 }
@@ -350,14 +445,21 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       if (m) comisiones.push(Number(m[1]));
     }
 
-    const primerNumero = /^\d+$/.test(celdas[0]);
+    const tieneIdentidad = /^\d+$/.test(celdas[0]) || (mapa.codigo != null && celdas[mapa.codigo] !== '');
 
-    if (primerNumero && mapa.nombre != null && celdas[mapa.nombre]) {
+    if (tieneIdentidad && mapa.nombre != null && celdas[mapa.nombre]) {
       const detalle = mapa.detalles != null ? celdas[mapa.detalles] : '';
       const tarifas = tarifasPorFila(mapa, celdas);
       const horario = mapa.horario != null ? celdas[mapa.horario] : '';
       const horarioLlegada = mapa.horarioLlegada != null ? celdas[mapa.horarioLlegada] : '';
-      const duracion = extraerDuracion(detalle);
+      const duracionDetalle = extraerDuracion(detalle);
+      const duracionCol = mapa.duracion != null ? limpiarNumero(celdas[mapa.duracion] ?? '') : '';
+      const minimoCol = mapa.minimo != null ? limpiarNumero(celdas[mapa.minimo] ?? '') : '';
+      const zonaCol = mapa.zona != null ? limpiarTexto(celdas[mapa.zona] ?? '') : '';
+      const categoriasCol = mapa.categorias != null ? parsearCategorias(celdas[mapa.categorias] ?? '') : null;
+      const aptoCol = mapa.aptoNinos != null ? parsearSiNo(celdas[mapa.aptoNinos] ?? '') : null;
+      const politicaCol = mapa.politica != null ? limpiarTexto(celdas[mapa.politica] ?? '') : '';
+      const codigoCol = mapa.codigo != null ? limpiarTexto(celdas[mapa.codigo] ?? '') : '';
 
       const advertencias: string[] = [];
       const hayNino = tarifas.some((t) => t.maxEdad != null && t.maxEdad < 18);
@@ -366,8 +468,12 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       if (moneda === 'crc') advertencias.push('Precio en colones');
 
       actual = nuevaFila(nombre, moneda, limpiarTexto(celdas[mapa.nombre]), {
+        codigo: codigoCol,
+        zona: zonaCol || 'Arenal',
+        categorias: categoriasCol && categoriasCol.length > 0 ? categoriasCol : ['aventura'],
         tarifas,
-        duracionHoras: duracion || '1',
+        duracionHoras: duracionCol || duracionDetalle || '1',
+        minimoPersonas: minimoCol || '2',
         horarios: [
           {
             salida: horario ? primeraHora(horario) : '08:00',
@@ -376,8 +482,24 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
         ],
         incluye: mapa.incluye != null ? parsearIncluye(celdas[mapa.incluye]) : [],
         observaciones: detalle,
-        aptoNinos: hayNino,
+        aptoNinos: aptoCol ?? hayNino,
+        politicaCancelacion: politicaCol,
         advertencias,
+        camposPresentes: {
+          nombre: true,
+          zona: mapa.zona != null && zonaCol !== '',
+          categorias: mapa.categorias != null && categoriasCol != null && categoriasCol.length > 0,
+          duracion: duracionCol !== '' || duracionDetalle !== '',
+          minimo: minimoCol !== '',
+          aptoNinos: mapa.aptoNinos != null && aptoCol != null,
+          politica: mapa.politica != null && politicaCol !== '',
+          observaciones: mapa.detalles != null,
+          incluye: mapa.incluye != null,
+          horarios: mapa.horario != null,
+          tarifas: mapa.tarifas.length > 0,
+          moneda: true,
+          comision: mapa.comision != null,
+        },
       });
       tours.push(actual);
     } else if (actual) {
