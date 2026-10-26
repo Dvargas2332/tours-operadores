@@ -20,7 +20,7 @@ export interface Operador {
   email: string | null; // correo del operador
   comision: number | null; // % — visible solo en admin
   logo_url: string | null; // URL pública del logo del operador
-  poliza_url: string | null; // URL pública de la póliza de seguro
+  poliza_url: string | null; // ruta del objeto o URL de la póliza (bucket privado)
   politica_cancelacion: string; // política de cancelación compartida por todos sus tours
   horario: string; // horario del operador (para tours que heredan su horario)
   activo: boolean; // si está desactivado, sus tours no se muestran en la vista pública

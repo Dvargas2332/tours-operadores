@@ -28,14 +28,14 @@ create policy "usuarios_acceso" on public.usuarios
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ----------------------------------------------------------------------------
--- 2) Storage: buckets públicos para logos y pólizas
+-- 2) Storage: bucket público para logos/fondos y privado para pólizas
 -- ----------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('logos', 'logos', true)
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
-values ('polizas', 'polizas', true)
+values ('polizas', 'polizas', false)
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
@@ -298,6 +298,12 @@ create policy "polizas_upload" on storage.objects
 drop policy if exists "polizas_delete" on storage.objects;
 create policy "polizas_delete" on storage.objects
   for delete to authenticated
+  using (bucket_id = 'polizas' and public.es_admin());
+
+-- Bucket privado: solo el admin puede firmar/leer las pólizas.
+drop policy if exists "polizas_lectura" on storage.objects;
+create policy "polizas_lectura" on storage.objects
+  for select to authenticated
   using (bucket_id = 'polizas' and public.es_admin());
 
 drop policy if exists "fondos_upload" on storage.objects;

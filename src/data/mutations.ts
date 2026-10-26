@@ -401,7 +401,8 @@ export async function subirPoliza(file: File): Promise<string> {
     upsert: false,
   });
   if (error) throw new Error(error.message);
-  return supabase.storage.from('polizas').getPublicUrl(path).data.publicUrl;
+  // El bucket es privado: guardamos la ruta del objeto, no una URL pública.
+  return path;
 }
 
 export async function subirFondo(file: File): Promise<string> {

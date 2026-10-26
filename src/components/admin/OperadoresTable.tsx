@@ -13,7 +13,8 @@ import type { OrdenColumna } from '@/components/admin/SortTh';
 import { freshness } from '@/data/mock-tours';
 import type { InfoFrescura, Operador } from '@/data/mock-tours';
 import { Switch } from '@/components/ui/switch';
-import { cn, polizaPreviewUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { abrirPoliza } from '@/lib/polizas';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -169,15 +170,14 @@ export default function OperadoresTable({ filas, onVerTours, onEditar, onElimina
                         Actualizar
                       </Link>
                       {operador.poliza_url && (
-                        <a
-                          href={polizaPreviewUrl(operador.poliza_url)}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => void abrirPoliza(operador.poliza_url)}
                           title="Ver póliza de seguro"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-r-sm border border-border bg-surface text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
                         >
                           <FileText className="h-3.5 w-3.5" />
-                        </a>
+                        </button>
                       )}
                       <button
                         type="button"

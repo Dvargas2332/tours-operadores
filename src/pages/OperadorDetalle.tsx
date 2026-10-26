@@ -10,7 +10,8 @@ import VistaToggle from '@/components/buscador/VistaToggle';
 import { useCompare } from '@/context/CompareContext';
 import { useToursData } from '@/hooks/useToursData';
 import { CATEGORIA_META } from '@/lib/tour-meta';
-import { cn, polizaPreviewUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { abrirPoliza } from '@/lib/polizas';
 import { VISTA_KEY, vistaInicial } from '@/lib/vista';
 import type { Vista } from '@/lib/vista';
 import { useI18n } from '@/i18n';
@@ -105,15 +106,14 @@ export default function OperadorDetalle() {
                   </span>
                 )}
                 {operador.poliza_url && (
-                  <a
-                    href={polizaPreviewUrl(operador.poliza_url)}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => void abrirPoliza(operador.poliza_url)}
                     className="inline-flex items-center gap-1 rounded-r-sm bg-brand-soft px-2 py-0.5 font-medium text-brand transition-colors duration-fast hover:bg-brand hover:text-white"
                   >
                     <FileText className="h-3.5 w-3.5" />
                     Ver póliza
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

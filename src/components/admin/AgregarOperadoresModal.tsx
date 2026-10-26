@@ -13,7 +13,8 @@ import { parsearArchivo, parseComision, validar } from '@/components/admin/opera
 import type { FilaExcel } from '@/components/admin/operadores-excel';
 import { useMutation } from '@tanstack/react-query';
 import { crearOperadores, subirLogo, subirPoliza } from '@/data/mutations';
-import { cn, polizaPreviewUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { abrirPoliza } from '@/lib/polizas';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -435,15 +436,14 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                         <div className="flex flex-1 flex-col gap-2">
                           {polizaPreview ? (
                             <div className="flex flex-wrap items-center gap-2">
-                              <a
-                                href={polizaPreviewUrl(polizaPreview)}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => void abrirPoliza(polizaPreview)}
                                 className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
                               >
                                 <Eye className="h-4 w-4" />
                                 Ver póliza
-                              </a>
+                              </button>
                               <button
                                 type="button"
                                 onClick={handleQuitarPoliza}

@@ -18,6 +18,7 @@ import { useMutation } from '@tanstack/react-query';
 import { actualizarOperador, subirLogo, subirPoliza } from '@/data/mutations';
 import type { Operador } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
+import { abrirPoliza } from '@/lib/polizas';
 
 interface EditarOperadorModalProps {
   operador: Operador | null;
@@ -324,15 +325,14 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
               <div className="flex flex-1 flex-col gap-2">
                 {polizaUrl ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={polizaUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => void abrirPoliza(polizaUrl)}
                       className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
                     >
                       <Eye className="h-4 w-4" />
                       Ver póliza
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={handleQuitarPoliza}
