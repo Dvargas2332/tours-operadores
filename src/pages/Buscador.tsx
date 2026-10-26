@@ -112,14 +112,15 @@ export default function Buscador() {
     if (!texto || interpretando) return;
     setInterpretando(true);
     setHasBuscado(true);
-    // Filtra por el texto y, si aplica, suma los filtros interpretados.
-    setTimeout(() => {
-      const interp = interpretarBusqueda(texto);
-      setInterpretando(false);
-      setFiltros((f) => ({ ...f, ...(interp?.filtros ?? {}), texto }));
-      setOrden('relevancia');
-      setQuery('');
-    }, 900);
+    // Una búsqueda nueva parte de cero: reemplaza los filtros anteriores
+    // (incluidos los que dejó la búsqueda previa) en vez de acumularlos.
+    const interp = interpretarBusqueda(texto);
+    const siguiente: Filtros = { ...FILTROS_INICIALES, ...(interp?.filtros ?? {}), texto };
+    setFiltros(siguiente);
+    setFiltrosAplicados(siguiente);
+    setOrden('relevancia');
+    setQuery('');
+    setInterpretando(false);
   };
 
   // Búsqueda lanzada desde la barra superior (?q=...): se ejecuta al llegar

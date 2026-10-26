@@ -38,6 +38,11 @@ export const FILTROS_INICIALES: Filtros = {
   texto: null,
 };
 
+/** Minúsculas y sin acentos, para comparar texto libre. */
+function normalizarBusqueda(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 /* ------------------------------------------------------------------ */
 /* Motor de filtrado                                                   */
 /* ------------------------------------------------------------------ */
@@ -45,14 +50,15 @@ export const FILTROS_INICIALES: Filtros = {
 export function aplicarFiltros(tours: Tour[], f: Filtros, mostrarOperador = true): Tour[] {
   return tours.filter((t) => {
     if (f.texto) {
-      const q = f.texto.trim().toLowerCase();
+      const q = normalizarBusqueda(f.texto.trim());
       if (q) {
         const coincide =
-          t.nombre.toLowerCase().includes(q) ||
-          t.zona.toLowerCase().includes(q) ||
-          t.categorias.some((c) => CATEGORIA_META[c].label.toLowerCase().includes(q)) ||
-          t.observaciones.toLowerCase().includes(q) ||
-          (mostrarOperador && t.operador.nombre.toLowerCase().includes(q));
+          normalizarBusqueda(t.nombre).includes(q) ||
+          normalizarBusqueda(t.zona).includes(q) ||
+          t.categorias.some((c) => normalizarBusqueda(CATEGORIA_META[c].label).includes(q)) ||
+          normalizarBusqueda(t.observaciones).includes(q) ||
+          t.incluye.some((i) => normalizarBusqueda(INCLUYE_META[i]?.label ?? i).includes(q)) ||
+          (mostrarOperador && normalizarBusqueda(t.operador.nombre).includes(q));
         if (!coincide) return false;
       }
     }
@@ -77,7 +83,16 @@ export function aplicarFiltros(tours: Tour[], f: Filtros, mostrarOperador = true
       if (!f.horarios.some((h) => buckets.has(h))) return false;
     }
     if (f.incluye.length > 0 && !f.incluye.every((k) => t.incluye.includes(k))) return false;
-    if (f.aptoNinos && !t.apto_ninos) return false;
+    if (f.aptoNinos) {
+      if (!t.apto_ninos) return false;
+      const edad = f.edadNino;
+      if (edad != null) {
+        const cubre = t.tarifas.some(
+          (tar) => edad >= tar.min_edad && (tar.max_edad == null || edad <= tar.max_edad),
+        );
+        if (!cubre) return false;
+      }
+    }
     if (f.operadores.length > 0 && !f.operadores.includes(t.operador.id)) return false;
     return true;
   });
@@ -215,12 +230,12 @@ const REGLAS_CATEGORIA: [RegExp, Categoria][] = [
   [/rafting|tubing|kayak|r[ií]o balsa|sarapiqu[ií]|safari float/i, 'acuatico'],
   [/termas|termales|aguas termales|relax|spa|hot springs/i, 'termas'],
   [/caf[eé]|chocolate|cultur|trapiche|historia/i, 'cultural'],
-  [/naturaleza|puentes|colgantes|caminata|nocturna|volc[aá]n|celeste|tenorio|caño negro|safari|aves|observaci/i, 'naturaleza'],
+  [/naturaleza|puentes|colgantes|caminata|nocturna|volc[aá]n|celeste|tenorio|cano negro|safari|aves|observaci/i, 'naturaleza'],
 ];
 
 const REGLAS_ZONA: [RegExp, string][] = [
   [/r[ií]o celeste|tenorio/i, 'Río Celeste / Tenorio'],
-  [/caño negro/i, 'Caño Negro'],
+  [/cano negro/i, 'Caño Negro'],
   [/sarapiqu[ií]/i, 'Sarapiquí'],
   [/monteverde/i, 'Monteverde'],
   [/centro|fortuna centro|catarata|waterfall/i, 'La Fortuna centro'],
@@ -228,7 +243,7 @@ const REGLAS_ZONA: [RegExp, string][] = [
 ];
 
 export function interpretarBusqueda(texto: string): Interpretacion | null {
-  const q = texto.trim();
+  const q = normalizarBusqueda(texto.trim());
   if (q.length < 3) return null;
 
   const parcial: Partial<Filtros> = {};
@@ -264,7 +279,7 @@ export function interpretarBusqueda(texto: string): Interpretacion | null {
   // Horarios
   const horarios = new Set<HorarioKey>();
   if (/temprano/i.test(q)) horarios.add('antes7');
-  if (/mañana/i.test(q)) { horarios.add('antes7'); horarios.add('manana'); }
+  if (/manana/i.test(q)) { horarios.add('antes7'); horarios.add('manana'); }
   if (/mediod[ií]a|medio d[ií]a(?! corto)/i.test(q) && !/medio d[ií]a corto/i.test(q)) horarios.add('mediodia');
   if (/tarde|atardecer|sunset/i.test(q)) horarios.add('tarde');
   if (/noche|nocturna/i.test(q)) horarios.add('noche');
@@ -287,9 +302,9 @@ export function interpretarBusqueda(texto: string): Interpretacion | null {
   }
 
   // Niños
-  if (/niñ|beb[eé]|familia|infantil|menores/i.test(q)) {
+  if (/nin|beb[eé]|familia|infantil|menores/i.test(q)) {
     parcial.aptoNinos = true;
-    const mEdad = q.match(/(\d{1,2})\s*añ/i);
+    const mEdad = q.match(/(\d{1,2})\s*anos?/i);
     if (mEdad) parcial.edadNino = Number(mEdad[1]);
     resumen.push('Apto para niños');
   }
