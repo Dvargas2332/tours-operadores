@@ -322,8 +322,14 @@ create policy "tour_horarios_lectura_publica" on public.tour_horarios
 revoke select (telefono, email, poliza_url, politica_cancelacion) on public.operadores from anon;
 
 -- Los usuarios autenticados leen el contacto solo a través de la vista
--- operadores_contacto, que filtra por rol (admin y vendedor).
-revoke select (telefono, email) on public.operadores from authenticated;
+-- operadores_contacto, que filtra por rol (admin y vendedor). En Postgres los
+-- privilegios se suman: hay que quitar el SELECT de tabla y volver a otorgar
+-- únicamente las columnas no sensibles.
+revoke select on public.operadores from authenticated;
+grant select (
+  id, nombre, comision, created_at, logo_url,
+  poliza_url, politica_cancelacion, horario, activo, con_iva
+) on public.operadores to authenticated;
 
 -- Storage: subir/borrar solo administradores.
 drop policy if exists "logos_upload" on storage.objects;
