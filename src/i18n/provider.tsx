@@ -20,10 +20,9 @@ const TEXTOS: Record<Idioma, Diccionario> = {
   en: { ...enCommon, ...enBuscador, ...enDetalle, ...enShell },
 };
 
-const IDIOMA_KEY = 'tours-idioma';
-
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const idioma: Idioma = (localStorage.getItem(IDIOMA_KEY) as Idioma) || 'es';
+  // El sitio quedó en español al eliminar la bienvenida; ya no hay selector.
+  const idioma: Idioma = 'es';
 
   const t = useCallback(
     (clave: string, vars?: Record<string, string | number>) => {

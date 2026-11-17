@@ -142,13 +142,6 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                     }}
                     disabled={(date) => date < hoy}
                     className="rounded-r-md border-0 bg-bg p-3 text-base"
-                    classNames={{
-                      day: 'h-10 w-10 text-sm rounded-r-sm',
-                      head_cell: 'w-10 text-xs',
-                      cell: 'w-10',
-                      caption: 'text-base font-semibold mb-3',
-                      nav_button: 'h-8 w-8',
-                    }}
                   />
                 </PopoverContent>
               </Popover>
