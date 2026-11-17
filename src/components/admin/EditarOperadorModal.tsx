@@ -29,6 +29,7 @@ interface EditarOperadorModalProps {
 
 export default function EditarOperadorModal({ operador, open, onClose, onGuardado }: EditarOperadorModalProps) {
   const [nombre, setNombre] = useState('');
+  const [codigo, setCodigo] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
   const [comision, setComision] = useState('');
@@ -50,6 +51,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   useEffect(() => {
     if (operador) {
       setNombre(operador.nombre);
+      setCodigo(operador.codigo);
       setTelefono(operador.telefono);
       setEmail(operador.email ?? '');
       setComision(operador.comision != null ? String(operador.comision) : '');
@@ -131,6 +133,11 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       setError('El nombre es obligatorio');
       return;
     }
+    const codigoLimpio = codigo.trim().toUpperCase();
+    if (!codigoLimpio) {
+      setError('El código del operador es obligatorio');
+      return;
+    }
     const comisionNum = comision.trim() === '' ? null : Number(comision);
 
     let logoUrl: string | null | undefined;
@@ -167,6 +174,7 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
     mutacion.mutate({
       id: operador.id,
       nombre: nombreLimpio,
+      codigo: codigoLimpio,
       telefono: telefono.trim(),
       email: emailLimpio ? emailLimpio : null,
       comision: comisionNum,
@@ -196,15 +204,28 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-2">
-          <div>
-            <Label htmlFor="op-nombre">Nombre</Label>
-            <Input
-              id="op-nombre"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del operador"
-              className="mt-1"
-            />
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px]">
+            <div>
+              <Label htmlFor="op-nombre">Nombre</Label>
+              <Input
+                id="op-nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Nombre del operador"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="op-codigo">Código</Label>
+              <Input
+                id="op-codigo"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                placeholder="CANOA"
+                maxLength={15}
+                className="mt-1 font-mono"
+              />
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>

@@ -86,13 +86,16 @@ interface TourCardProps {
   vista: 'grid' | 'lista';
   /** Índice para stagger de entrada (máx. 12 animadas) */
   index: number;
+  /** Fuerza ocultar el operador (p. ej. en la página de un operador). */
+  mostrarOperador?: boolean;
 }
 
 const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
-  { tour, seleccionado, onToggleComparar, onVerDetalle, vista, index },
+  { tour, seleccionado, onToggleComparar, onVerDetalle, vista, index, mostrarOperador: mostrarOperadorProp },
   ref,
 ) {
-  const { t, mostrarOperador } = useI18n();
+  const { t, mostrarOperador: mostrarOperadorCtx } = useI18n();
+  const mostrarOperador = mostrarOperadorProp ?? mostrarOperadorCtx;
   const { frescura, horarioLabel } = useFormatos();
   const fresh = frescura(tour.fecha_actualizacion);
   const horario = horarioRepresentativo(tour);
@@ -141,28 +144,28 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
           if (e.key.toLowerCase() === 'c') onToggleComparar();
         }}
         className={cn(
-          'group flex items-center gap-4 rounded-r-md border bg-surface px-4 py-3 shadow-card outline-none transition-[box-shadow,border-color,background-color] duration-fast',
+          'group flex items-center gap-3 rounded-r-md border bg-surface px-4 py-2.5 shadow-card outline-none transition-[box-shadow,border-color,background-color] duration-fast',
           'hover:border-brand/30 hover:shadow-hover focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
           seleccionado ? 'border-brand border-[1.5px] bg-brand-soft/40' : 'border-border',
         )}
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {badgeCategoria}
+            <span className="truncate text-[15px] font-semibold text-ink">{tour.nombre}</span>
           </div>
-          <div className="mt-1 truncate text-h3 text-ink">{tour.nombre}</div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-muted">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-muted">
             {mostrarOperador && (
-              <span className="flex min-w-0 items-center gap-1.5">
+              <span className="flex min-w-0 items-center gap-1">
                 {tour.operador.logo_url ? (
                   <img
                     src={tour.operador.logo_url}
                     alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
+                    className="h-4 w-4 shrink-0 object-contain"
                     loading="lazy"
                   />
                 ) : (
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[9px] font-bold text-brand">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[8px] font-bold text-brand">
                     {tour.operador.nombre[0]?.toUpperCase() || <ImageIcon className="h-3 w-3" />}
                   </span>
                 )}
@@ -184,7 +187,7 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
           <button
             type="button"
             onClick={onVerDetalle}
-            className="h-9 rounded-r-sm border border-border bg-surface px-3 text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+            className="h-8 rounded-r-sm border border-border bg-surface px-3 text-caption font-medium text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
           >
             {t('acciones.ver_detalle')}
           </button>
@@ -192,6 +195,7 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
             type="button"
             role="checkbox"
             aria-checked={seleccionado}
+            aria-label={t('acciones.comparar')}
             onClick={onToggleComparar}
             className="group/comp flex items-center gap-1.5 text-caption text-ink-muted"
           >
@@ -215,16 +219,31 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
         if (e.key.toLowerCase() === 'c') onToggleComparar();
       }}
       className={cn(
-        'flex flex-col rounded-r-md border bg-surface p-4 shadow-card outline-none transition-[box-shadow,border-color,background-color] duration-fast',
+        'relative flex h-full flex-col rounded-r-md border bg-surface p-4 shadow-card outline-none transition-[box-shadow,border-color,background-color] duration-fast',
         'hover:border-brand/30 hover:shadow-hover focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
         seleccionado ? 'border-brand border-[1.5px] bg-brand-soft/40' : 'border-border',
       )}
     >
       {cintaDesactualizada}
 
-      {/* Header: categoría */}
-      <div className="flex flex-wrap items-center gap-2">
-        {badgeCategoria}
+      {/* Header: categoría + comparar */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">{badgeCategoria}</div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={seleccionado}
+              aria-label={t('acciones.comparar')}
+              onClick={onToggleComparar}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-r-sm transition-colors duration-fast hover:bg-surface-2"
+            >
+              <CheckComparar checked={seleccionado} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('acciones.comparar')}</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Título */}
@@ -266,23 +285,13 @@ const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourCard(
       </div>
 
       {/* Acciones */}
-      <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
+      <div className="mt-auto border-t border-border pt-3">
         <button
           type="button"
           onClick={onVerDetalle}
-          className="h-9 flex-1 rounded-r-sm border border-border bg-surface text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:bg-brand hover:text-white"
+          className="h-9 w-full rounded-r-sm border border-border bg-surface text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:bg-brand hover:text-white"
         >
           {t('acciones.ver_detalle')}
-        </button>
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={seleccionado}
-          onClick={onToggleComparar}
-          className="group/comp flex shrink-0 items-center gap-1.5 text-caption font-medium text-ink-muted transition-colors duration-fast hover:text-ink"
-        >
-          <CheckComparar checked={seleccionado} />
-          {t('acciones.comparar')}
         </button>
       </div>
     </motion.div>

@@ -13,6 +13,7 @@ import { nuevaKey } from './tipos';
 
 export interface OperadorCatalogo {
   nombre: string;
+  codigo: string;
   telefono: string;
   email: string | null;
   comision: number | null;
@@ -151,6 +152,7 @@ interface ColumnaDetectada {
   tipo:
     | 'nombre'
     | 'codigo'
+    | 'codigoOperador'
     | 'tarifa'
     | 'horario'
     | 'horarioLlegada'
@@ -206,7 +208,23 @@ function campoDe(h: string): ColumnaDetectada | null {
   const n = normalizar(h);
   if (!n) return null;
 
-  if (n === 'codigo' || n === 'code' || n === 'tour code' || n === 'id tour' || n === 'tour id') {
+  if (
+    n === 'codigo operador' ||
+    n === 'cod operador' ||
+    n === 'operator code' ||
+    n === 'codigo de operador'
+  ) {
+    return { tipo: 'codigoOperador' };
+  }
+  if (
+    n === 'codigo' ||
+    n === 'codigo tour' ||
+    n === 'cod tour' ||
+    n === 'code' ||
+    n === 'tour code' ||
+    n === 'id tour' ||
+    n === 'tour id'
+  ) {
     return { tipo: 'codigo' };
   }
   if (n === 'zona' || n === 'zona tour') return { tipo: 'zona' };
@@ -273,6 +291,7 @@ function esFilaHeader(celdas: string[]): boolean {
 interface MapaColumnas {
   nombre: number | null;
   codigo: number | null;
+  codigoOperador: number | null;
   tarifas: { col: number; tarifa: TarifaColumna }[];
   horario: number | null;
   horarioLlegada: number | null;
@@ -291,6 +310,7 @@ function construirMapa(celdas: string[]): MapaColumnas {
   const mapa: MapaColumnas = {
     nombre: null,
     codigo: null,
+    codigoOperador: null,
     tarifas: [],
     horario: null,
     horarioLlegada: null,
@@ -309,6 +329,7 @@ function construirMapa(celdas: string[]): MapaColumnas {
     if (!campo) return;
     if (campo.tipo === 'nombre' && mapa.nombre == null) mapa.nombre = ci;
     else if (campo.tipo === 'codigo' && mapa.codigo == null) mapa.codigo = ci;
+    else if (campo.tipo === 'codigoOperador' && mapa.codigoOperador == null) mapa.codigoOperador = ci;
     else if (campo.tipo === 'tarifa' && campo.tarifa) mapa.tarifas.push({ col: ci, tarifa: campo.tarifa });
     else if (campo.tipo === 'horario' && mapa.horario == null) mapa.horario = ci;
     else if (campo.tipo === 'horarioLlegada' && mapa.horarioLlegada == null) mapa.horarioLlegada = ci;
@@ -405,6 +426,7 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
   let actual: FilaRevision | null = null;
   const tours: FilaRevision[] = [];
   const comisiones: number[] = [];
+  let codigoOperador = '';
 
   // Tabla lateral (LOS LAGOS): columnas con su propio "#" + "DETALLE" + precios
   let lado: { num: number; nombre: number; rack: number; neta: number } | null = null;
@@ -435,6 +457,10 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       mapa = construirMapa(celdas);
       actual = null;
       continue;
+    }
+
+    if (mapa.codigoOperador != null && celdas[mapa.codigoOperador]) {
+      codigoOperador = limpiarTexto(celdas[mapa.codigoOperador]);
     }
 
     if (celdas.every((c) => c === '')) continue;
@@ -552,6 +578,7 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
 
   return {
     nombre,
+    codigo: codigoOperador,
     telefono: '',
     email: null,
     comision: comisiones.length ? comisiones[0] : null,

@@ -15,6 +15,7 @@ export type Moneda = 'usd' | 'crc';
 
 export interface Operador {
   id: number;
+  codigo: string; // código único del operador (ej. CANOA)
   nombre: string;
   telefono: string; // teléfono de contacto (WhatsApp/llamadas)
   email: string | null; // correo del operador
@@ -52,7 +53,8 @@ export interface Horario {
 
 export interface Tour {
   id: number;
-  codigo: string; // código único para actualizaciones
+  codigo: string; // subcódigo dentro del operador (ej. 01)
+  codigo_legacy: string | null; // código global anterior (T-<id>)
   operador: Operador;
   nombre: string;
   zona: string;
@@ -180,6 +182,7 @@ export function serializarCategorias(categorias: Categoria[]): string {
 
 type RowOperador = {
   id: number;
+  codigo: string | null;
   nombre: string;
   telefono: string;
   email: string | null;
@@ -218,6 +221,7 @@ type RowHorario = {
 type RowTour = {
   id: number;
   codigo: string;
+  codigo_legacy: string | null;
   nombre: string;
   zona: string;
   categoria: string | null;
@@ -242,6 +246,7 @@ type RowTour = {
 function mapOperador(o: RowOperador): Operador {
   return {
     id: o.id,
+    codigo: o.codigo ?? '',
     nombre: o.nombre,
     telefono: o.telefono ?? '',
     email: o.email ?? null,
@@ -289,6 +294,7 @@ function mapTour(t: RowTour): Tour {
   return {
     id: t.id,
     codigo: t.codigo ?? '',
+    codigo_legacy: t.codigo_legacy ?? null,
     operador: mapOperador(t.operadores),
     nombre: t.nombre,
     zona: t.zona,
@@ -321,11 +327,11 @@ async function esAutenticado(): Promise<boolean> {
 }
 
 const TOURS_SELECT =
-  '*, operadores(id, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc), tour_tarifas(*), tour_horarios(*)';
+  '*, operadores(id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc), tour_tarifas(*), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
   'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, logo_url, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
 const OPERADORES_SELECT =
-  'id, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc';
+  'id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, logo_url, horario, activo, con_iva';
 
 interface ContactoOperador {

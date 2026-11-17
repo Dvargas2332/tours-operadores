@@ -94,29 +94,39 @@ export default function OperadorDetalle() {
           </button>
 
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-display text-ink">{operador.nombre}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-small text-ink-muted">
-                <span className="flex items-center gap-1">
-                  <Package className="h-4 w-4 text-ink-faint" />
-                  {tours.length} {tours.length === 1 ? 'tour' : 'tours'}
-                </span>
-                {zonas.length > 0 && (
+            <div className="flex min-w-0 items-center gap-3">
+              {operador.logo_url && (
+                <img
+                  src={operador.logo_url}
+                  alt=""
+                  className="h-14 w-14 shrink-0 rounded-r-md border border-border bg-surface object-contain p-1 shadow-card"
+                  loading="lazy"
+                />
+              )}
+              <div className="min-w-0">
+                <h1 className="text-display text-ink">{operador.nombre}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-small text-ink-muted">
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4 text-ink-faint" />
-                    {zonas.join(', ')}
+                    <Package className="h-4 w-4 text-ink-faint" />
+                    {tours.length} {tours.length === 1 ? 'tour' : 'tours'}
                   </span>
-                )}
-                {operador.poliza_url && esAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => void abrirPoliza(operador.poliza_url)}
-                    className="inline-flex items-center gap-1 rounded-r-sm bg-brand-soft px-2 py-0.5 font-medium text-brand transition-colors duration-fast hover:bg-brand hover:text-white"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Ver póliza
-                  </button>
-                )}
+                  {zonas.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4 text-ink-faint" />
+                      {zonas.join(', ')}
+                    </span>
+                  )}
+                  {operador.poliza_url && esAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => void abrirPoliza(operador.poliza_url)}
+                      className="inline-flex items-center gap-1 rounded-r-sm bg-brand-soft px-2 py-0.5 font-medium text-brand transition-colors duration-fast hover:bg-brand hover:text-white"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Ver póliza
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -161,6 +171,7 @@ export default function OperadorDetalle() {
                 tour={tour}
                 index={i}
                 vista={vista}
+                mostrarOperador={false}
                 seleccionado={estaSeleccionado(tour.id)}
                 onToggleComparar={() => toggle(tour.id)}
                 onVerDetalle={() => navigate(`/tour/${tour.id}`)}

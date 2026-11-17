@@ -48,6 +48,7 @@ export interface TourInput {
 
 export interface OperadorInput {
   nombre: string;
+  codigo?: string;
   telefono?: string;
   email?: string | null;
   comision?: number | null;
@@ -112,6 +113,7 @@ function tourFieldsToRow(t: Partial<TourInput> & { operadorId?: number }): Recor
 
 function operadorToRow(o: OperadorInput) {
   return {
+    codigo: o.codigo ? normalizarCodigo(o.codigo) : null,
     nombre: o.nombre.trim(),
     telefono: o.telefono ?? '',
     email: o.email ?? null,
@@ -130,14 +132,52 @@ function operadorToRow(o: OperadorInput) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Códigos                                                             */
+/* ------------------------------------------------------------------ */
+
+function normalizarCodigo(raw: string): string {
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '')
+    .slice(0, 15);
+}
+
+function codigoOperadorUnico(nombre: string, usados: Set<string>): string {
+  const primera = nombre.trim().split(/\s+/)[0] ?? '';
+  const base = normalizarCodigo(primera) || 'OPERADOR';
+  let codigo = base;
+  let n = 2;
+  while (usados.has(codigo)) {
+    codigo = `${base.slice(0, 12)}${n}`;
+    n++;
+  }
+  usados.add(codigo);
+  return codigo;
+}
+
+function siguienteSubcodigo(codigos: (string | null | undefined)[]): string {
+  let max = 0;
+  for (const c of codigos) {
+    const n = Number.parseInt(c ?? '', 10);
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  }
+  return String(max + 1).padStart(2, '0');
+}
+
+/* ------------------------------------------------------------------ */
 /* Operadores                                                          */
 /* ------------------------------------------------------------------ */
 
 export async function crearOperadores(nuevos: OperadorInput[]) {
   const { data: existentes } = await supabase
     .from('operadores')
-    .select('id, nombre, logo_url, poliza_url, politica_cancelacion');
+    .select('id, codigo, nombre, logo_url, poliza_url, politica_cancelacion');
   const porNombre = new Map((existentes ?? []).map((o) => [o.nombre, o]));
+  const usados = new Set(
+    (existentes ?? []).map((o) => o.codigo).filter((c): c is string => Boolean(c)),
+  );
 
   let creados = 0;
   let actualizados = 0;
@@ -156,12 +196,16 @@ export async function crearOperadores(nuevos: OperadorInput[]) {
         poliza_url: n.polizaUrl ?? existente.poliza_url,
         politica_cancelacion: n.politicaCancelacion ?? existente.politica_cancelacion,
       };
+      if (n.codigo?.trim()) update.codigo = normalizarCodigo(n.codigo);
       if (n.telefono?.trim()) update.telefono = n.telefono;
       if (n.email != null) update.email = n.email;
       await supabase.from('operadores').update(update).eq('id', existente.id);
       actualizados++;
     } else {
-      await supabase.from('operadores').insert(operadorToRow(n));
+      const codigo = n.codigo?.trim()
+        ? normalizarCodigo(n.codigo)
+        : codigoOperadorUnico(nombre, usados);
+      await supabase.from('operadores').insert(operadorToRow({ ...n, codigo }));
       creados++;
     }
   }
@@ -173,6 +217,9 @@ export async function actualizarOperador(input: { id: number } & Partial<Operado
   const { id, ...resto } = input;
   const update: Record<string, unknown> = {};
 
+  if (resto.codigo !== undefined && resto.codigo.trim()) {
+    update.codigo = normalizarCodigo(resto.codigo);
+  }
   if (resto.nombre !== undefined) update.nombre = resto.nombre;
   if (resto.telefono !== undefined) update.telefono = resto.telefono;
   if (resto.email !== undefined) update.email = resto.email;
@@ -244,8 +291,19 @@ export async function crearTour(
     politica = op?.politica_cancelacion ?? '';
   }
 
+  const codigoIngresado = resto.codigo?.trim();
+  let codigo = codigoIngresado ? normalizarCodigo(codigoIngresado) : '';
+  if (!codigo) {
+    const { data: codigos } = await supabase
+      .from('tours')
+      .select('codigo')
+      .eq('operador_id', operadorId);
+    codigo = siguienteSubcodigo((codigos ?? []).map((t) => t.codigo));
+  }
+
   const row = {
     ...tourFieldsToRow(resto),
+    codigo,
     operador_id: operadorId,
     fecha_actualizacion: fechaActualizacion,
     politica_cancelacion: politica,
@@ -264,6 +322,12 @@ export async function actualizarTour(
   const { id, operadorId, tarifas, horarios, ...resto } = input;
 
   const update = tourFieldsToRow({ ...resto, operadorId });
+
+  if (resto.codigo !== undefined) {
+    const codigo = resto.codigo.trim() ? normalizarCodigo(resto.codigo) : '';
+    if (codigo) update.codigo = codigo;
+    else delete update.codigo;
+  }
 
   if (Object.keys(update).length) {
     const { error } = await supabase.from('tours').update(update).eq('id', id);
@@ -313,15 +377,34 @@ export async function importarCatalogo(input: {
   let toursCreados = 0;
   let toursActualizados = 0;
 
+  const { data: todosOperadores } = await supabase.from('operadores').select('codigo');
+  const codigosOperador = new Set(
+    (todosOperadores ?? []).map((o) => o.codigo).filter((c): c is string => Boolean(c)),
+  );
+
   for (const op of input.operadores) {
     const nombre = op.nombre.trim();
     if (!nombre) continue;
 
-    const { data: existentes } = await supabase
-      .from('operadores')
-      .select('id, comision, logo_url, poliza_url, politica_cancelacion')
-      .eq('nombre', nombre)
-      .limit(1);
+    const codigoArchivo = op.codigo?.trim() ? normalizarCodigo(op.codigo) : '';
+    let existentes: { id: number; codigo: string | null; comision: number | null; logo_url: string | null; poliza_url: string | null; politica_cancelacion: string | null }[] | null = null;
+
+    if (codigoArchivo) {
+      const { data } = await supabase
+        .from('operadores')
+        .select('id, codigo, comision, logo_url, poliza_url, politica_cancelacion')
+        .eq('codigo', codigoArchivo)
+        .limit(1);
+      existentes = data;
+    }
+    if (!existentes || existentes.length === 0) {
+      const { data } = await supabase
+        .from('operadores')
+        .select('id, codigo, comision, logo_url, poliza_url, politica_cancelacion')
+        .eq('nombre', nombre)
+        .limit(1);
+      existentes = data;
+    }
 
     let operadorId: number;
     let politicaOperador = op.politicaCancelacion ?? '';
@@ -335,14 +418,16 @@ export async function importarCatalogo(input: {
         poliza_url: op.polizaUrl ?? existentes[0].poliza_url,
         politica_cancelacion: politicaOperador,
       };
+      if (codigoArchivo) update.codigo = codigoArchivo;
       if (op.telefono?.trim()) update.telefono = op.telefono;
       if (op.email != null) update.email = op.email;
       await supabase.from('operadores').update(update).eq('id', operadorId);
       operadoresActualizados++;
     } else {
+      const codigo = codigoArchivo || codigoOperadorUnico(nombre, codigosOperador);
       const { data: creado, error } = await supabase
         .from('operadores')
-        .insert({ ...operadorToRow(op), politica_cancelacion: politicaOperador })
+        .insert({ ...operadorToRow({ ...op, codigo }), politica_cancelacion: politicaOperador })
         .select('id')
         .single();
       if (error) throw error;
@@ -350,21 +435,31 @@ export async function importarCatalogo(input: {
       operadoresCreados++;
     }
 
-    // Actualización por código: los tours que no vienen en el archivo se
+    // Actualización por subcódigo: los tours que no vienen en el archivo se
     // conservan (no se borra nada). Las filas sin código se crean nuevas.
     const { data: toursExistentes, error: errExistentes } = await supabase
       .from('tours')
-      .select('id, codigo, activo')
+      .select('id, codigo, codigo_legacy, activo')
       .eq('operador_id', operadorId);
     if (errExistentes) throw errExistentes;
     const porCodigo = new Map((toursExistentes ?? []).map((t) => [t.codigo, t]));
+    const porLegacy = new Map(
+      (toursExistentes ?? [])
+        .filter((t) => t.codigo_legacy)
+        .map((t) => [t.codigo_legacy as string, t]),
+    );
+    const codigosTours = new Set((toursExistentes ?? []).map((t) => t.codigo));
 
     for (const t of op.tours) {
-      const codigo = (t.codigo ?? '').trim();
-      const existente = codigo ? porCodigo.get(codigo) : undefined;
+      const codigoArchivo = (t.codigo ?? '').trim();
+      const existente = codigoArchivo
+        ? porCodigo.get(codigoArchivo) ?? porLegacy.get(codigoArchivo)
+        : undefined;
 
       if (existente) {
         const update = tourFieldsToRow(t);
+        // El código del tour no se cambia desde el archivo.
+        delete update.codigo;
         const campos = t.camposPresentes ?? {};
         const opcionales: [string, string][] = [
           ['zona', 'zona'],
@@ -413,22 +508,14 @@ export async function importarCatalogo(input: {
         continue;
       }
 
-      if (codigo) {
-        const { data: dueno, error: errDueno } = await supabase
-          .from('tours')
-          .select('operador_id, nombre')
-          .eq('codigo', codigo)
-          .maybeSingle();
-        if (errDueno) throw errDueno;
-        if (dueno && dueno.operador_id !== operadorId) {
-          throw new Error(`El código ${codigo} ya pertenece a otro operador (${dueno.nombre}).`);
-        }
-      }
+      let codigo = codigoArchivo ? normalizarCodigo(codigoArchivo) : '';
+      if (!codigo) codigo = siguienteSubcodigo([...codigosTours]);
+      codigosTours.add(codigo);
 
       const row = {
         ...tourFieldsToRow(t),
+        codigo,
         operador_id: operadorId,
-        ...(codigo ? { codigo } : {}),
         fecha_actualizacion: input.fechaActualizacion,
         politica_cancelacion: t.politicaCancelacion || politicaOperador,
         activo: true,

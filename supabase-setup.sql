@@ -129,6 +129,12 @@ alter table public.operadores
   add column if not exists pago_cxc boolean not null default false;
 
 -- ----------------------------------------------------------------------------
+-- 8c) Código único del operador (los tours usan subcódigos dentro de él)
+-- ----------------------------------------------------------------------------
+alter table public.operadores add column if not exists codigo text;
+create unique index if not exists operadores_codigo_key on public.operadores (codigo);
+
+-- ----------------------------------------------------------------------------
 -- 9) Activo/inactivo del tour (los desactivados no se muestran en la vista pública)
 -- ----------------------------------------------------------------------------
 alter table public.tours add column if not exists activo boolean not null default true;
@@ -336,7 +342,7 @@ revoke select (telefono, email, poliza_url, politica_cancelacion) on public.oper
 -- únicamente las columnas no sensibles.
 revoke select on public.operadores from authenticated;
 grant select (
-  id, nombre, comision, created_at, logo_url,
+  id, nombre, codigo, comision, created_at, logo_url,
   poliza_url, politica_cancelacion, horario, activo, con_iva,
   pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc
 ) on public.operadores to authenticated;
@@ -376,11 +382,12 @@ create policy "fondos_delete" on storage.objects
   using (bucket_id = 'fondos' and public.es_admin());
 
 -- ----------------------------------------------------------------------------
--- 12) Código único de tour (actualización sin duplicar)
+-- 12) Código único de tour (subcódigo dentro del operador)
 -- ----------------------------------------------------------------------------
 create sequence if not exists public.tours_codigo_seq;
 
 alter table public.tours add column if not exists codigo text;
+alter table public.tours add column if not exists codigo_legacy text;
 
 update public.tours
    set codigo = 'T-' || id
@@ -397,9 +404,9 @@ select setval(
 );
 
 alter table public.tours
-  alter column codigo set default ('T-' || nextval('public.tours_codigo_seq'));
+  alter column codigo set default lpad(nextval('public.tours_codigo_seq')::text, 2, '0');
 alter table public.tours alter column codigo set not null;
-create unique index if not exists tours_codigo_key on public.tours (codigo);
+create unique index if not exists tours_operador_codigo_key on public.tours (operador_id, codigo);
 grant usage on sequence public.tours_codigo_seq to authenticated;
 
 notify pgrst, 'reload schema';

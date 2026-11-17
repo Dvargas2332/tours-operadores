@@ -52,6 +52,7 @@ export default function CargarTarifario() {
   const [archivoFile, setArchivoFile] = useState<File | null>(null);
   const [filas, setFilas] = useState<FilaRevision[]>([]);
   const [comisiones, setComisiones] = useState<Record<string, number | null>>({});
+  const [codigosOperador, setCodigosOperador] = useState<Record<string, string>>({});
   const [errorConfirmacion, setErrorConfirmacion] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [borradorInicial] = useState<Borrador | null>(() => {
@@ -118,9 +119,14 @@ export default function CargarTarifario() {
     }
     const todas: FilaRevision[] = ops.flatMap((op) => op.tours);
     const comis: Record<string, number | null> = {};
-    for (const op of ops) comis[op.nombre] = op.comision;
+    const cods: Record<string, string> = {};
+    for (const op of ops) {
+      comis[op.nombre] = op.comision;
+      cods[op.nombre] = op.codigo;
+    }
     setFilas(todas);
     setComisiones(comis);
+    setCodigosOperador(cods);
     irAPaso(3);
   };
 
@@ -141,6 +147,7 @@ export default function CargarTarifario() {
     }
     const operadores = [...porOperador.entries()].map(([nombre, tours]) => ({
       nombre,
+      codigo: codigosOperador[nombre] || undefined,
       telefono: '',
       email: null,
       comision: comisiones[nombre] ?? null,

@@ -77,6 +77,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
   const esCrear = tour === null;
 
   const [nombre, setNombre] = useState(() => tour?.nombre ?? '');
+  const [codigo, setCodigo] = useState(() => tour?.codigo ?? '');
   const [zona, setZona] = useState(() => tour?.zona ?? '');
   const [categorias, setCategorias] = useState<Categoria[]>(() => tour?.categorias ?? ['aventura']);
   const [moneda, setMoneda] = useState<Moneda>(() => tour?.moneda ?? 'usd');
@@ -241,6 +242,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
 
     const payload = {
       nombre: nombre.trim(),
+      codigo: codigo.trim() || undefined,
       zona: zona.trim(),
       categorias,
       moneda,
@@ -307,9 +309,22 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                 ))}
               </select>
             </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="t-nombre">Nombre del tour</Label>
-              <Input id="t-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="mt-1" />
+            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-[minmax(0,1fr)_140px]">
+              <div>
+                <Label htmlFor="t-nombre">Nombre del tour</Label>
+                <Input id="t-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="t-codigo">Código</Label>
+                <Input
+                  id="t-codigo"
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                  placeholder="Automático"
+                  maxLength={15}
+                  className="mt-1 font-mono"
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="t-zona">Zona</Label>
