@@ -45,6 +45,15 @@ export function precioPublico(tour: Tour, precio: number): number {
   return precioConIva(tour, precio);
 }
 
+/**
+ * Precio unitario de una tarifa: para el vendedor usa la neta del operador
+ * (con IVA si aplica); para el cliente, el rack público.
+ */
+export function precioUnitarioTarifa(tour: Tour, tarifa: Tarifa, usarNeta = false): number {
+  const neta = tarifa.neta != null ? precioConIva(tour, tarifa.neta) : null;
+  return usarNeta && neta != null ? neta : precioPublico(tour, tarifa.rack);
+}
+
 /** Precio rack para un rango de edad aplicable. */
 export function tarifaActivaPorEdad(tour: Tour, edad: number, esCostaRica = true): Tarifa | undefined {
   const activas = tarifasActivas(tour, esCostaRica);

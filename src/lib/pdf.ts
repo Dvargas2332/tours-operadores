@@ -56,11 +56,12 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
   doc.text(infoTour, margen, cursor);
   cursor += infoTour.length * doc.getLineHeight() + 6;
 
-  // Política completa. El nombre del operador nunca aparece en el PDF
-  // (ni como línea propia ni dentro del texto de la política).
+  // Política completa cargada en el tour. El nombre del operador nunca
+  // aparece en el PDF (ni como línea propia ni dentro del texto).
   doc.setFontSize(11);
   doc.setTextColor(40);
-  const politica = tour.politica_cancelacion?.trim() ? politicaSinOperador(tour) : 'No especificada.';
+  const politicaLimpia = politicaSinOperador(tour).trim();
+  const politica = politicaLimpia || 'No especificada.';
   const lineas = doc.splitTextToSize(politica, pageWidth - margen * 2);
   doc.text(lineas, margen, cursor);
   cursor += lineas.length * doc.getLineHeight() + 8;
@@ -74,7 +75,7 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
   // Pie de página
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text(`© ${new Date().getFullYear()} Tours Operadores · by Kazehana Cloud`, pageWidth / 2, 285, {
+  doc.text(`© ${new Date().getFullYear()} Tours Operadores · Lavas Tacotal`, pageWidth / 2, 285, {
     align: 'center',
   });
 

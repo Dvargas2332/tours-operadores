@@ -24,9 +24,14 @@ function load(): Promise<ToursData> {
   if (!inflight) {
     inflight = Promise.all([fetchTours(), fetchOperadores()])
       .then(([tours, operadores]) => {
-        // Los tours desactivados nunca se muestran en las vistas públicas
-        // (el fetch autenticado los devuelve para administración).
-        cache = { tours: tours.filter((t) => t.activo), operadores };
+        // Las vistas de catálogo ocultan operadores desactivados y sus tours.
+        // Administración los sigue viendo porque consulta los fetchers directos.
+        const activos = operadores.filter((o) => o.activo);
+        const idsActivos = new Set(activos.map((o) => o.id));
+        cache = {
+          tours: tours.filter((t) => t.activo && idsActivos.has(t.operador.id)),
+          operadores: activos,
+        };
         return cache;
       })
       .finally(() => {

@@ -3,14 +3,7 @@ import type { Idioma } from './types';
 
 export interface I18nState {
   idioma: Idioma;
-  /** true si el usuario eligió idioma explícitamente (en bienvenida). */
-  idiomaElegido: boolean;
-  setIdioma: (i: Idioma) => void;
   t: (clave: string, vars?: Record<string, string | number>) => string;
-  nacionalidad: string | null;
-  setNacionalidad: (n: string) => void;
-  /** true cuando ya eligió idioma y nacionalidad (no mostrar bienvenida otra vez). */
-  preferenciasListas: boolean;
   esCostaRica: boolean;
   /** true solo para el admin (sesión activa): muestra nombre/logo de operadores. */
   mostrarOperador: boolean;

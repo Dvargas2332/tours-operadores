@@ -57,6 +57,10 @@ export interface OperadorInput {
   horario?: string;
   activo?: boolean;
   conIva?: boolean;
+  pagoCompraclic?: boolean;
+  pagoSinpe?: boolean;
+  pagoTransferencia?: boolean;
+  pagoCxc?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -118,6 +122,10 @@ function operadorToRow(o: OperadorInput) {
     horario: o.horario ?? '',
     activo: o.activo ?? true,
     con_iva: o.conIva ?? false,
+    pago_compraclic: o.pagoCompraclic ?? false,
+    pago_sinpe: o.pagoSinpe ?? false,
+    pago_transferencia: o.pagoTransferencia ?? false,
+    pago_cxc: o.pagoCxc ?? false,
   };
 }
 
@@ -182,6 +190,10 @@ export async function actualizarOperador(input: { id: number } & Partial<Operado
   if (resto.horario !== undefined) update.horario = resto.horario;
   if (resto.activo !== undefined) update.activo = resto.activo;
   if (resto.conIva !== undefined) update.con_iva = resto.conIva;
+  if (resto.pagoCompraclic !== undefined) update.pago_compraclic = resto.pagoCompraclic;
+  if (resto.pagoSinpe !== undefined) update.pago_sinpe = resto.pagoSinpe;
+  if (resto.pagoTransferencia !== undefined) update.pago_transferencia = resto.pagoTransferencia;
+  if (resto.pagoCxc !== undefined) update.pago_cxc = resto.pagoCxc;
 
   if (Object.keys(update).length) {
     await supabase.from('operadores').update(update).eq('id', id);

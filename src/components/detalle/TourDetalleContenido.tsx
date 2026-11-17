@@ -17,9 +17,7 @@ import {
   Download,
   ExternalLink,
   FileText,
-  Mail,
   MapPin,
-  MessageCircle,
   Scale,
   Send,
   StickyNote,
@@ -28,14 +26,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
-import { buildResumenTour, labelIncluye } from '@/components/detalle/resumen';
+import { labelIncluye, politicaSinOperador } from '@/components/detalle/resumen';
+import EnviarClienteDialog from '@/components/reserva/EnviarClienteDialog';
 import ReservaDrawer from '@/components/reserva/ReservaDrawer';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
@@ -130,6 +123,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
   const { esCostaRica, mostrarOperador } = useI18n();
   const tarifasVisibles = tarifasSegunNacionalidad(tour.tarifas, esCostaRica);
   const [reservaAbierta, setReservaAbierta] = useState(false);
+  const [enviarAbierto, setEnviarAbierto] = useState(false);
   const [generandoPolitica, setGenerandoPolitica] = useState(false);
   const politicaUrlRef = useRef<string | null>(null);
 
@@ -155,17 +149,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, tour.id]);
 
-  const enviarEmail = () => {
-    const texto = buildResumenTour(tour, esCostaRica, undefined, mostrarOperador);
-    window.location.href = `mailto:?subject=${encodeURIComponent(`Resumen: ${tour.nombre}`)}&body=${encodeURIComponent(texto)}`;
-  };
-
-  const enviarWhatsApp = () => {
-    const texto = buildResumenTour(tour, esCostaRica, undefined, mostrarOperador);
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
-  };
-
   const anioVigencia = tour.fecha_actualizacion.slice(0, 4);
+  const politicaTexto = politicaSinOperador(tour).trim();
 
   const verPolitica = async () => {
     if (generandoPolitica) return;
@@ -245,10 +230,24 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
         )}
       </motion.header>
 
-      <div className="space-y-6 px-5 py-5">
-        {/* ===== Badges informativos ===== */}
-        <motion.section variants={seccion} aria-label="Datos clave">
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className={cn('px-5 py-5', !esDrawer && 'lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-6')}>
+        {/* ===== Resumen y acciones ===== */}
+        <motion.aside
+          variants={seccion}
+          aria-label="Resumen de la reserva"
+          className={cn(
+            'mb-6 space-y-4 rounded-r-md border border-border bg-surface p-4',
+            !esDrawer && 'lg:sticky lg:top-36 lg:order-2 lg:mb-0',
+          )}
+        >
+          <div>
+            <h2 className="text-h3 text-ink">Reservar</h2>
+            <p className="mt-1 text-caption text-ink-muted">
+              Elegí fecha y pasajeros; el total se calcula en el siguiente paso.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-caption font-medium text-ink-muted">
               <Users className="h-3 w-3" />
               Mín. {tour.minimo_personas} personas
@@ -271,54 +270,85 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
               </span>
             )}
           </div>
-        </motion.section>
 
+          <div className="space-y-2">
+            {!esReservas && (
+              <button
+                type="button"
+                onClick={() => setReservaAbierta(true)}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
+              >
+                <Calendar className="h-4 w-4" />
+                Reservar
+              </button>
+            )}
+            {autenticado && !esReservas && (
+              <button
+                type="button"
+                onClick={() => setEnviarAbierto(true)}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+              >
+                <Send className="h-4 w-4" />
+                Enviar al cliente
+              </button>
+            )}
+          </div>
+
+          {autenticado && (
+            <div className="border-t border-border pt-3">
+              <div className="flex items-baseline justify-between gap-2 text-caption">
+                <span className="uppercase tracking-wide text-ink-faint">Actualizado</span>
+                <span className="flex items-center gap-1.5 font-semibold text-ink tnum">
+                  <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_FRESCURA[fresh.estado])} />
+                  {formatDateEs(tour.fecha_actualizacion)}
+                </span>
+              </div>
+              <div className="mt-0.5 text-right text-caption text-ink-muted">{fresh.relativo}</div>
+              {mostrarOperador && (
+                <div className="mt-2 border-t border-border pt-2 text-caption text-ink-muted">
+                  <span className="font-semibold text-ink">{tour.operador.nombre}</span> · vigente {anioVigencia}
+                </div>
+              )}
+            </div>
+          )}
+        </motion.aside>
+
+        <div className={cn('space-y-6', !esDrawer && 'lg:order-1')}>
+        {autenticado && fresh.estado !== 'ok' && (
+          <motion.div
+            initial={{ opacity: 0, x: 0 }}
+            animate={{ opacity: 1, x: [0, -2, 2, -1, 1, 0] }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+            className={cn(
+              'flex flex-wrap items-center gap-2 rounded-r-sm px-3.5 py-2.5 text-caption font-medium',
+              fresh.estado === 'warn' ? 'bg-volcan-soft text-warn' : 'bg-danger/10 text-danger',
+            )}
+          >
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            {fresh.estado === 'warn'
+              ? 'Este tarifario tiene más de 90 días — considera confirmar el precio.'
+              : 'Tarifario desactualizado (>6 meses). Confirma con el operador antes de cotizar al huésped.'}
+            {fresh.estado === 'danger' && !esReservas && (
+              <PopoverOperador operador={tour.operador} tour={tour}>
+                <button
+                  type="button"
+                  className="ml-auto h-8 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                >
+                  Ver contacto del operador
+                </button>
+              </PopoverOperador>
+            )}
+          </motion.div>
+        )}
         {/* ===== Tarifas por rango de edad ===== */}
         <motion.section variants={seccion} aria-label="Tarifas">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-h3 text-ink">
               Tarifas
-              {tour.operador.con_iva && (
-                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-caption font-medium text-ink-muted">
-                  IVA 13% incluido
-                </span>
-              )}
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-caption font-medium text-ink-muted">
+                {tour.operador.con_iva ? 'Tarifa + 13% incluido' : 'Tarifa con 13% incluido'}
+              </span>
             </h2>
-            <div className="flex items-center gap-2">
-              {autenticado && !esReservas && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-sm font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
-                    >
-                      <Send className="h-4 w-4" />
-                      Enviar
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onSelect={enviarEmail}>
-                      <Mail className="h-4 w-4" />
-                      Correo
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={enviarWhatsApp}>
-                      <MessageCircle className="h-4 w-4" />
-                      WhatsApp
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              {!esReservas && (
-                <button
-                  type="button"
-                  onClick={() => setReservaAbierta(true)}
-                  className="inline-flex h-10 items-center gap-2 rounded-r-sm bg-brand px-4 text-sm font-semibold text-white transition-colors duration-fast hover:bg-brand-hover"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Reservar
-                </button>
-              )}
-            </div>
           </div>
           <div className="overflow-hidden rounded-r-md border border-border bg-surface">
             <table className="w-full text-left text-small">
@@ -379,8 +409,8 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
           aria-label="Qué incluye"
         >
           <div>
-            <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-ok">
-              <CheckCircle2 className="h-3.5 w-3.5" />
+            <h2 className="flex items-center gap-2 text-h3 text-ink">
+              <CheckCircle2 className="h-[18px] w-[18px] text-ok" />
               Incluye
             </h2>
               {tour.incluye.length > 0 ? (
@@ -437,7 +467,9 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                   ? 'Incluido — pasan 30 min antes'
                   : 'Consultar con operador',
               },
-              { label: 'Mínimo de personas', valor: <span className="tnum">{tour.minimo_personas}</span> },
+              ...(tour.duracion_horas > 0
+                ? [{ label: 'Duración', valor: <span className="tnum">{tour.duracion_horas} horas</span> }]
+                : []),
               ...(operaDiario ? [{ label: 'Días de operación', valor: 'Lunes a domingo' as React.ReactNode }] : []),
             ].map((fila, i) => (
               <motion.div
@@ -462,110 +494,77 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.22, ease: EASE }}
-            className="rounded-r-sm border-l-[3px] border-volcan bg-volcan-soft/50 px-4 py-3.5"
+            className="rounded-r-md border border-border bg-surface p-4"
           >
-            <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-ink">
-              <FileText className="h-3.5 w-3.5 text-volcan" />
+            <h2 className="flex items-center gap-2 text-h3 text-ink">
+              <FileText className="h-[18px] w-[18px] text-volcan" />
               Política de cancelación
             </h2>
-            <p className="mt-2 text-small text-ink-muted">
-              Consulta la política completa en PDF con el logo y el tour.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={verPolitica}
-                disabled={generandoPolitica}
-                className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <ExternalLink className="h-4 w-4" />
-                {generandoPolitica ? 'Generando…' : 'Abrir PDF'}
-              </button>
-              <button
-                type="button"
-                onClick={() => descargarPoliticaPdf(tour)}
-                className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
-              >
-                <Download className="h-4 w-4" />
-                Descargar (PDF)
-              </button>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.22, ease: EASE, delay: 0.08 }}
-            className="rounded-r-sm border-l-[3px] border-ink-faint bg-surface-2 px-4 py-3.5"
-          >
-            <h2 className="flex items-center gap-1.5 text-label uppercase tracking-wide text-ink">
-              <StickyNote className="h-3.5 w-3.5 text-ink-muted" />
-              Observaciones
-            </h2>
-            <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink">{tour.observaciones}</p>
-            <p className="mt-2 text-caption text-ink-muted">Observaciones del operador</p>
-          </motion.div>
-        </motion.section>
-
-        {/* ===== Procedencia del dato (solo admin) ===== */}
-        {autenticado && (
-        <motion.section variants={seccion} aria-label="Procedencia del dato">
-          {fresh.estado !== 'ok' && (
-            <motion.div
-              initial={{ opacity: 0, x: 0 }}
-              animate={{ opacity: 1, x: [0, -2, 2, -1, 1, 0] }}
-              transition={{ duration: 0.3, delay: 0.15 }}
-              className={cn(
-                'mb-3 flex flex-wrap items-center gap-2 rounded-r-sm px-3.5 py-2.5 text-caption font-medium',
-                fresh.estado === 'warn' ? 'bg-volcan-soft text-warn' : 'bg-danger/10 text-danger',
-              )}
-            >
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              {fresh.estado === 'warn'
-                ? 'Este tarifario tiene más de 90 días — considera confirmar el precio.'
-                : 'Tarifario desactualizado (>6 meses). Confirma con el operador antes de cotizar al huésped.'}
-              {fresh.estado === 'danger' && !esReservas && (
-                <PopoverOperador operador={tour.operador} tour={tour}>
+            {politicaTexto ? (
+              <>
+                <p className="mt-2 line-clamp-3 whitespace-pre-line text-small text-ink-muted">
+                  {politicaTexto}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="ml-auto h-8 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                    onClick={verPolitica}
+                    disabled={generandoPolitica}
+                    className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Ver contacto del operador
+                    <ExternalLink className="h-4 w-4" />
+                    {generandoPolitica ? 'Generando…' : 'Abrir PDF'}
                   </button>
-                </PopoverOperador>
-              )}
-            </motion.div>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.2, ease: EASE }}
-            className="grid gap-3 rounded-r-md bg-surface-2 p-3.5 sm:grid-cols-2"
-          >
-            <div>
-              <div className="text-caption uppercase tracking-wide text-ink-faint">Actualizado</div>
-              <div className="mt-1 flex items-center gap-1.5">
-                <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_FRESCURA[fresh.estado])} />
-                <span className="text-small font-semibold text-ink tnum">{formatDateEs(tour.fecha_actualizacion)}</span>
+                  <button
+                    type="button"
+                    onClick={() => descargarPoliticaPdf(tour)}
+                    className="inline-flex h-9 items-center gap-2 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                  >
+                    <Download className="h-4 w-4" />
+                    Descargar (PDF)
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <p className="text-small text-ink-muted">Sin política cargada — consultar con el operador.</p>
+                {autenticado && !esReservas && (
+                  <PopoverOperador operador={tour.operador} tour={tour}>
+                    <button
+                      type="button"
+                      className="inline-flex h-8 items-center rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                    >
+                      Ver contacto
+                    </button>
+                  </PopoverOperador>
+                )}
               </div>
-              <div className="mt-0.5 text-caption text-ink-muted">{fresh.relativo}</div>
-            </div>
-            {mostrarOperador && (
-            <div>
-              <div className="text-caption uppercase tracking-wide text-ink-faint">Operador</div>
-              <div className="mt-1 text-small font-semibold text-ink">{tour.operador.nombre}</div>
-              <div className="mt-0.5 text-caption text-ink-muted">tarifario vigente {anioVigencia}</div>
-            </div>
             )}
           </motion.div>
+
+          {tour.observaciones.trim() && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.22, ease: EASE, delay: 0.08 }}
+              className="rounded-r-md border border-border bg-surface p-4"
+            >
+              <h2 className="flex items-center gap-2 text-h3 text-ink">
+                <StickyNote className="h-[18px] w-[18px] text-ink-muted" />
+                Observaciones
+              </h2>
+              <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink">{tour.observaciones}</p>
+            </motion.div>
+          )}
         </motion.section>
-        )}
 
         {!esReservas && (
           <ReservaDrawer key={`${tour.id}-${reservaAbierta ? 'open' : 'closed'}`} tour={tour} open={reservaAbierta} onOpenChange={setReservaAbierta} />
+        )}
+
+        {autenticado && !esReservas && (
+          <EnviarClienteDialog tour={tour} open={enviarAbierto} onOpenChange={setEnviarAbierto} />
         )}
 
         {/* En página, link discreto de regreso al final */}
@@ -579,6 +578,7 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
             </Link>
           </motion.div>
         )}
+        </div>
       </div>
     </motion.div>
   );

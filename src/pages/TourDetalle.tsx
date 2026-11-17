@@ -50,7 +50,7 @@ export default function TourDetalle() {
       onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
       className="h-full overflow-y-auto"
     >
-      <div className="mx-auto min-h-full max-w-[760px] bg-surface shadow-card xl:border-x xl:border-border">
+      <div className="mx-auto min-h-full max-w-[760px] bg-surface shadow-card lg:max-w-[1080px] xl:border-x xl:border-border">
         {/* Miga de pan + volver (página completa, tour-detalle.md §1) */}
         <div className="flex items-center gap-3 px-5 pt-4">
           <button

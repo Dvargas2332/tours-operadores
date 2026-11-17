@@ -14,7 +14,7 @@ import { telefonoDeContacto, urlWhatsApp } from '@/components/detalle/resumen';
 import { fetchTourById, formatPrecio, horarioLabel, horarioRepresentativo } from '@/data/mock-tours';
 import type { Horario } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
-import { precioPublico } from '@/lib/tarifas';
+import { precioUnitarioTarifa } from '@/lib/tarifas';
 import { useAuth } from '@/context/AuthContext';
 import { useHotel } from '@/hooks/useHotel';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
@@ -81,8 +81,10 @@ export default function Reservar() {
   const [hotel, setHotel] = useState('');
   const [notas, setNotas] = useState('');
   const [pagoLink, setPagoLink] = useState(false);
+  const [pagoCompraclic, setPagoCompraclic] = useState(false);
   const [pagoTransferencia, setPagoTransferencia] = useState(false);
   const [pagoSinpe, setPagoSinpe] = useState(false);
+  const [pagoCxc, setPagoCxc] = useState(false);
   const { autenticado, rol } = useAuth();
   const hotelInfo = useHotel();
   const { esCostaRica } = useI18n();
@@ -103,7 +105,10 @@ export default function Reservar() {
     setPaso(n);
   };
 
-  const lineas = useMemo(() => (tour ? calcularLineasPorTarifas(tour, conteos) : []), [tour, conteos]);
+  const lineas = useMemo(
+    () => (tour ? calcularLineasPorTarifas(tour, conteos, autenticado) : []),
+    [tour, conteos, autenticado],
+  );
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = useMemo(() => Object.values(conteos).reduce((s, n) => s + n, 0), [conteos]);
 
@@ -124,11 +129,13 @@ export default function Reservar() {
       notas: notas || undefined,
       metodosPago: [
         ...(pagoLink ? ['Link de pago'] : []),
+        ...(pagoCompraclic ? ['Compraclic'] : []),
         ...(pagoTransferencia ? ['Transferencia'] : []),
         ...(pagoSinpe ? ['SINPE Móvil'] : []),
+        ...(pagoCxc ? ['CxC (crédito)'] : []),
       ],
     });
-  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoTransferencia, pagoSinpe]);
+  }, [tour, fecha, horario, lineas, total, nombreCliente, hotel, notas, pagoLink, pagoCompraclic, pagoTransferencia, pagoSinpe, pagoCxc]);
   const hrefWhatsApp = useMemo(
     () => (telefono && mensajeReserva ? urlWhatsApp(telefono, mensajeReserva) : null),
     [telefono, mensajeReserva],
@@ -292,7 +299,7 @@ export default function Reservar() {
                             <div>
                               <p className="font-medium text-ink">{labelTarifa(tarifa)}</p>
                               <p className="text-caption text-ink-muted">
-                                {formatPrecio(precioPublico(tour, tarifa.rack), tour.moneda)} por persona
+                                {formatPrecio(precioUnitarioTarifa(tour, tarifa, autenticado), tour.moneda)} por persona
                               </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -372,8 +379,8 @@ export default function Reservar() {
                         <ul className="mt-1 space-y-1">
                           {lineas.map((l) => (
                             <li key={l.edad} className="flex justify-between text-small text-ink">
-                              <span>{l.edad}: {l.cantidad} × {formatPrecio(l.rack, tour.moneda)}</span>
-                              <span className="tnum font-medium">{formatPrecio(l.totalRack, tour.moneda)}</span>
+                              <span>{l.edad}: {l.cantidad} × {formatPrecio(l.precioUnitario, tour.moneda)}</span>
+                              <span className="tnum font-medium">{formatPrecio(l.total, tour.moneda)}</span>
                             </li>
                           ))}
                         </ul>
@@ -415,6 +422,37 @@ export default function Reservar() {
                             <input type="checkbox" checked={pagoSinpe} onChange={(e) => setPagoSinpe(e.target.checked)} className="h-4 w-4" />
                             SINPE Móvil
                           </label>
+                        </div>
+                      </div>
+                    )}
+                    {autenticado && (tour.operador.pago_compraclic || tour.operador.pago_sinpe || tour.operador.pago_transferencia || tour.operador.pago_cxc) && (
+                      <div>
+                        <Label>Formas de pago</Label>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          {tour.operador.pago_compraclic && (
+                            <label className="flex items-center gap-2 text-small text-ink">
+                              <input type="checkbox" checked={pagoCompraclic} onChange={(e) => setPagoCompraclic(e.target.checked)} className="h-4 w-4" />
+                              Compraclic
+                            </label>
+                          )}
+                          {tour.operador.pago_transferencia && (
+                            <label className="flex items-center gap-2 text-small text-ink">
+                              <input type="checkbox" checked={pagoTransferencia} onChange={(e) => setPagoTransferencia(e.target.checked)} className="h-4 w-4" />
+                              Transferencia
+                            </label>
+                          )}
+                          {tour.operador.pago_sinpe && (
+                            <label className="flex items-center gap-2 text-small text-ink">
+                              <input type="checkbox" checked={pagoSinpe} onChange={(e) => setPagoSinpe(e.target.checked)} className="h-4 w-4" />
+                              SINPE Móvil
+                            </label>
+                          )}
+                          {tour.operador.pago_cxc && (
+                            <label className="flex items-center gap-2 text-small text-ink">
+                              <input type="checkbox" checked={pagoCxc} onChange={(e) => setPagoCxc(e.target.checked)} className="h-4 w-4" />
+                              CxC (crédito)
+                            </label>
+                          )}
                         </div>
                       </div>
                     )}

@@ -1,15 +1,12 @@
 /**
  * Página: Administración (`/admin`) — administracion.md completo.
- * KPIs con count-up (solo primera visita por sesión), banner de
- * tarifarios desactualizados, tabs pill Operadores / Tours cargados
- * con tablas ordenables (lo más viejo arriba).
+ * Banner de tarifarios desactualizados y tabs pill Operadores / Tours
+ * cargados con tablas ordenables (lo más viejo arriba).
  */
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
-import gsap from 'gsap';
-import { AlertTriangle, Building2, FileSpreadsheet, Info, MapPinned, Plus, Trash2, Upload, UploadCloud } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { AlertTriangle, FileSpreadsheet, Info, Plus, Trash2, Upload } from 'lucide-react';
 import AgregarOperadoresModal from '@/components/admin/AgregarOperadoresModal';
 import HotelConfig from '@/components/admin/HotelConfig';
 import { descargarMachoteOperador } from '@/components/admin/cargar/machote-excel';
@@ -19,8 +16,9 @@ import OperadoresTable from '@/components/admin/OperadoresTable';
 import type { FilaOperador } from '@/components/admin/OperadoresTable';
 import ToursTable from '@/components/admin/ToursTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { fetchOperadores, fetchTours, formatDateEs, freshness } from '@/data/mock-tours';
+import { fetchOperadores, fetchTours, freshness } from '@/data/mock-tours';
 import type { Operador, Tour } from '@/data/mock-tours';
+import { clearToursCache } from '@/hooks/useToursData';
 import { useMutation } from '@tanstack/react-query';
 import { actualizarOperador, actualizarTour, eliminarOperador, eliminarTour } from '@/data/mutations';
 import { cn } from '@/lib/utils';
@@ -29,108 +27,6 @@ const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 type Tab = 'operadores' | 'tours';
 type EstadoCarga = 'cargando' | 'error' | 'listo';
-
-/* ------------------------------------------------------------------ */
-/* Count-up GSAP (solo primera visita por sesión)                      */
-/* ------------------------------------------------------------------ */
-
-const COUNTUP_KEY = 'tourhub-admin-countup';
-
-function primeraVisitaSesion(): boolean {
-  if (typeof window === 'undefined') return false;
-  if (window.sessionStorage.getItem(COUNTUP_KEY)) return false;
-  window.sessionStorage.setItem(COUNTUP_KEY, '1');
-  return true;
-}
-
-function CountUp({ valor, animar }: { valor: number; animar: boolean }) {
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!animar) {
-      el.textContent = String(valor);
-      return;
-    }
-    const obj = { v: 0 };
-    const tween = gsap.to(obj, {
-      v: valor,
-      duration: 0.5,
-      ease: 'power2.out',
-      onUpdate: () => {
-        el.textContent = String(Math.round(obj.v));
-      },
-    });
-    return () => {
-      tween.kill();
-    };
-  }, [valor, animar]);
-
-  return (
-    <span ref={ref} className="tnum">
-      0
-    </span>
-  );
-}
-
-/** Pulso sutil 1↔1.02 cada 3s — KPI "Desactualizados" cuando > 0. Aislado + memo. */
-const Pulso = memo(function Pulso({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.span
-      animate={{ scale: [1, 1.02, 1] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      className="inline-block"
-    >
-      {children}
-    </motion.span>
-  );
-});
-
-/* ------------------------------------------------------------------ */
-/* KPI card                                                            */
-/* ------------------------------------------------------------------ */
-
-interface KpiProps {
-  icon: LucideIcon;
-  iconClases: string;
-  indice: number;
-  valor: React.ReactNode;
-  label: string;
-  caption: React.ReactNode;
-}
-
-function KpiCard({ icon: Icon, iconClases, indice, valor, label, caption }: KpiProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: indice * 0.06, ease: EASE }}
-      className="rounded-r-md border border-border bg-surface p-4 shadow-card"
-    >
-      <div className="flex items-center gap-2">
-        <Icon className={cn('h-[18px] w-[18px]', iconClases)} />
-        <span className="text-caption uppercase tracking-wide text-ink-faint">{label}</span>
-      </div>
-      <div className="mt-2 font-display text-[26px] font-bold leading-none text-ink">{valor}</div>
-      <div className="mt-1.5 text-caption text-ink-muted">{caption}</div>
-    </motion.div>
-  );
-}
-
-function KpiSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="h-[108px] rounded-r-md border border-border bg-surface p-4">
-          <div className="shimmer h-4 w-24 rounded" />
-          <div className="shimmer mt-3 h-7 w-14 rounded" />
-          <div className="shimmer mt-2 h-3 w-32 rounded" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function TablaSkeleton() {
   return (
@@ -166,9 +62,9 @@ export default function Admin() {
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
   const [hotelConfigAbierto, setHotelConfigAbierto] = useState(false);
   const tablaRef = useRef<HTMLDivElement>(null);
-  const [animarCountUp] = useState(primeraVisitaSesion);
 
   const cargar = useCallback(() => {
+    clearToursCache();
     setEstado('cargando');
     Promise.all([fetchTours(), fetchOperadores()])
       .then(([t, o]) => {
@@ -181,6 +77,7 @@ export default function Admin() {
 
   /** Recarga silenciosa (sin skeletons) tras mutaciones */
   const refrescar = useCallback(() => {
+    clearToursCache();
     Promise.all([fetchTours(), fetchOperadores()])
       .then(([t, o]) => {
         setTours(t);
@@ -239,11 +136,6 @@ export default function Admin() {
   const conTarifario = filasOperadores.filter((f) => f.numTours > 0);
   const desactualizados = conTarifario.filter((f) => f.frescura && f.frescura.estado !== 'ok');
   const conMasDe180 = desactualizados.filter((f) => f.frescura!.estado === 'danger');
-
-  const ultimaCargaTour = tours.length > 0
-    ? tours.reduce((max, t) => (t.fecha_actualizacion > max.fecha_actualizacion ? t : max), tours[0])
-    : null;
-  const ultimaCargaFrescura = ultimaCargaTour ? freshness(ultimaCargaTour.fecha_actualizacion) : null;
 
   const verToursDeOperador = (operadorId: number) => {
     setFiltroOperador(operadorId);
@@ -329,8 +221,7 @@ export default function Admin() {
 
         {/* Cargando */}
         {estado === 'cargando' && (
-          <div className="mt-6 space-y-6">
-            <KpiSkeleton />
+          <div className="mt-6">
             <TablaSkeleton />
           </div>
         )}
@@ -364,66 +255,6 @@ export default function Admin() {
         {/* Contenido */}
         {estado === 'listo' && operadores.length > 0 && (
           <>
-            {/* KPIs */}
-            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <KpiCard
-                indice={0}
-                icon={Building2}
-                iconClases="text-brand"
-                label="Operadores"
-                valor={<CountUp valor={conTarifario.length} animar={animarCountUp} />}
-                caption="con tarifario cargado"
-              />
-              <KpiCard
-                indice={1}
-                icon={MapPinned}
-                iconClases="text-brand"
-                label="Tours"
-                valor={<CountUp valor={tours.length} animar={animarCountUp} />}
-                caption="en la base de datos"
-              />
-              <KpiCard
-                indice={2}
-                icon={UploadCloud}
-                iconClases="text-ok"
-                label="Última carga"
-                valor={
-                  ultimaCargaTour ? (
-                    <span className="tnum">{formatDateEs(ultimaCargaTour.fecha_actualizacion).replace(/ \d{4}$/, '')}</span>
-                  ) : (
-                    '—'
-                  )
-                }
-                caption={
-                  ultimaCargaTour && ultimaCargaFrescura
-                    ? `${ultimaCargaFrescura.relativo} · ${ultimaCargaTour.operador.nombre}`
-                    : 'sin cargas'
-                }
-              />
-              <KpiCard
-                indice={3}
-                icon={AlertTriangle}
-                iconClases="text-warn"
-                label="Desactualizados"
-                valor={
-                  desactualizados.length > 0 ? (
-                    <Pulso>
-                      <CountUp valor={desactualizados.length} animar={animarCountUp} />
-                    </Pulso>
-                  ) : (
-                    <CountUp valor={0} animar={animarCountUp} />
-                  )
-                }
-                caption={
-                  conMasDe180.length > 0 ? (
-                    <span className="text-danger">{conMasDe180.length} con +6 meses</span>
-                  ) : (
-                    'tarifarios con +90 días'
-                  )
-                }
-              />
-            </div>
-
             {/* Banner de alerta */}
             {desactualizados.length > 0 && (
               <motion.div

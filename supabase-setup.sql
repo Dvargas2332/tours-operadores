@@ -120,6 +120,15 @@ alter table public.operadores add column if not exists con_iva boolean not null 
 grant select (con_iva) on public.operadores to anon;
 
 -- ----------------------------------------------------------------------------
+-- 8b) Formas de pago que el operador habilita para el vendedor (no para anon)
+-- ----------------------------------------------------------------------------
+alter table public.operadores
+  add column if not exists pago_compraclic boolean not null default false,
+  add column if not exists pago_sinpe boolean not null default false,
+  add column if not exists pago_transferencia boolean not null default false,
+  add column if not exists pago_cxc boolean not null default false;
+
+-- ----------------------------------------------------------------------------
 -- 9) Activo/inactivo del tour (los desactivados no se muestran en la vista pública)
 -- ----------------------------------------------------------------------------
 alter table public.tours add column if not exists activo boolean not null default true;
@@ -328,7 +337,8 @@ revoke select (telefono, email, poliza_url, politica_cancelacion) on public.oper
 revoke select on public.operadores from authenticated;
 grant select (
   id, nombre, comision, created_at, logo_url,
-  poliza_url, politica_cancelacion, horario, activo, con_iva
+  poliza_url, politica_cancelacion, horario, activo, con_iva,
+  pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc
 ) on public.operadores to authenticated;
 
 -- Storage: subir/borrar solo administradores.

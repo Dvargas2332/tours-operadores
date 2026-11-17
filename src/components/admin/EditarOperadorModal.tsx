@@ -35,6 +35,10 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   const [politica, setPolitica] = useState('');
   const [horario, setHorario] = useState('');
   const [conIva, setConIva] = useState(false);
+  const [pagoCompraclic, setPagoCompraclic] = useState(false);
+  const [pagoSinpe, setPagoSinpe] = useState(false);
+  const [pagoTransferencia, setPagoTransferencia] = useState(false);
+  const [pagoCxc, setPagoCxc] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
@@ -52,6 +56,10 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       setPolitica(operador.politica_cancelacion || '');
       setHorario(operador.horario || '');
       setConIva(operador.con_iva);
+      setPagoCompraclic(operador.pago_compraclic);
+      setPagoSinpe(operador.pago_sinpe);
+      setPagoTransferencia(operador.pago_transferencia);
+      setPagoCxc(operador.pago_cxc);
       setLogoPreview(operador.logo_url || null);
       setPolizaUrl(operador.poliza_url || null);
     }
@@ -165,6 +173,10 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
       politicaCancelacion: politica.trim(),
       horario: horario.trim(),
       conIva,
+      pagoCompraclic,
+      pagoSinpe,
+      pagoTransferencia,
+      pagoCxc,
       ...(logoUrl !== undefined && { logoUrl }),
       ...(nuevaPolizaUrl !== undefined && { polizaUrl: nuevaPolizaUrl }),
     });
@@ -175,15 +187,15 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden border-border bg-surface text-ink sm:max-w-lg">
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden border-border bg-surface text-ink sm:max-w-2xl">
         <DialogHeader className="shrink-0">
           <DialogTitle className="text-h3 text-ink">Editar operador</DialogTitle>
           <DialogDescription className="text-small text-ink-muted">
-            Actualizá el teléfono, el email, la comisión de uso interno y el logo.
+            Datos de contacto, comisión, formas de pago y archivos del operador.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-2">
           <div>
             <Label htmlFor="op-nombre">Nombre</Label>
             <Input
@@ -194,63 +206,103 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
               className="mt-1"
             />
           </div>
-          <div>
-            <Label htmlFor="op-telefono">Teléfono</Label>
-            <Input
-              id="op-telefono"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              placeholder="+506 2479-9800"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="op-email">Email</Label>
-            <Input
-              id="op-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="reservas@operador.com"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="op-comision">Comisión (%)</Label>
-            <Input
-              id="op-comision"
-              type="number"
-              min={0}
-              max={100}
-              step="0.1"
-              value={comision}
-              onChange={(e) => setComision(e.target.value)}
-              placeholder="Opcional"
-              className="mt-1"
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4 rounded-r-sm border border-border bg-surface-2 px-4 py-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="op-con-iva">Con IVA (13%)</Label>
-              <p className="text-small text-ink-muted">
-                Suma el 13% de IVA a las tarifas rack y neta de todos los tours de este operador.
-              </p>
+              <Label htmlFor="op-telefono">Teléfono</Label>
+              <Input
+                id="op-telefono"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                placeholder="+506 2479-9800"
+                className="mt-1"
+              />
             </div>
-            <Switch
-              id="op-con-iva"
-              checked={conIva}
-              onCheckedChange={setConIva}
-              disabled={isPending}
-            />
+            <div>
+              <Label htmlFor="op-email">Email</Label>
+              <Input
+                id="op-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="reservas@operador.com"
+                className="mt-1"
+              />
+            </div>
           </div>
-          <div className="sm:col-span-2">
-            <Label htmlFor="op-politica">Política de cancelación</Label>
-            <p className="text-small text-ink-muted">
-              Se comparte automáticamente con todos los tours de este operador.
-            </p>
+          <div className="grid gap-3 sm:grid-cols-[110px_170px_minmax(0,1fr)] sm:items-end">
+            <div>
+              <Label htmlFor="op-comision">Comisión (%)</Label>
+              <Input
+                id="op-comision"
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                value={comision}
+                onChange={(e) => setComision(e.target.value)}
+                placeholder="Opcional"
+                className="mt-1"
+              />
+            </div>
+            <div
+              className="flex h-9 items-center justify-between gap-2 rounded-r-sm border border-border bg-surface-2 px-2.5"
+              title="Suma el 13% de IVA a las tarifas rack y neta"
+            >
+              <Label htmlFor="op-con-iva" className="cursor-pointer text-small font-medium text-ink">
+                Con IVA 13%
+              </Label>
+              <Switch
+                id="op-con-iva"
+                checked={conIva}
+                onCheckedChange={setConIva}
+                disabled={isPending}
+              />
+            </div>
+            <div>
+              <Label htmlFor="op-horario">Horario del operador</Label>
+              <Input
+                id="op-horario"
+                value={horario}
+                onChange={(e) => setHorario(e.target.value)}
+                placeholder="Ej: Todos los días de 7:00 a.m. a 5:00 p.m."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="rounded-r-sm border border-border bg-surface-2 px-3.5 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-label uppercase tracking-wide text-ink-muted">Formas de pago</p>
+              <p className="text-caption text-ink-muted">Solo para el vendedor</p>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
+              {[
+                { id: 'op-pago-compraclic', label: 'Compraclic', checked: pagoCompraclic, onChange: setPagoCompraclic },
+                { id: 'op-pago-sinpe', label: 'SINPE Móvil', checked: pagoSinpe, onChange: setPagoSinpe },
+                { id: 'op-pago-transferencia', label: 'Transferencia', checked: pagoTransferencia, onChange: setPagoTransferencia },
+                { id: 'op-pago-cxc', label: 'CxC (crédito)', checked: pagoCxc, onChange: setPagoCxc },
+              ].map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-2">
+                  <Label htmlFor={p.id} className="cursor-pointer text-small font-medium text-ink">
+                    {p.label}
+                  </Label>
+                  <Switch
+                    id={p.id}
+                    checked={p.checked}
+                    onCheckedChange={p.onChange}
+                    disabled={isPending}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <Label htmlFor="op-politica">Política de cancelación</Label>
+              <p className="text-caption text-ink-muted">Se comparte con todos sus tours.</p>
+            </div>
             <textarea
               id="op-politica"
-              rows={3}
+              rows={2}
               value={politica}
               onChange={(e) => setPolitica(e.target.value)}
               placeholder="Ej: Cancelación gratuita hasta 24 horas antes..."
@@ -258,25 +310,13 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
             />
           </div>
 
-          <div>
-            <Label htmlFor="op-horario">Horario del operador</Label>
-            <p className="text-small text-ink-muted">
-              Lo usan los tours que no tienen horario propio.
-            </p>
-            <Input
-              id="op-horario"
-              value={horario}
-              onChange={(e) => setHorario(e.target.value)}
-              placeholder="Ej: Todos los días de 7:00 a.m. a 5:00 p.m."
-              className="mt-1"
-            />
-          </div>
-
-          {/* Logo */}
-          <div>
-            <Label>Logo del operador</Label>
-            <div className="mt-2 flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-r-md border border-border bg-surface-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* Logo */}
+            <div
+              className="flex items-center gap-2.5 rounded-r-sm border border-border bg-surface-2 px-2.5 py-2"
+              title="JPEG, PNG, WebP, GIF o SVG · máx. 2 MB"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-r-sm border border-border bg-surface">
                 {logoPreview ? (
                   <img
                     src={logoPreview}
@@ -284,81 +324,85 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
                     className="h-full w-full object-contain"
                   />
                 ) : (
-                  <ImageIcon className="h-8 w-8 text-ink-faint" />
+                  <ImageIcon className="h-5 w-5 text-ink-faint" />
                 )}
               </div>
-              <div className="flex flex-1 flex-col gap-2">
-                <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand">
-                  <ImageIcon className="h-4 w-4" />
-                  {logoPreview ? 'Cambiar imagen' : 'Subir logo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleSeleccionarLogo}
-                    disabled={isPending}
-                  />
-                </label>
-                {logoPreview && (
-                  <button
-                    type="button"
-                    onClick={handleQuitarLogo}
-                    disabled={isPending}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-r-sm text-caption font-semibold text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Quitar logo
-                  </button>
-                )}
-                <p className="text-caption text-ink-faint">JPEG, PNG, WebP, GIF o SVG · máx. 2 MB</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-label uppercase tracking-wide text-ink-faint">Logo</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <label className="inline-flex h-7 cursor-pointer items-center justify-center gap-1 rounded-r-sm border border-border bg-surface px-2 text-[11px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand">
+                    <ImageIcon className="h-3 w-3" />
+                    {logoPreview ? 'Cambiar' : 'Subir'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleSeleccionarLogo}
+                      disabled={isPending}
+                    />
+                  </label>
+                  {logoPreview && (
+                    <button
+                      type="button"
+                      onClick={handleQuitarLogo}
+                      disabled={isPending}
+                      aria-label="Quitar logo"
+                      title="Quitar logo"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-r-sm text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Póliza de seguro */}
-          <div>
-            <Label>Póliza de seguro</Label>
-            <div className="mt-2 flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-r-md border border-border bg-surface-2">
-                <FileText className="h-8 w-8 text-ink-faint" />
+            {/* Póliza de seguro */}
+            <div
+              className="flex items-center gap-2.5 rounded-r-sm border border-border bg-surface-2 px-2.5 py-2"
+              title="PDF o imagen · máx. 10 MB"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-r-sm border border-border bg-surface">
+                <FileText className="h-5 w-5 text-ink-faint" />
               </div>
-              <div className="flex flex-1 flex-col gap-2">
-                {polizaUrl ? (
-                  <div className="flex flex-wrap items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-label uppercase tracking-wide text-ink-faint">Póliza</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  {polizaUrl && (
                     <button
                       type="button"
                       onClick={() => void abrirPoliza(polizaUrl)}
-                      className="inline-flex h-10 items-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                      aria-label="Ver póliza"
+                      title="Ver póliza"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-r-sm border border-border bg-surface text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
                     >
-                      <Eye className="h-4 w-4" />
-                      Ver póliza
+                      <Eye className="h-3.5 w-3.5" />
                     </button>
+                  )}
+                  <label className="inline-flex h-7 cursor-pointer items-center justify-center gap-1 rounded-r-sm border border-border bg-surface px-2 text-[11px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand">
+                    <FileText className="h-3 w-3" />
+                    {polizaUrl ? 'Cambiar' : 'Subir'}
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      className="hidden"
+                      onChange={handleSeleccionarPoliza}
+                      disabled={isPending}
+                    />
+                  </label>
+                  {polizaUrl && (
                     <button
                       type="button"
                       onClick={handleQuitarPoliza}
                       disabled={isPending}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-r-sm px-2 text-caption font-semibold text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
+                      aria-label="Quitar póliza"
+                      title="Quitar póliza"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-r-sm text-danger transition-colors duration-fast hover:bg-danger/10 disabled:opacity-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      Quitar
                     </button>
-                  </div>
-                ) : null}
-                <label className={cn(
-                  'inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-r-sm border border-border bg-surface px-4 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand',
-                  polizaUrl ? 'w-fit' : 'w-full',
-                )}>
-                  <FileText className="h-4 w-4" />
-                  {polizaUrl ? 'Cambiar póliza' : 'Subir póliza'}
-                  <input
-                    type="file"
-                    accept=".pdf,image/*"
-                    className="hidden"
-                    onChange={handleSeleccionarPoliza}
-                    disabled={isPending}
-                  />
-                </label>
-                <p className="text-caption text-ink-faint">PDF o imagen · máx. 10 MB</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

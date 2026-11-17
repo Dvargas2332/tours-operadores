@@ -36,6 +36,8 @@ interface SortThProps<K extends string> {
   onCiclar: (key: K) => void;
   className?: string;
   center?: boolean;
+  /** Reduce el alto de la fila para tablas densas. */
+  dense?: boolean;
 }
 
 export default function SortTh<K extends string>({
@@ -45,6 +47,7 @@ export default function SortTh<K extends string>({
   onCiclar,
   className,
   center,
+  dense,
 }: SortThProps<K>) {
   const activo = orden?.key === colKey;
   const Icon = !activo ? ArrowUpDown : orden.dir === 'asc' ? ArrowUp : ArrowDown;
@@ -53,7 +56,8 @@ export default function SortTh<K extends string>({
     <th
       scope="col"
       className={cn(
-        'px-3 py-2.5 text-label uppercase tracking-wide text-ink-muted',
+        'text-label uppercase tracking-wide text-ink-muted',
+        dense ? 'px-2 py-1.5' : 'px-3 py-2.5',
         center && 'text-center',
         className,
       )}
