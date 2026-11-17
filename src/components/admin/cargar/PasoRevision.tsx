@@ -513,9 +513,13 @@ export default function PasoRevision({
                           disabled={fila.excluida}
                           onChange={(e) =>
                             actualizar(fila.key, 'horarios', {
-                              horarios: [{ salida: e.target.value, llegada: fila.horarios[0]?.llegada ?? '12:00' }],
+                              horarios: [
+                                { salida: e.target.value, llegada: fila.horarios[0]?.llegada ?? '12:00' },
+                                ...fila.horarios.slice(1),
+                              ],
                             })
                           }
+                          title={`${fila.horarios.length} horario${fila.horarios.length === 1 ? '' : 's'} en total`}
                           className={cn(INPUT_BASE, 'tnum', errores.horarios ? INPUT_ERR : INPUT_OK)}
                         />
                       </td>
@@ -528,9 +532,13 @@ export default function PasoRevision({
                           disabled={fila.excluida}
                           onChange={(e) =>
                             actualizar(fila.key, 'horarios', {
-                              horarios: [{ salida: fila.horarios[0]?.salida ?? '08:00', llegada: e.target.value }],
+                              horarios: [
+                                { salida: fila.horarios[0]?.salida ?? '08:00', llegada: e.target.value },
+                                ...fila.horarios.slice(1),
+                              ],
                             })
                           }
+                          title={`${fila.horarios.length} horario${fila.horarios.length === 1 ? '' : 's'} en total`}
                           className={cn(INPUT_BASE, 'tnum', errores.horarios ? INPUT_ERR : INPUT_OK)}
                         />
                       </td>

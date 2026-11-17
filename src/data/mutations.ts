@@ -44,6 +44,8 @@ export interface TourInput {
   observaciones?: string;
   /** Metadatos del importador: qué campos trajo el Excel (no va a la base). */
   camposPresentes?: Record<string, boolean>;
+  /** Importador: conserva las tarifas base que no vengan en el archivo. */
+  preservarTarifasFaltantes?: boolean;
 }
 
 export interface OperadorInput {
@@ -173,7 +175,7 @@ function siguienteSubcodigo(codigos: (string | null | undefined)[]): string {
 export async function crearOperadores(nuevos: OperadorInput[]) {
   const { data: existentes } = await supabase
     .from('operadores')
-    .select('id, codigo, nombre, logo_url, poliza_url, politica_cancelacion');
+    .select('id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion');
   const porNombre = new Map((existentes ?? []).map((o) => [o.nombre, o]));
   const usados = new Set(
     (existentes ?? []).map((o) => o.codigo).filter((c): c is string => Boolean(c)),
@@ -191,7 +193,7 @@ export async function crearOperadores(nuevos: OperadorInput[]) {
     const existente = porNombre.get(nombre);
     if (existente) {
       const update: Record<string, unknown> = {
-        comision: n.comision ?? null,
+        comision: n.comision ?? existente.comision ?? null,
         logo_url: n.logoUrl ?? existente.logo_url,
         poliza_url: n.polizaUrl ?? existente.poliza_url,
         politica_cancelacion: n.politicaCancelacion ?? existente.politica_cancelacion,
@@ -199,6 +201,11 @@ export async function crearOperadores(nuevos: OperadorInput[]) {
       if (n.codigo?.trim()) update.codigo = normalizarCodigo(n.codigo);
       if (n.telefono?.trim()) update.telefono = n.telefono;
       if (n.email != null) update.email = n.email;
+      if (n.conIva !== undefined) update.con_iva = n.conIva;
+      if (n.pagoCompraclic !== undefined) update.pago_compraclic = n.pagoCompraclic;
+      if (n.pagoSinpe !== undefined) update.pago_sinpe = n.pagoSinpe;
+      if (n.pagoTransferencia !== undefined) update.pago_transferencia = n.pagoTransferencia;
+      if (n.pagoCxc !== undefined) update.pago_cxc = n.pagoCxc;
       await supabase.from('operadores').update(update).eq('id', existente.id);
       actualizados++;
     } else {
@@ -276,6 +283,121 @@ async function insertarTarifasYHorarios(
   }
 }
 
+interface TemporadaTarifaGuardada {
+  temporada_id: number;
+  rango: string;
+  rack: number | string;
+  neta: number | string | null;
+}
+
+function rangoTarifa(t: { min_edad: number; max_edad: number | null }): string {
+  return `${t.min_edad}-${t.max_edad ?? '+'}`;
+}
+
+/**
+ * Reemplaza las tarifas base de un tour conservando las temporadas.
+ * Las temporadas apuntan a `tour_tarifas.id` con borrado en cascada: antes de
+ * borrar se guardan sus precios por rango y, después de insertar las tarifas
+ * nuevas, se vuelven a enlazar por ese mismo rango.
+ */
+async function reemplazarTarifas(
+  tourId: number,
+  tarifas: TarifaInput[],
+  preservarFaltantes = false,
+) {
+  const { data: previas, error: errorPrevias } = await supabase
+    .from('tour_tarifas')
+    .select('id, min_edad, max_edad, nombre, rack, neta, hora_desde, hora_hasta, orden')
+    .eq('tour_id', tourId);
+  if (errorPrevias) throw errorPrevias;
+
+  const ids = (previas ?? []).map((t) => t.id);
+  let temporadas: TemporadaTarifaGuardada[] = [];
+
+  if (ids.length > 0) {
+    const { data: guardadas, error: errorGuardadas } = await supabase
+      .from('tour_temporada_tarifas')
+      .select('temporada_id, tarifa_id, rack, neta')
+      .in('tarifa_id', ids);
+    if (errorGuardadas) throw errorGuardadas;
+
+    const rangoPorId = new Map((previas ?? []).map((t) => [t.id, rangoTarifa(t)]));
+    temporadas = (guardadas ?? []).flatMap((t) => {
+      const rango = rangoPorId.get(t.tarifa_id);
+      if (!rango) return [];
+      return [{ temporada_id: t.temporada_id, rango, rack: t.rack, neta: t.neta }];
+    });
+  }
+
+  const { error: errorBorrar } = await supabase.from('tour_tarifas').delete().eq('tour_id', tourId);
+  if (errorBorrar) throw errorBorrar;
+  if (tarifas.length === 0 && !preservarFaltantes) return;
+
+  const rangosEntrada = new Set(
+    tarifas.map((t) => rangoTarifa({ min_edad: t.minEdad, max_edad: t.maxEdad ?? null })),
+  );
+  const faltantes: TarifaInput[] = preservarFaltantes
+    ? (previas ?? [])
+        .filter((t) => !rangosEntrada.has(rangoTarifa(t)))
+        .map((t) => ({
+          nombre: t.nombre,
+          minEdad: t.min_edad,
+          maxEdad: t.max_edad,
+          rack: Number(t.rack),
+          neta: t.neta == null ? null : Number(t.neta),
+          horaDesde: t.hora_desde,
+          horaHasta: t.hora_hasta,
+          orden: t.orden,
+        }))
+    : [];
+  const finales = [...tarifas, ...faltantes].sort(
+    (a, b) => a.minEdad - b.minEdad || (a.maxEdad ?? 999) - (b.maxEdad ?? 999),
+  );
+  if (finales.length === 0) return;
+
+  const { data: nuevas, error: errorInsertar } = await supabase
+    .from('tour_tarifas')
+    .insert(finales.map((t, i) => ({ ...tarifaToRow(t, i), tour_id: tourId })))
+    .select('id, min_edad, max_edad');
+  if (errorInsertar) throw errorInsertar;
+
+  // El machote no trae nombre de tarifa: conservar el nombre y las horas
+  // personalizadas que ya tenía la tarifa del mismo rango.
+  const previaPorRango = new Map((previas ?? []).map((t) => [rangoTarifa(t), t]));
+  for (const nueva of nuevas ?? []) {
+    const rango = rangoTarifa(nueva);
+    const entrada = finales.find(
+      (t) => rangoTarifa({ min_edad: t.minEdad, max_edad: t.maxEdad ?? null }) === rango,
+    );
+    const vieja = previaPorRango.get(rango);
+    if (!vieja) continue;
+    const patch: Record<string, unknown> = {};
+    if (!entrada?.nombre && vieja.nombre) patch.nombre = vieja.nombre;
+    if (!entrada?.horaDesde && vieja.hora_desde) patch.hora_desde = vieja.hora_desde;
+    if (!entrada?.horaHasta && vieja.hora_hasta) patch.hora_hasta = vieja.hora_hasta;
+    if (Object.keys(patch).length > 0) {
+      await supabase.from('tour_tarifas').update(patch).eq('id', nueva.id);
+    }
+  }
+
+  if (temporadas.length === 0) return;
+  const idPorRango = new Map((nuevas ?? []).map((t) => [rangoTarifa(t), t.id]));
+  const filas = temporadas.flatMap((t) => {
+    const tarifaId = idPorRango.get(t.rango);
+    if (!tarifaId) return [];
+    return [{
+      temporada_id: t.temporada_id,
+      tarifa_id: tarifaId,
+      rack: t.rack,
+      neta: t.neta,
+    }];
+  });
+  if (filas.length > 0) {
+    const { error } = await supabase.from('tour_temporada_tarifas').insert(filas);
+    if (error) throw error;
+  }
+}
+
 export async function crearTour(
   input: TourInput & { operadorId: number; fechaActualizacion?: string },
 ) {
@@ -335,12 +457,7 @@ export async function actualizarTour(
   }
 
   if (tarifas) {
-    await supabase.from('tour_tarifas').delete().eq('tour_id', id);
-    if (tarifas.length) {
-      await supabase
-        .from('tour_tarifas')
-        .insert(tarifas.map((t, i) => ({ ...tarifaToRow(t, i), tour_id: id })));
-    }
+    await reemplazarTarifas(id, tarifas);
   }
 
   if (horarios) {
@@ -419,8 +536,13 @@ export async function importarCatalogo(input: {
         politica_cancelacion: politicaOperador,
       };
       if (codigoArchivo) update.codigo = codigoArchivo;
-      if (op.telefono?.trim()) update.telefono = op.telefono;
-      if (op.email != null) update.email = op.email;
+      if (op.telefono !== undefined) update.telefono = op.telefono;
+      if (op.email !== undefined) update.email = op.email;
+      if (op.conIva !== undefined) update.con_iva = op.conIva;
+      if (op.pagoCompraclic !== undefined) update.pago_compraclic = op.pagoCompraclic;
+      if (op.pagoSinpe !== undefined) update.pago_sinpe = op.pagoSinpe;
+      if (op.pagoTransferencia !== undefined) update.pago_transferencia = op.pagoTransferencia;
+      if (op.pagoCxc !== undefined) update.pago_cxc = op.pagoCxc;
       await supabase.from('operadores').update(update).eq('id', operadorId);
       operadoresActualizados++;
     } else {
@@ -489,12 +611,7 @@ export async function importarCatalogo(input: {
         if (error) throw error;
 
         if (campos.tarifas && t.tarifas) {
-          await supabase.from('tour_tarifas').delete().eq('tour_id', existente.id);
-          if (t.tarifas.length) {
-            await supabase
-              .from('tour_tarifas')
-              .insert(t.tarifas.map((x, i) => ({ ...tarifaToRow(x, i), tour_id: existente.id })));
-          }
+          await reemplazarTarifas(existente.id, t.tarifas, t.preservarTarifasFaltantes === true);
         }
         if (campos.horarios && t.horarios) {
           await supabase.from('tour_horarios').delete().eq('tour_id', existente.id);
@@ -586,8 +703,10 @@ export async function subirFondo(file: File): Promise<string> {
 
 export async function actualizarHotel(input: {
   nombre: string;
+  marca: string;
   whatsapp: string;
   email: string | null;
+  logo_url: string | null;
   fondo_url: string | null;
 }) {
   const { error } = await supabase.from('hotel').upsert({ id: 1, ...input });

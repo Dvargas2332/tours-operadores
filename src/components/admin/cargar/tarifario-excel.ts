@@ -8,15 +8,22 @@
  */
 import * as XLSX from 'xlsx';
 import type { Categoria, Moneda } from '@/data/mock-tours';
-import type { FilaRevision, TarifaRevision } from './tipos';
+import type { FilaRevision, HorarioRevision, TarifaRevision } from './tipos';
 import { nuevaKey } from './tipos';
 
 export interface OperadorCatalogo {
   nombre: string;
   codigo: string;
-  telefono: string;
-  email: string | null;
+  telefono?: string;
+  email?: string | null;
   comision: number | null;
+  conIva?: boolean;
+  pagoCompraclic?: boolean;
+  pagoSinpe?: boolean;
+  pagoTransferencia?: boolean;
+  pagoCxc?: boolean;
+  logoUrl?: string | null;
+  polizaUrl?: string | null;
   moneda: Moneda;
   tours: FilaRevision[];
 }
@@ -61,6 +68,38 @@ function primeraHora(raw: string): string {
 function extraerDuracion(texto: string): string {
   const m = texto.match(/dur[aá]ci[oó]n\s*:?\s*(\d+(?:[.,]\d+)?)/i);
   return m ? m[1].replace(',', '.') : '';
+}
+
+function parsearMoneda(raw: string, porDefecto: Moneda): Moneda {
+  const n = normalizar(raw);
+  if (!n) return porDefecto;
+  if (n.includes('crc') || n.includes('colon') || raw.includes('₡')) return 'crc';
+  if (n.includes('usd') || n.includes('dolar')) return 'usd';
+  return porDefecto;
+}
+
+/** "08:00-12:00; 13:00-17:00" → dos horarios. También acepta "08:00 a 12:00". */
+function parsearHorarios(raw: string): HorarioRevision[] {
+  const partes = raw
+    .split(/[;\n]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const out: HorarioRevision[] = [];
+  for (const parte of partes) {
+    const rango = parte.match(/(\d{1,2}:\d{2})\s*(?:-|–|a|hasta)\s*(\d{1,2}:\d{2})/i);
+    if (rango) {
+      const salida = primeraHora(rango[1]);
+      const llegada = primeraHora(rango[2]);
+      out.push({ salida, llegada });
+      continue;
+    }
+    const unica = parte.match(/(\d{1,2}:\d{2})/);
+    if (unica) {
+      const salida = primeraHora(unica[1]);
+      out.push({ salida, llegada: salida });
+    }
+  }
+  return out;
 }
 
 const ALIASES_INCLUYE: Record<string, string> = {
@@ -155,6 +194,7 @@ interface ColumnaDetectada {
     | 'codigoOperador'
     | 'tarifa'
     | 'horario'
+    | 'horarios'
     | 'horarioLlegada'
     | 'incluye'
     | 'detalles'
@@ -164,7 +204,17 @@ interface ColumnaDetectada {
     | 'duracion'
     | 'minimo'
     | 'aptoNinos'
-    | 'politica';
+    | 'politica'
+    | 'telefono'
+    | 'email'
+    | 'conIva'
+    | 'pagoCompraclic'
+    | 'pagoSinpe'
+    | 'pagoTransferencia'
+    | 'pagoCxc'
+    | 'moneda'
+    | 'logoUrl'
+    | 'polizaUrl';
   tarifa?: TarifaColumna;
 }
 
@@ -247,6 +297,31 @@ function campoDe(h: string): ColumnaDetectada | null {
   if (n.includes('politica') && (n.includes('cancel') || n === 'politica')) {
     return { tipo: 'politica' };
   }
+  if (n === 'telefono' || n === 'teléfono' || n.includes('telefono') || n.includes('celular') || n === 'whatsapp') {
+    return { tipo: 'telefono' };
+  }
+  if (n === 'email' || n === 'correo' || n.includes('correo') || n.includes('e mail')) {
+    return { tipo: 'email' };
+  }
+  if (n === 'moneda' || n === 'currency') return { tipo: 'moneda' };
+  if (n === 'logo url' || n === 'logo' || n === 'url logo') return { tipo: 'logoUrl' };
+  if (n === 'poliza url' || n === 'url poliza' || n === 'poliza') return { tipo: 'polizaUrl' };
+  if (
+    n === 'iva' ||
+    n === 'iva 13' ||
+    n === 'iva 13%' ||
+    n === 'con iva' ||
+    n === '13%' ||
+    n === 'impuesto'
+  ) {
+    return { tipo: 'conIva' };
+  }
+  if (n.includes('compraclic') || n.includes('compra clic')) return { tipo: 'pagoCompraclic' };
+  if (n.includes('sinpe')) return { tipo: 'pagoSinpe' };
+  if (n.includes('transferencia')) return { tipo: 'pagoTransferencia' };
+  if (n === 'cxc' || n.includes('cxc') || n.includes('credito') || n.includes('crédito')) {
+    return { tipo: 'pagoCxc' };
+  }
 
   if (n === 'tour' || n === 'detalle' || n === 'actividad' || n === 'zonas') return { tipo: 'nombre' };
 
@@ -269,10 +344,11 @@ function campoDe(h: string): ColumnaDetectada | null {
     };
   }
 
-  if (n === 'pick up' || n === 'manana' || n === 'diurno' || n === 'horarios' || n === 'horario' || n === 'hora') return { tipo: 'horario' };
+  if (n === 'horarios' || n === 'horarios de salida' || n === 'salidas') return { tipo: 'horarios' };
+  if (n === 'pick up' || n === 'manana' || n === 'diurno' || n === 'horario' || n === 'hora') return { tipo: 'horario' };
   if (n === 'drop off' || n === 'regreso' || n === 'retorno' || n === 'llegada' || n === 'hora llegada' || n === 'horario llegada') return { tipo: 'horarioLlegada' };
   if (n === 'incluye' || n.includes('incluye')) return { tipo: 'incluye' };
-  if (n === 'detalles' || n === 'recomendaciones' || n.includes('recomendacion') || n.includes('restriccion')) return { tipo: 'detalles' };
+  if (n === 'detalles' || n === 'recomendaciones' || n.includes('recomendacion') || n.includes('restriccion') || n.includes('observacion') || n === 'notas') return { tipo: 'detalles' };
   if (n === 'comision' || n.includes('comision')) return { tipo: 'comision' };
   return null;
 }
@@ -294,6 +370,7 @@ interface MapaColumnas {
   codigoOperador: number | null;
   tarifas: { col: number; tarifa: TarifaColumna }[];
   horario: number | null;
+  horarios: number | null;
   horarioLlegada: number | null;
   incluye: number | null;
   detalles: number | null;
@@ -304,6 +381,16 @@ interface MapaColumnas {
   minimo: number | null;
   aptoNinos: number | null;
   politica: number | null;
+  telefono: number | null;
+  email: number | null;
+  conIva: number | null;
+  pagoCompraclic: number | null;
+  pagoSinpe: number | null;
+  pagoTransferencia: number | null;
+  pagoCxc: number | null;
+  moneda: number | null;
+  logoUrl: number | null;
+  polizaUrl: number | null;
 }
 
 function construirMapa(celdas: string[]): MapaColumnas {
@@ -313,6 +400,7 @@ function construirMapa(celdas: string[]): MapaColumnas {
     codigoOperador: null,
     tarifas: [],
     horario: null,
+    horarios: null,
     horarioLlegada: null,
     incluye: null,
     detalles: null,
@@ -323,6 +411,16 @@ function construirMapa(celdas: string[]): MapaColumnas {
     minimo: null,
     aptoNinos: null,
     politica: null,
+    telefono: null,
+    email: null,
+    conIva: null,
+    pagoCompraclic: null,
+    pagoSinpe: null,
+    pagoTransferencia: null,
+    pagoCxc: null,
+    moneda: null,
+    logoUrl: null,
+    polizaUrl: null,
   };
   celdas.forEach((c, ci) => {
     const campo = campoDe(c);
@@ -332,6 +430,7 @@ function construirMapa(celdas: string[]): MapaColumnas {
     else if (campo.tipo === 'codigoOperador' && mapa.codigoOperador == null) mapa.codigoOperador = ci;
     else if (campo.tipo === 'tarifa' && campo.tarifa) mapa.tarifas.push({ col: ci, tarifa: campo.tarifa });
     else if (campo.tipo === 'horario' && mapa.horario == null) mapa.horario = ci;
+    else if (campo.tipo === 'horarios' && mapa.horarios == null) mapa.horarios = ci;
     else if (campo.tipo === 'horarioLlegada' && mapa.horarioLlegada == null) mapa.horarioLlegada = ci;
     else if (campo.tipo === 'incluye' && mapa.incluye == null) mapa.incluye = ci;
     else if (campo.tipo === 'detalles' && mapa.detalles == null) mapa.detalles = ci;
@@ -342,6 +441,16 @@ function construirMapa(celdas: string[]): MapaColumnas {
     else if (campo.tipo === 'minimo' && mapa.minimo == null) mapa.minimo = ci;
     else if (campo.tipo === 'aptoNinos' && mapa.aptoNinos == null) mapa.aptoNinos = ci;
     else if (campo.tipo === 'politica' && mapa.politica == null) mapa.politica = ci;
+    else if (campo.tipo === 'telefono' && mapa.telefono == null) mapa.telefono = ci;
+    else if (campo.tipo === 'email' && mapa.email == null) mapa.email = ci;
+    else if (campo.tipo === 'conIva' && mapa.conIva == null) mapa.conIva = ci;
+    else if (campo.tipo === 'pagoCompraclic' && mapa.pagoCompraclic == null) mapa.pagoCompraclic = ci;
+    else if (campo.tipo === 'pagoSinpe' && mapa.pagoSinpe == null) mapa.pagoSinpe = ci;
+    else if (campo.tipo === 'pagoTransferencia' && mapa.pagoTransferencia == null) mapa.pagoTransferencia = ci;
+    else if (campo.tipo === 'pagoCxc' && mapa.pagoCxc == null) mapa.pagoCxc = ci;
+    else if (campo.tipo === 'moneda' && mapa.moneda == null) mapa.moneda = ci;
+    else if (campo.tipo === 'logoUrl' && mapa.logoUrl == null) mapa.logoUrl = ci;
+    else if (campo.tipo === 'polizaUrl' && mapa.polizaUrl == null) mapa.polizaUrl = ci;
   });
   return mapa;
 }
@@ -416,7 +525,15 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
   let moneda: Moneda = 'usd';
   const indicadorColones = /₡|\bcrc\b|\bcolones\b/;
   for (const row of rows) {
-    if (row.some((c) => indicadorColones.test(c.toLowerCase()))) {
+    if (
+      row.some((c) => {
+        const texto = c.trim().toLowerCase();
+        // La celda suelta "CRC" es el valor de la columna MONEDA, no un aviso de hoja.
+        if (texto === 'crc') return false;
+        if (!indicadorColones.test(texto)) return false;
+        return texto.includes('₡') || /colones|precio|moneda|tarifa/.test(texto);
+      })
+    ) {
       moneda = 'crc';
       break;
     }
@@ -427,6 +544,15 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
   const tours: FilaRevision[] = [];
   const comisiones: number[] = [];
   let codigoOperador = '';
+  let telefono = '';
+  let email = '';
+  let conIva: boolean | undefined;
+  let pagoCompraclic: boolean | undefined;
+  let pagoSinpe: boolean | undefined;
+  let pagoTransferencia: boolean | undefined;
+  let pagoCxc: boolean | undefined;
+  let logoUrl = '';
+  let polizaUrl = '';
 
   // Tabla lateral (LOS LAGOS): columnas con su propio "#" + "DETALLE" + precios
   let lado: { num: number; nombre: number; rack: number; neta: number } | null = null;
@@ -465,6 +591,32 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
 
     if (celdas.every((c) => c === '')) continue;
 
+    // Datos del operador: se repiten en cada fila del machote, se toma el primero.
+    if (!telefono && mapa.telefono != null) telefono = limpiarTexto(celdas[mapa.telefono] ?? '');
+    if (!email && mapa.email != null) email = limpiarTexto(celdas[mapa.email] ?? '');
+    if (!logoUrl && mapa.logoUrl != null) logoUrl = limpiarTexto(celdas[mapa.logoUrl] ?? '');
+    if (!polizaUrl && mapa.polizaUrl != null) polizaUrl = limpiarTexto(celdas[mapa.polizaUrl] ?? '');
+    if (conIva === undefined && mapa.conIva != null) {
+      const v = parsearSiNo(celdas[mapa.conIva] ?? '');
+      if (v != null) conIva = v;
+    }
+    if (pagoCompraclic === undefined && mapa.pagoCompraclic != null) {
+      const v = parsearSiNo(celdas[mapa.pagoCompraclic] ?? '');
+      if (v != null) pagoCompraclic = v;
+    }
+    if (pagoSinpe === undefined && mapa.pagoSinpe != null) {
+      const v = parsearSiNo(celdas[mapa.pagoSinpe] ?? '');
+      if (v != null) pagoSinpe = v;
+    }
+    if (pagoTransferencia === undefined && mapa.pagoTransferencia != null) {
+      const v = parsearSiNo(celdas[mapa.pagoTransferencia] ?? '');
+      if (v != null) pagoTransferencia = v;
+    }
+    if (pagoCxc === undefined && mapa.pagoCxc != null) {
+      const v = parsearSiNo(celdas[mapa.pagoCxc] ?? '');
+      if (v != null) pagoCxc = v;
+    }
+
     // Comisión (columna COMISIÓN con "%")
     if (mapa.comision != null && celdas[mapa.comision]) {
       const m = celdas[mapa.comision].match(/(\d+(?:\.\d+)?)\s*%/);
@@ -478,6 +630,19 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       const tarifas = tarifasPorFila(mapa, celdas);
       const horario = mapa.horario != null ? celdas[mapa.horario] : '';
       const horarioLlegada = mapa.horarioLlegada != null ? celdas[mapa.horarioLlegada] : '';
+      const horariosCol = mapa.horarios != null ? parsearHorarios(celdas[mapa.horarios] ?? '') : [];
+      const horariosPresente = mapa.horarios != null
+        ? (celdas[mapa.horarios] ?? '').trim() !== ''
+        : Boolean(horario?.trim() || horarioLlegada?.trim());
+      const horarios: HorarioRevision[] =
+        horariosCol.length > 0
+          ? horariosCol
+          : [
+              {
+                salida: horario ? primeraHora(horario) : '08:00',
+                llegada: horarioLlegada ? primeraHora(horarioLlegada) : '12:00',
+              },
+            ];
       const duracionDetalle = extraerDuracion(detalle);
       const duracionCol = mapa.duracion != null ? limpiarNumero(celdas[mapa.duracion] ?? '') : '';
       const minimoCol = mapa.minimo != null ? limpiarNumero(celdas[mapa.minimo] ?? '') : '';
@@ -486,26 +651,24 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
       const aptoCol = mapa.aptoNinos != null ? parsearSiNo(celdas[mapa.aptoNinos] ?? '') : null;
       const politicaCol = mapa.politica != null ? limpiarTexto(celdas[mapa.politica] ?? '') : '';
       const codigoCol = mapa.codigo != null ? limpiarTexto(celdas[mapa.codigo] ?? '') : '';
+      const monedaFila = mapa.moneda != null
+        ? parsearMoneda(celdas[mapa.moneda] ?? '', moneda)
+        : moneda;
 
       const advertencias: string[] = [];
       const hayNino = tarifas.some((t) => t.maxEdad != null && t.maxEdad < 18);
       if (!hayNino) advertencias.push('Sin tarifa de niño');
       if (!tarifas.some((t) => t.neta !== '')) advertencias.push('Sin tarifa neta');
-      if (moneda === 'crc') advertencias.push('Precio en colones');
+      if (monedaFila === 'crc') advertencias.push('Precio en colones');
 
-      actual = nuevaFila(nombre, moneda, limpiarTexto(celdas[mapa.nombre]), {
+      actual = nuevaFila(nombre, monedaFila, limpiarTexto(celdas[mapa.nombre]), {
         codigo: codigoCol,
         zona: zonaCol || 'Arenal',
         categorias: categoriasCol && categoriasCol.length > 0 ? categoriasCol : ['aventura'],
         tarifas,
         duracionHoras: duracionCol || duracionDetalle || '1',
         minimoPersonas: minimoCol || '2',
-        horarios: [
-          {
-            salida: horario ? primeraHora(horario) : '08:00',
-            llegada: horarioLlegada ? primeraHora(horarioLlegada) : '12:00',
-          },
-        ],
+        horarios,
         incluye: mapa.incluye != null ? parsearIncluye(celdas[mapa.incluye]) : [],
         observaciones: detalle,
         aptoNinos: aptoCol ?? hayNino,
@@ -521,9 +684,9 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
           politica: mapa.politica != null && politicaCol !== '',
           observaciones: mapa.detalles != null,
           incluye: mapa.incluye != null,
-          horarios: mapa.horario != null,
+          horarios: horariosPresente,
           tarifas: mapa.tarifas.length > 0,
-          moneda: true,
+          moneda: mapa.moneda != null || moneda === 'crc',
           comision: mapa.comision != null,
         },
       });
@@ -579,9 +742,16 @@ function parsearHoja(hojaNombre: string, rows: string[][]): OperadorCatalogo | n
   return {
     nombre,
     codigo: codigoOperador,
-    telefono: '',
-    email: null,
+    ...(telefono ? { telefono } : {}),
+    ...(email ? { email } : {}),
     comision: comisiones.length ? comisiones[0] : null,
+    ...(conIva !== undefined ? { conIva } : {}),
+    ...(pagoCompraclic !== undefined ? { pagoCompraclic } : {}),
+    ...(pagoSinpe !== undefined ? { pagoSinpe } : {}),
+    ...(pagoTransferencia !== undefined ? { pagoTransferencia } : {}),
+    ...(pagoCxc !== undefined ? { pagoCxc } : {}),
+    ...(logoUrl ? { logoUrl } : {}),
+    ...(polizaUrl ? { polizaUrl } : {}),
     moneda,
     tours: conPrecio,
   };

@@ -13,6 +13,7 @@ import { Building2, Columns3, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCompare } from '@/context/CompareContext';
 import { useAuth } from '@/context/AuthContext';
+import { useBrand } from '@/hooks/useBrand';
 import { useToursData } from '@/hooks/useToursData';
 import { useI18n } from '@/i18n';
 import { freshness } from '@/data/mock-tours';
@@ -41,6 +42,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
   const { seleccionados } = useCompare();
   const { esAdmin } = useAuth();
   const { t } = useI18n();
+  const brand = useBrand();
 
   const desactualizados = data
     ? data.tours.filter((t) => freshness(t.fecha_actualizacion).estado !== 'ok').length
@@ -80,7 +82,7 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
     <div className="flex h-full flex-col bg-surface">
       {/* Logo */}
       <div className={cn('flex h-20 shrink-0 items-center gap-3 border-b border-border', collapsed ? 'justify-center px-2' : 'px-4')}>
-        <img src="./logo/volcan.png" alt="Tours Operadores" className="h-16 w-16 shrink-0 object-contain" />
+        <img src={brand.logo} alt={brand.marca} className="h-16 w-16 shrink-0 object-contain" />
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div
@@ -90,8 +92,8 @@ export default function Navbar({ collapsed, onNavigate, idPrefix = 'nav' }: Navb
               transition={{ duration: 0.15 }}
               className="min-w-0"
             >
-              <div className="font-display text-[22px] font-bold leading-tight text-[#6F4E37]">Tours Operadores</div>
-              <div className="text-small text-[#8B7355]">Lavas Tacotal</div>
+              <div className="font-display text-[22px] font-bold leading-tight text-[#6F4E37]">{brand.marca}</div>
+              <div className="text-small text-[#8B7355]">{brand.sitio}</div>
             </motion.div>
           )}
         </AnimatePresence>

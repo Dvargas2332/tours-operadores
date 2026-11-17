@@ -3,15 +3,15 @@
  * "qué incluye", resaltado de mejor precio (token --accent) y modo
  * "resaltar diferencias". En móvil se transforma en acordeones por tour.
  */
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Baby, Check, ChevronDown, Copy, MapPin, Minus, Trophy, X } from 'lucide-react';
+import { Baby, ChevronDown, Copy, MapPin, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { BadgeCategoria, DOT_FRESCURA, PopoverOperador } from '@/components/detalle/DetalleUI';
+import { BadgeCategoria, DOT_FRESCURA } from '@/components/detalle/DetalleUI';
 import { buildResumenTour, copiarTexto, politicaSinOperador } from '@/components/detalle/resumen';
-import { formatPrecio, freshness, formatDateEs, horarioLabel } from '@/data/mock-tours';
-import type { Tour, Tarifa } from '@/data/mock-tours';
-import { INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
+import { formatPrecio, freshness, formatDateEs, horarioTieneLlegada } from '@/data/mock-tours';
+import type { Tour, Tarifa, Horario } from '@/data/mock-tours';
+import { INCLUYE_META } from '@/lib/tour-meta';
 import { tarifasActivas, precioActivoDesde, precioConIva, precioPublico } from '@/lib/tarifas';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -32,7 +32,7 @@ function PillMejorPrecio() {
       initial={{ scale: 0.7 }}
       animate={{ scale: [0.7, 1.1, 1] }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="mt-1 inline-flex items-center gap-1 rounded-full bg-volcan px-2 py-0.5 text-caption font-semibold text-white"
+      className="inline-flex items-center gap-1 rounded-full bg-volcan px-2 py-0.5 text-caption font-semibold text-white"
     >
       <Trophy className="h-3 w-3" />
       Mejor precio
@@ -40,12 +40,12 @@ function PillMejorPrecio() {
   );
 }
 
-function CheckIncluye() {
-  return (
-    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-soft">
-      <Check className="h-3.5 w-3.5 text-ok" />
-    </span>
-  );
+function horarioCompacto(h: Horario): string {
+  return horarioTieneLlegada(h) ? `${h.hora_salida} - ${h.hora_llegada}` : h.hora_salida;
+}
+
+function tituloZona(zona: string): string {
+  return zona.toLocaleLowerCase('es').replace(/(^|\s)\p{L}/gu, (m) => m.toUpperCase());
 }
 
 /** Texto Small con "ver más" que expande en línea (política de cancelación) */
@@ -94,100 +94,74 @@ function precioDesdeGlobal(tour: Tour, esCostaRica: boolean): number {
 interface FilaDef {
   key: string;
   label: string;
+  /** Agrupador visual: Precio, Interno, Detalles, Incluye, Condiciones */
+  seccion?: string;
   /** Valores serializados para detectar diferencia entre columnas */
   valores: unknown[];
   render: (tour: Tour) => React.ReactNode;
-  /** Clase extra por celda (p.ej. mejor precio) */
-  claseCelda?: (tour: Tour) => string | undefined;
 }
 
 function useFilas(tours: Tour[]): FilaDef[] {
   const { autenticado } = useAuth();
   const { esCostaRica, mostrarOperador } = useI18n();
   return useMemo(() => {
-    // Helpers ligados a la nacionalidad del cliente (mismos nombres internos).
-    const precioDesde = (t: Tour) => precioDesdeGlobal(t, esCostaRica);
-    const tarifaBase = (t: Tour) => tarifaBaseGlobal(t, esCostaRica);
-    const tarifaNino = (t: Tour) => tarifaNinoGlobal(t, esCostaRica);
-    const desde = tours.map(precioDesde);
-    const mejorDesde = Math.min(...desde);
-    const bases = tours.map(tarifaBase);
-    // Los racks se comparan y muestran con IVA incluido cuando el operador lo tiene habilitado.
-    const adultos = bases.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : 0));
-    const mejorAdulto = Math.min(...adultos);
-    const ninos = tours.map(tarifaNino);
-    const ninosPublicos = ninos.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : null));
-    const conNinoPublicos = ninosPublicos.filter((v): v is number => v != null);
-    const mejorNino = conNinoPublicos.length >= 2 ? Math.min(...conNinoPublicos) : null;
+    const bases = tours.map((t) => tarifaBaseGlobal(t, esCostaRica));
+    const ninos = tours.map((t) => tarifaNinoGlobal(t, esCostaRica));
 
-    const filas: FilaDef[] = [
+    return [
       {
         key: 'precio-desde',
         label: autenticado ? 'Desde (rack)' : 'Desde',
-        valores: desde,
-        claseCelda: (t) => (precioDesdeGlobal(t, esCostaRica) === mejorDesde ? 'bg-volcan-soft/60' : undefined),
+        seccion: 'Precio',
+        valores: tours.map((t) => precioDesdeGlobal(t, esCostaRica)),
         render: (t) => (
-          <div>
-            <span className="font-display text-xl font-bold text-ink tnum">{formatPrecio(precioDesdeGlobal(t, esCostaRica), t.moneda)}</span>
-            {precioDesdeGlobal(t, esCostaRica) === mejorDesde && <PillMejorPrecio />}
-          </div>
+          <span className="font-display text-xl font-bold text-ink tnum">
+            {formatPrecio(precioDesdeGlobal(t, esCostaRica), t.moneda)}
+          </span>
         ),
       },
       {
         key: 'precio-adulto',
         label: autenticado ? 'Tarifa rack adulto' : 'Tarifa adulto',
-        valores: adultos,
-        claseCelda: (t) => {
-          const rack = tarifaBaseGlobal(t, esCostaRica)?.rack ?? 0;
-          return rack && precioPublico(t, rack) === mejorAdulto ? 'bg-volcan-soft/60' : undefined;
-        },
+        seccion: 'Precio',
+        valores: bases.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : null)),
         render: (t) => {
           const base = tarifaBaseGlobal(t, esCostaRica);
           return (
-            <div>
-              <span className="font-display text-xl font-bold text-ink tnum">
-                {base ? formatPrecio(precioPublico(t, base.rack), t.moneda) : '—'}
-              </span>
-              {base && precioPublico(t, base.rack) === mejorAdulto && <PillMejorPrecio />}
-            </div>
+            <span className="font-display text-xl font-bold text-ink tnum">
+              {base ? formatPrecio(precioPublico(t, base.rack), t.moneda) : '—'}
+            </span>
           );
         },
       },
       {
         key: 'precio-nino',
         label: autenticado ? 'Tarifa rack niño' : 'Tarifa niño',
-        valores: ninosPublicos,
-        claseCelda: (t) => {
-          const n = tarifaNinoGlobal(t, esCostaRica);
-          return mejorNino != null && n != null && precioPublico(t, n.rack) === mejorNino
-            ? 'bg-volcan-soft/60'
-            : undefined;
-        },
+        seccion: 'Precio',
+        valores: ninos.map((tf, i) => (tf ? precioPublico(tours[i], tf.rack) : null)),
         render: (t) => {
           const n = tarifaNinoGlobal(t, esCostaRica);
           return (
-            <div>
-              <span className="font-display text-xl font-bold text-ink tnum">
-                {n ? formatPrecio(precioPublico(t, n.rack), t.moneda) : '—'}
-              </span>
-              {mejorNino != null && n != null && precioPublico(t, n.rack) === mejorNino && <PillMejorPrecio />}
-            </div>
+            <span className="font-display text-xl font-bold text-ink tnum">
+              {n ? formatPrecio(precioPublico(t, n.rack), t.moneda) : '—'}
+            </span>
           );
         },
       },
       {
         key: 'neta-adulto',
         label: 'Tarifa neta adulto',
+        seccion: 'Interno (uso interno)',
         valores: bases.map((t, i) => (t?.neta != null ? precioConIva(tours[i], t.neta) : null)),
         render: (t) => {
           const base = tarifaBaseGlobal(t, esCostaRica);
           return (
-            <div>
+            <div className="flex flex-wrap items-baseline gap-x-2">
               <span className="font-display text-[17px] font-semibold text-brand tnum">
                 {base?.neta != null ? formatPrecio(precioConIva(t, base.neta), t.moneda) : '—'}
               </span>
               {base?.neta != null && (
-                <span className="ml-2 text-caption text-ink-faint">
+                <span className="text-caption text-ink-faint">
                   margen {formatPrecio(precioPublico(t, base.rack) - precioConIva(t, base.neta), t.moneda)}
                 </span>
               )}
@@ -198,6 +172,7 @@ function useFilas(tours: Tour[]): FilaDef[] {
       {
         key: 'neta-nino',
         label: 'Tarifa neta niño',
+        seccion: 'Interno (uso interno)',
         valores: ninos.map((t, i) => (t?.neta != null ? precioConIva(tours[i], t.neta) : null)),
         render: (t) => {
           const n = tarifaNinoGlobal(t, esCostaRica);
@@ -210,62 +185,51 @@ function useFilas(tours: Tour[]): FilaDef[] {
       },
       {
         key: 'horarios',
-        label: 'Horarios de tours',
-        valores: tours.map((t) => t.horarios.map(horarioLabel).join(' · ')),
-        render: (t) => (
-          <span className="tnum">{t.horarios.map(horarioLabel).join(' · ') || '—'}</span>
-        ),
+        label: 'Horarios',
+        seccion: 'Detalles',
+        valores: tours.map((t) => t.horarios.map(horarioCompacto).join(' · ')),
+        render: (t) =>
+          t.horarios.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {t.horarios
+                .slice()
+                .sort((a, b) => a.orden - b.orden)
+                .map((h) => (
+                  <span
+                    key={h.id}
+                    className="rounded-full bg-surface-2 px-2 py-0.5 text-caption text-ink-muted tnum"
+                  >
+                    {horarioCompacto(h)}
+                  </span>
+                ))}
+            </div>
+          ) : (
+            <span className="text-ink-faint">—</span>
+          ),
       },
       {
         key: 'zona',
         label: 'Zona',
-        valores: tours.map((t) => t.zona),
+        seccion: 'Detalles',
+        valores: tours.map((t) => tituloZona(t.zona)),
         render: (t) => (
           <span className="inline-flex items-center gap-1.5 text-[15px] text-ink">
             <MapPin className="h-3.5 w-3.5 text-ink-muted" />
-            {t.zona}
+            {tituloZona(t.zona)}
           </span>
         ),
       },
-      // Operador: solo visible para el admin; los clientes ven tours anónimos.
-      ...(mostrarOperador
-        ? [
-            {
-              key: 'operador',
-              label: 'Operador',
-              valores: tours.map((t) => t.operador.id),
-              render: (t: Tour) => (
-                <PopoverOperador operador={t.operador} tour={t}>
-                  <button
-                    type="button"
-                    className="text-left text-[15px] font-medium text-ink underline decoration-border underline-offset-2 transition-colors duration-fast hover:text-brand"
-                  >
-                    {t.operador.nombre}
-                  </button>
-                </PopoverOperador>
-              ),
-            } satisfies FilaDef,
-          ]
-        : []),
-      // Matriz "Qué incluye": una sub-fila por amenidad presente en alguno
-      ...INCLUYE_KEYS.filter((key) => tours.some((t) => t.incluye.includes(key))).map(
-        (key): FilaDef => ({
-          key: `incluye-${key}`,
-          label: INCLUYE_META[key].label,
-          valores: tours.map((t) => t.incluye.includes(key)),
-          render: (t) =>
-            t.incluye.includes(key) ? <CheckIncluye /> : <Minus className="h-4 w-4 text-ink-faint" />,
-        }),
-      ),
       {
         key: 'minimo',
         label: 'Mínimo personas',
+        seccion: 'Detalles',
         valores: tours.map((t) => t.minimo_personas),
         render: (t) => <span className="text-[15px] font-semibold text-ink tnum">{t.minimo_personas}</span>,
       },
       {
         key: 'apto-ninos',
         label: 'Apto niños',
+        seccion: 'Detalles',
         valores: tours.map((t) => t.apto_ninos),
         render: (t) =>
           t.apto_ninos ? (
@@ -281,20 +245,50 @@ function useFilas(tours: Tour[]): FilaDef[] {
           ),
       },
       {
+        key: 'incluye',
+        label: 'Incluye',
+        seccion: 'Incluye',
+        valores: tours.map((t) => t.incluye.join('|')),
+        render: (t) => (
+          <div className="flex flex-wrap gap-1.5">
+            {t.incluye.length === 0 ? (
+              <span className="text-ink-faint">—</span>
+            ) : (
+              t.incluye.map((key) => {
+                const meta = INCLUYE_META[key];
+                if (!meta) return null;
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-caption text-ink-muted"
+                  >
+                    <meta.icon className="h-3 w-3" />
+                    {meta.label}
+                  </span>
+                );
+              })
+            )}
+          </div>
+        ),
+      },
+      {
         key: 'politica',
         label: 'Política de cancelación',
+        seccion: 'Condiciones',
         valores: tours.map((t) => (mostrarOperador ? t.politica_cancelacion : politicaSinOperador(t))),
         render: (t) => <TextoExpandible texto={mostrarOperador ? t.politica_cancelacion : politicaSinOperador(t)} />,
       },
       {
         key: 'observaciones',
         label: 'Observaciones',
+        seccion: 'Condiciones',
         valores: tours.map((t) => t.observaciones),
         render: (t) => <TextoExpandible texto={t.observaciones} muted />,
       },
       {
         key: 'actualizado',
         label: 'Actualizado',
+        seccion: 'Condiciones',
         valores: tours.map((t) => freshness(t.fecha_actualizacion).estado),
         render: (t) => {
           const fresh = freshness(t.fecha_actualizacion);
@@ -308,7 +302,6 @@ function useFilas(tours: Tour[]): FilaDef[] {
         },
       },
     ];
-    return filas;
   }, [tours, esCostaRica, mostrarOperador, autenticado]);
 }
 
@@ -325,6 +318,9 @@ export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar,
   const { autenticado } = useAuth();
   const { esCostaRica, mostrarOperador } = useI18n();
   const filas = useFilas(tours).filter((f) => autenticado || (f.key !== 'neta-adulto' && f.key !== 'neta-nino'));
+  const mejorDesde = tours.length > 0
+    ? Math.min(...tours.map((t) => precioDesdeGlobal(t, esCostaRica)))
+    : null;
 
   const copiarResumen = async (tour: Tour) => {
     const ok = await copiarTexto(buildResumenTour(tour, esCostaRica, undefined, mostrarOperador));
@@ -392,28 +388,55 @@ export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar,
         <thead>
           <tr className="border-b border-border">
             <th className="sticky left-0 top-0 z-20 bg-surface-2 px-4 py-3 text-left text-label uppercase tracking-wide text-ink-muted">
-              Comparar
+              Criterio
             </th>
-            {tours.map((tour) => (
-              <th key={tour.id} className="sticky top-0 z-10 bg-surface px-4 py-3 text-left align-top shadow-[0_1px_0_var(--border)]">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <BadgeCategoria tour={tour} />
-                    <div className="mt-1.5 line-clamp-2 font-display text-[15px] font-semibold leading-snug text-ink">
-                      {tour.nombre}
+            {tours.map((tour) => {
+              const gana = mejorDesde != null && tours.length > 1 && precioDesdeGlobal(tour, esCostaRica) === mejorDesde;
+              return (
+                <th
+                  key={tour.id}
+                  className={cn(
+                    'sticky top-0 z-10 px-4 py-3 text-left align-top shadow-[0_1px_0_var(--border)]',
+                    gana ? 'bg-brand-soft/30' : 'bg-surface',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <BadgeCategoria tour={tour} />
+                      <div className="mt-1.5 line-clamp-2 font-display text-[15px] font-semibold leading-snug text-ink">
+                        {tour.nombre}
+                      </div>
+                      {mostrarOperador && (
+                        <div className="mt-1 flex min-w-0 items-center gap-1.5 text-caption text-ink-muted">
+                          {tour.operador.logo_url && (
+                            <img
+                              src={tour.operador.logo_url}
+                              alt=""
+                              className="h-4 w-4 shrink-0 object-contain"
+                              loading="lazy"
+                            />
+                          )}
+                          <span className="truncate">{tour.operador.nombre}</span>
+                        </div>
+                      )}
+                      {gana && (
+                        <div className="mt-1">
+                          <PillMejorPrecio />
+                        </div>
+                      )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => onQuitar(tour.id)}
+                      aria-label={`Quitar ${tour.nombre}`}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onQuitar(tour.id)}
-                    aria-label={`Quitar ${tour.nombre}`}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-r-sm text-ink-muted transition-colors duration-fast hover:bg-surface-2 hover:text-ink"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </th>
-            ))}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <motion.tbody
@@ -421,45 +444,59 @@ export default function TablaComparativa({ tours, resaltarDiferencias, onQuitar,
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
         >
-          {todasLasFilas.map((fila) => {
+          {todasLasFilas.map((fila, index) => {
             const dif = esDiferente(fila);
+            const nuevaSeccion = fila.seccion && fila.seccion !== todasLasFilas[index - 1]?.seccion;
             return (
-              <motion.tr
-                key={fila.key}
-                variants={{
-                  hidden: { opacity: 0, x: -10 },
-                  show: { opacity: 1, x: 0, transition: { duration: 0.22, ease: EASE } },
-                }}
-                className="group/row border-b border-border last:border-b-0"
-              >
-                <th
-                  scope="row"
-                  className={cn(
-                    'sticky left-0 z-10 px-4 py-3 text-left align-top text-label font-semibold text-ink-muted transition-colors duration-med',
-                    dif ? 'bg-volcan-soft/40 text-ink' : 'bg-surface-2',
-                    'group-hover/row:bg-surface-2',
-                  )}
+              <Fragment key={fila.key}>
+                {nuevaSeccion && (
+                  <tr className="border-b border-border bg-surface-2/70">
+                    <th
+                      scope="colgroup"
+                      colSpan={tours.length + 1}
+                      className="px-4 py-1.5 text-label uppercase tracking-wide text-ink-muted"
+                    >
+                      {fila.seccion}
+                    </th>
+                  </tr>
+                )}
+                <motion.tr
+                  variants={{
+                    hidden: { opacity: 0, x: -10 },
+                    show: { opacity: 1, x: 0, transition: { duration: 0.22, ease: EASE } },
+                  }}
+                  className="group/row border-b border-border last:border-b-0"
                 >
-                  <span className="flex items-center gap-1.5">
-                    {dif && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-volcan" aria-hidden />}
-                    <span className={cn(fila.key.startsWith('incluye-') && 'font-normal normal-case')}>
-                      {fila.key.startsWith('incluye-') ? `Incluye: ${fila.label}` : fila.label}
-                    </span>
-                  </span>
-                </th>
-                {tours.map((tour) => (
-                  <td
-                    key={tour.id}
+                  <th
+                    scope="row"
                     className={cn(
-                      'px-4 py-3 align-top transition-colors duration-med',
-                      fila.claseCelda?.(tour) ?? (dif ? 'bg-volcan-soft/40' : 'bg-surface'),
+                      'sticky left-0 z-10 px-4 py-3 text-left align-top text-label font-semibold text-ink-muted transition-colors duration-med',
+                      dif ? 'bg-volcan-soft/40 text-ink' : 'bg-surface-2',
                       'group-hover/row:bg-surface-2',
                     )}
                   >
-                    {fila.render(tour)}
-                  </td>
-                ))}
-              </motion.tr>
+                    <span className="flex items-center gap-1.5">
+                      {dif && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-volcan" aria-hidden />}
+                      <span>{fila.label}</span>
+                    </span>
+                  </th>
+                  {tours.map((tour) => {
+                    const gana = mejorDesde != null && tours.length > 1 && precioDesdeGlobal(tour, esCostaRica) === mejorDesde;
+                    return (
+                      <td
+                        key={tour.id}
+                        className={cn(
+                          'px-4 py-3 align-top transition-colors duration-med',
+                          dif ? 'bg-volcan-soft/40' : gana ? 'bg-brand-soft/10' : 'bg-surface',
+                          'group-hover/row:bg-surface-2',
+                        )}
+                      >
+                        {fila.render(tour)}
+                      </td>
+                    );
+                  })}
+                </motion.tr>
+              </Fragment>
             );
           })}
         </motion.tbody>
@@ -533,18 +570,26 @@ function AcordeonTour({
             className="overflow-hidden"
           >
             <dl className="divide-y divide-border border-t border-border">
-              {filas.map((fila) => {
+              {filas.map((fila, index) => {
                 const dif = resaltarDiferencias && !todosIguales(fila.valores);
+                const nuevaSeccion = fila.seccion && fila.seccion !== filas[index - 1]?.seccion;
                 return (
-                  <div key={fila.key} className={cn('flex gap-4 px-4 py-2.5', dif && 'bg-volcan-soft/40')}>
-                    <dt className="w-[120px] shrink-0 pt-0.5 text-label text-ink-muted">
-                      <span className="flex items-center gap-1.5">
-                        {dif && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-volcan" aria-hidden />}
-                        {fila.key.startsWith('incluye-') ? `Incluye: ${fila.label}` : fila.label}
-                      </span>
-                    </dt>
-                    <dd className="min-w-0 flex-1">{fila.render(tour)}</dd>
-                  </div>
+                  <Fragment key={fila.key}>
+                    {nuevaSeccion && (
+                      <div className="bg-surface-2/70 px-4 py-1.5 text-label uppercase tracking-wide text-ink-muted">
+                        {fila.seccion}
+                      </div>
+                    )}
+                    <div className={cn('flex gap-4 px-4 py-2.5', dif && 'bg-volcan-soft/40')}>
+                      <dt className="w-[120px] shrink-0 pt-0.5 text-label text-ink-muted">
+                        <span className="flex items-center gap-1.5">
+                          {dif && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-volcan" aria-hidden />}
+                          {fila.label}
+                        </span>
+                      </dt>
+                      <dd className="min-w-0 flex-1">{fila.render(tour)}</dd>
+                    </div>
+                  </Fragment>
                 );
               })}
             </dl>

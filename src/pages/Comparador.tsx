@@ -244,21 +244,35 @@ export default function Comparador() {
           </div>
         ) : (
           <>
-            {/* ===== Slots de comparación ===== */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence mode="popLayout">
-                {seleccionadosTours.map((tour) => (
-                  <SlotLleno key={tour.id} tour={tour} onQuitar={() => quitar(tour.id)} />
-                ))}
-                {Array.from({ length: MAX_COMPARAR - seleccionadosTours.length }).map((_, i) => (
-                  <SlotVacio key={`vacio-${i}`} onClick={() => setModalAbierto(true)} />
-                ))}
-              </AnimatePresence>
-            </div>
+            {/* Slots de comparación: solo mientras no hay tabla (0 o 1 tour) */}
+            {seleccionadosTours.length < 2 && (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence mode="popLayout">
+                  {seleccionadosTours.map((tour) => (
+                    <SlotLleno key={tour.id} tour={tour} onQuitar={() => quitar(tour.id)} />
+                  ))}
+                  {Array.from({ length: MAX_COMPARAR - seleccionadosTours.length }).map((_, i) => (
+                    <SlotVacio key={`vacio-${i}`} onClick={() => setModalAbierto(true)} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* ===== Tabla comparativa (≥2 tours) ===== */}
             {seleccionadosTours.length >= 2 ? (
               <div className="mt-6">
+                {seleccionadosTours.length < MAX_COMPARAR && (
+                  <div className="mb-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setModalAbierto(true)}
+                      className="flex h-9 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-3 text-sm font-medium text-ink transition-colors duration-fast hover:border-brand hover:text-brand"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Agregar tour
+                    </button>
+                  </div>
+                )}
                 <TablaComparativa
                   tours={seleccionadosTours}
                   resaltarDiferencias={resaltar}

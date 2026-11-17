@@ -44,6 +44,31 @@ export interface Tarifa {
   orden: number;
 }
 
+export interface TemporadaTarifa {
+  id: number;
+  temporada_id: number;
+  tarifa_id: number;
+  rack: number;
+  neta: number | null;
+}
+
+export interface Temporada {
+  id: number;
+  tour_id: number;
+  nombre: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  prioridad: number;
+  tarifas: TemporadaTarifa[];
+}
+
+export interface Disponibilidad {
+  tour_id: number;
+  fecha: string;
+  cupo: number | null;
+  cerrado: boolean;
+}
+
 export interface Horario {
   id: number;
   hora_salida: string; // "07:30"
@@ -64,6 +89,7 @@ export interface Tour {
   precio_neto_adulto: number | null; // legacy
   precio_neto_nino: number | null; // legacy
   tarifas: Tarifa[];
+  temporadas: Temporada[];
   horarios: Horario[];
   duracion_horas: number;
   incluye: string[]; // transporte, guia, almuerzo, entradas, equipo, seguro
@@ -79,8 +105,10 @@ export interface Tour {
 export interface Hotel {
   id: number;
   nombre: string;
+  marca: string;
   whatsapp: string;
   email: string | null;
+  logo_url: string | null;
   fondo_url: string | null;
 }
 
@@ -218,6 +246,24 @@ type RowHorario = {
   orden: number;
 };
 
+type RowTemporadaTarifa = {
+  id: number;
+  temporada_id: number;
+  tarifa_id: number;
+  rack: number | string;
+  neta: number | string | null;
+};
+
+type RowTemporada = {
+  id: number;
+  tour_id: number;
+  nombre: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  prioridad: number;
+  tour_temporada_tarifas: RowTemporadaTarifa[] | null;
+};
+
 type RowTour = {
   id: number;
   codigo: string;
@@ -240,6 +286,7 @@ type RowTour = {
   moneda: Moneda | null;
   operadores: RowOperador | null;
   tour_tarifas: RowTarifa[];
+  tour_temporadas: RowTemporada[] | null;
   tour_horarios: RowHorario[];
 };
 
@@ -278,6 +325,24 @@ function mapTarifa(t: RowTarifa): Tarifa {
   };
 }
 
+function mapTemporada(t: RowTemporada): Temporada {
+  return {
+    id: t.id,
+    tour_id: t.tour_id,
+    nombre: t.nombre,
+    fecha_desde: t.fecha_desde,
+    fecha_hasta: t.fecha_hasta,
+    prioridad: t.prioridad,
+    tarifas: (t.tour_temporada_tarifas ?? []).map((st) => ({
+      id: st.id,
+      temporada_id: st.temporada_id,
+      tarifa_id: st.tarifa_id,
+      rack: Number(st.rack),
+      neta: st.neta == null ? null : Number(st.neta),
+    })),
+  };
+}
+
 function mapHorario(h: RowHorario): Horario {
   return {
     id: h.id,
@@ -304,6 +369,7 @@ function mapTour(t: RowTour): Tour {
     precio_neto_adulto: t.precio_neto_adulto == null ? null : Number(t.precio_neto_adulto),
     precio_neto_nino: t.precio_neto_nino == null ? null : Number(t.precio_neto_nino),
     tarifas: (t.tour_tarifas ?? []).map(mapTarifa).sort((a, b) => a.orden - b.orden),
+    temporadas: (t.tour_temporadas ?? []).map(mapTemporada),
     horarios: (t.tour_horarios ?? []).map(mapHorario).sort((a, b) => a.orden - b.orden),
     duracion_horas: Number(t.duracion_horas),
     incluye: t.incluye ?? [],
@@ -327,9 +393,9 @@ async function esAutenticado(): Promise<boolean> {
 }
 
 const TOURS_SELECT =
-  '*, operadores(id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc), tour_tarifas(*), tour_horarios(*)';
+  '*, operadores(id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc), tour_tarifas(*), tour_temporadas(*, tour_temporada_tarifas(*)), tour_horarios(*)';
 const TOURS_SELECT_PUBLICO =
-  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, logo_url, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_horarios(*)';
+  'id, operador_id, nombre, zona, categoria, precio_adulto, precio_nino, duracion_horas, incluye, minimo_personas, apto_ninos, activo, politica_cancelacion, observaciones, fecha_actualizacion, moneda, operadores(id, nombre, logo_url, horario, activo, con_iva), tour_tarifas(id, tour_id, nombre, min_edad, max_edad, rack, orden), tour_temporadas(id, tour_id, nombre, fecha_desde, fecha_hasta, prioridad, tour_temporada_tarifas(id, temporada_id, tarifa_id, rack)), tour_horarios(*)';
 const OPERADORES_SELECT =
   'id, codigo, nombre, comision, logo_url, poliza_url, politica_cancelacion, horario, activo, con_iva, pago_compraclic, pago_sinpe, pago_transferencia, pago_cxc';
 const OPERADORES_SELECT_PUBLICO = 'id, nombre, logo_url, horario, activo, con_iva';

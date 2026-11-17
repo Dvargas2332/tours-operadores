@@ -401,7 +401,7 @@ export default function Admin() {
 
       {/* Modal: configuración del hotel */}
       <Dialog open={hotelConfigAbierto} onOpenChange={setHotelConfigAbierto}>
-        <DialogContent className="max-w-2xl border-border bg-surface text-ink">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-surface text-ink sm:max-w-3xl">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-h3 text-ink">Configuración del hotel</DialogTitle>
           </DialogHeader>

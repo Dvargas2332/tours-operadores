@@ -39,12 +39,13 @@ export function calcularLineasPorTarifas(
   tour: Tour,
   conteos: ConteoTarifas,
   usarNeta = false,
+  fechaISO?: string | null,
 ): LineaReserva[] {
   const out: LineaReserva[] = [];
   for (const t of tour.tarifas) {
     const cantidad = conteos[t.id] ?? 0;
     if (cantidad <= 0) continue;
-    const precioUnitario = precioUnitarioTarifa(tour, t, usarNeta);
+    const precioUnitario = precioUnitarioTarifa(tour, t, usarNeta, fechaISO);
     out.push({
       edad: labelTarifa(t),
       cantidad,

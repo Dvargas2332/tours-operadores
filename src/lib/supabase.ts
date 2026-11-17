@@ -5,5 +5,12 @@ const url = 'https://ssmnjrofhkfaklbftdbl.supabase.co';
 const anonKey = 'sb_publishable_EqGwwEth1OJaxeJCmVLOdg_W4nq4Tz7';
 
 export const supabase = createClient(url, anonKey, {
-  auth: { persistSession: true, autoRefreshToken: true },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    // La recuperación de contraseña se procesa a mano en AuthContext para
+    // convivir con HashRouter y quitar los tokens de la URL.
+    detectSessionInUrl: false,
+    flowType: 'implicit',
+  },
 });

@@ -215,5 +215,6 @@ export function filaAInput(f: FilaRevision) {
     politicaCancelacion: f.politicaCancelacion,
     observaciones: f.observaciones,
     camposPresentes: f.camposPresentes as Record<string, boolean>,
+    preservarTarifasFaltantes: true,
   };
 }

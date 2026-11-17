@@ -1,4 +1,4 @@
-import type { Tarifa, Tour } from '@/data/mock-tours';
+import type { Tarifa, Temporada, Tour } from '@/data/mock-tours';
 import { tarifasSegunNacionalidad } from '@/i18n/tarifas';
 
 export const RANGOS_TARIFA = {
@@ -47,11 +47,31 @@ export function precioPublico(tour: Tour, precio: number): number {
 
 /**
  * Precio unitario de una tarifa: para el vendedor usa la neta del operador
- * (con IVA si aplica); para el cliente, el rack público.
+ * (con IVA si aplica); para el cliente, el rack público. Si hay una
+ * temporada que cubre la fecha, esa temporada sobrescribe el precio.
  */
-export function precioUnitarioTarifa(tour: Tour, tarifa: Tarifa, usarNeta = false): number {
-  const neta = tarifa.neta != null ? precioConIva(tour, tarifa.neta) : null;
-  return usarNeta && neta != null ? neta : precioPublico(tour, tarifa.rack);
+export function precioUnitarioTarifa(
+  tour: Tour,
+  tarifa: Tarifa,
+  usarNeta = false,
+  fechaISO?: string | null,
+): number {
+  const temporada = temporadaAplicable(tour, fechaISO);
+  const precioTemporada = temporada?.tarifas.find((pt) => pt.tarifa_id === tarifa.id);
+  const rack = precioTemporada?.rack ?? tarifa.rack;
+  const neta = precioTemporada?.neta ?? tarifa.neta;
+  const netaConIva = neta != null ? precioConIva(tour, neta) : null;
+  return usarNeta && netaConIva != null ? netaConIva : precioPublico(tour, rack);
+}
+
+/** Temporada de mayor prioridad que cubre la fecha indicada. */
+export function temporadaAplicable(tour: Tour, fechaISO?: string | null): Temporada | null {
+  if (!fechaISO) return null;
+  return (
+    tour.temporadas
+      .filter((t) => fechaISO >= t.fecha_desde && fechaISO <= t.fecha_hasta)
+      .sort((a, b) => b.prioridad - a.prioridad || b.id - a.id)[0] ?? null
+  );
 }
 
 /** Precio rack para un rango de edad aplicable. */

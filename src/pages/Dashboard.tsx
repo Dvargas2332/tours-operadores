@@ -6,6 +6,7 @@
 import { motion } from 'framer-motion';
 import { Building2, Mountain } from 'lucide-react';
 import { useToursData } from '@/hooks/useToursData';
+import { useBrand } from '@/hooks/useBrand';
 import OperadorCard from '@/components/buscador/OperadorCard';
 import TourCard, { TourCardSkeleton } from '@/components/buscador/TourCard';
 import { useCompare } from '@/context/CompareContext';
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const { t, mostrarOperador } = useI18n();
   const { toggle, estaSeleccionado } = useCompare();
   const data = useToursData();
+  const brand = useBrand();
   const tours = data?.tours ?? [];
   const operadores = data?.operadores ?? [];
 
@@ -35,7 +37,7 @@ export default function Dashboard() {
             {mostrarOperador ? t('shell.dash.titulo') : t('shell.dash.titulo_tours')}
           </h1>
           {!mostrarOperador && (
-            <p className="mt-1 text-small text-ink-muted">{t('shell.dash.subtitulo_tours')}</p>
+            <p className="mt-1 text-small text-ink-muted">Explora las experiencias disponibles en {brand.sitio}.</p>
           )}
         </motion.div>
 

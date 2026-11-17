@@ -5,7 +5,9 @@ import { Toaster } from '@/components/ui/sonner';
 import Layout from '@/components/Layout';
 import RequireAdmin from '@/components/RequireAdmin';
 import { CompareProvider } from '@/context/CompareContext';
+import { useAuth } from '@/context/AuthContext';
 import Dashboard from '@/pages/Dashboard';
+import ResetPassword from '@/pages/ResetPassword';
 
 const Buscador = lazy(() => import('@/pages/Buscador'));
 const TourDetalle = lazy(() => import('@/pages/TourDetalle'));
@@ -25,6 +27,17 @@ function CargandoPantalla() {
 }
 
 export default function App() {
+  const { recuperacion } = useAuth();
+
+  if (recuperacion) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <ResetPassword />
+        <Toaster position="bottom-right" />
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={300}>
       <CompareProvider>

@@ -80,10 +80,15 @@ grant select (id, tour_id, nombre, min_edad, max_edad, rack, orden) on public.to
 create table if not exists public.hotel (
   id serial primary key,
   nombre varchar(255) not null default '',
+  marca varchar(255) not null default 'Tours Operadores',
   whatsapp varchar(50) not null default '',
   email varchar(255),
+  logo_url text,
   fondo_url text
 );
+
+alter table public.hotel add column if not exists marca varchar(255) not null default 'Tours Operadores';
+alter table public.hotel add column if not exists logo_url text;
 
 insert into public.hotel (id, nombre, whatsapp, email) values (1, '', '', null)
 on conflict (id) do nothing;
@@ -408,5 +413,114 @@ alter table public.tours
 alter table public.tours alter column codigo set not null;
 create unique index if not exists tours_operador_codigo_key on public.tours (operador_id, codigo);
 grant usage on sequence public.tours_codigo_seq to authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 13) Tarifas por fecha, disponibilidad e integración API por operador
+-- ----------------------------------------------------------------------------
+create table if not exists public.operador_integraciones (
+  operador_id bigint primary key references public.operadores(id) on delete cascade,
+  proveedor text not null default 'custom',
+  api_url text not null default '',
+  api_key text not null default '',
+  activa boolean not null default false,
+  ultima_sync timestamptz,
+  estado text not null default '',
+  actualizado_en timestamptz not null default now()
+);
+
+alter table public.operador_integraciones enable row level security;
+revoke all on public.operador_integraciones from anon;
+grant select, insert, update, delete on public.operador_integraciones to authenticated;
+
+drop policy if exists "integraciones_admin" on public.operador_integraciones;
+create policy "integraciones_admin" on public.operador_integraciones
+  for all to authenticated
+  using (public.es_admin())
+  with check (public.es_admin());
+
+create table if not exists public.tour_temporadas (
+  id bigserial primary key,
+  tour_id bigint not null references public.tours(id) on delete cascade,
+  nombre text not null default '',
+  fecha_desde date not null,
+  fecha_hasta date not null,
+  prioridad integer not null default 0,
+  creado_en timestamptz not null default now(),
+  constraint tour_temporadas_rango_check check (fecha_hasta >= fecha_desde)
+);
+
+create index if not exists tour_temporadas_tour_idx
+  on public.tour_temporadas (tour_id, fecha_desde, fecha_hasta);
+
+create table if not exists public.tour_temporada_tarifas (
+  id bigserial primary key,
+  temporada_id bigint not null references public.tour_temporadas(id) on delete cascade,
+  tarifa_id bigint not null references public.tour_tarifas(id) on delete cascade,
+  rack numeric(12,2) not null,
+  neta numeric(12,2),
+  unique (temporada_id, tarifa_id)
+);
+
+create table if not exists public.tour_disponibilidad (
+  id bigserial primary key,
+  tour_id bigint not null references public.tours(id) on delete cascade,
+  fecha date not null,
+  cupo integer,
+  cerrado boolean not null default false,
+  unique (tour_id, fecha)
+);
+
+alter table public.tour_temporadas enable row level security;
+alter table public.tour_temporada_tarifas enable row level security;
+alter table public.tour_disponibilidad enable row level security;
+
+revoke all on public.tour_temporadas from anon;
+grant select (id, tour_id, nombre, fecha_desde, fecha_hasta, prioridad)
+  on public.tour_temporadas to anon;
+grant select on public.tour_temporadas to authenticated;
+
+revoke all on public.tour_temporada_tarifas from anon;
+grant select (id, temporada_id, tarifa_id, rack)
+  on public.tour_temporada_tarifas to anon;
+grant select on public.tour_temporada_tarifas to authenticated;
+
+revoke all on public.tour_disponibilidad from anon;
+grant select (tour_id, fecha, cupo, cerrado)
+  on public.tour_disponibilidad to anon;
+grant select on public.tour_disponibilidad to authenticated;
+
+drop policy if exists "temporadas_lectura" on public.tour_temporadas;
+create policy "temporadas_lectura" on public.tour_temporadas
+  for select to anon, authenticated using (true);
+
+drop policy if exists "temporada_tarifas_lectura" on public.tour_temporada_tarifas;
+create policy "temporada_tarifas_lectura" on public.tour_temporada_tarifas
+  for select to anon, authenticated using (true);
+
+drop policy if exists "temporadas_admin" on public.tour_temporadas;
+create policy "temporadas_admin" on public.tour_temporadas
+  for all to authenticated
+  using (public.es_admin())
+  with check (public.es_admin());
+
+drop policy if exists "temporada_tarifas_admin" on public.tour_temporada_tarifas;
+create policy "temporada_tarifas_admin" on public.tour_temporada_tarifas
+  for all to authenticated
+  using (public.es_admin())
+  with check (public.es_admin());
+
+drop policy if exists "disponibilidad_lectura" on public.tour_disponibilidad;
+create policy "disponibilidad_lectura" on public.tour_disponibilidad
+  for select to anon, authenticated using (true);
+
+drop policy if exists "disponibilidad_admin" on public.tour_disponibilidad;
+create policy "disponibilidad_admin" on public.tour_disponibilidad
+  for all to authenticated
+  using (public.es_admin())
+  with check (public.es_admin());
+
+grant usage on sequence public.tour_temporadas_id_seq to authenticated;
+grant usage on sequence public.tour_temporada_tarifas_id_seq to authenticated;
+grant usage on sequence public.tour_disponibilidad_id_seq to authenticated;
 
 notify pgrst, 'reload schema';

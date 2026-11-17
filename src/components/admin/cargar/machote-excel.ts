@@ -2,9 +2,9 @@
  * Generador del machote (plantilla) de Excel para cargar/actualizar el
  * catálogo de tours de forma masiva.
  *
- * El formato de las hojas es el mismo que ya lee `tarifario-excel.ts`
- * (wizard "Cargar tarifario"): una hoja por operador, fila 1 = encabezados,
- * columna A = número de tour, columnas de tarifas por rango de edad con
+ * El formato de las hojas es el mismo que lee `tarifario-excel.ts`
+ * (wizard "Cargar tarifario"): una hoja por operador, fila de encabezados,
+ * columna A = número de tour y columnas de tarifas por rango de edad con
  * palabra clave RACK (precio público) o NETA (costo interno).
  */
 import * as XLSX from 'xlsx';
@@ -15,43 +15,70 @@ const ENCABEZADOS = [
   'CÓDIGO OPERADOR',
   'CÓDIGO TOUR',
   'TOUR',
+  'ZONA',
+  'CATEGORÍA',
+  'MONEDA',
   'ADULTO RACK',
   'ADULTO NETA',
   'NIÑO RACK',
   'NIÑO NETA',
   'ADULTO MAYOR RACK',
-  'PICK UP',
-  'DROP OFF',
+  'ADULTO MAYOR NETA',
+  'HORARIOS',
   'INCLUYE',
-  'DETALLES',
+  'OBSERVACIONES',
+  'DURACIÓN (H)',
+  'MÍNIMO PERSONAS',
+  'APTO NIÑOS',
+  'POLÍTICA CANCELACIÓN',
+  'TELÉFONO',
+  'EMAIL',
   'COMISIÓN',
+  'IVA 13%',
+  'PAGO COMPRACLIC',
+  'PAGO SINPE',
+  'PAGO TRANSFERENCIA',
+  'PAGO CXC',
+  'LOGO URL',
+  'PÓLIZA URL',
 ];
 
 const INSTRUCCIONES = [
   ['MACHOTE DE CATÁLOGO DE TOURS'],
   [''],
   ['1) Una hoja de Excel = un operador. El NOMBRE DE LA HOJA se usa como nombre del operador.'],
-  ['2) CÓDIGO OPERADOR es único y corto (ej. CANOA); si se deja vacío se genera desde el nombre.'],
-  ['3) CÓDIGO TOUR es el subcódigo dentro del operador (01, 02…); si se deja vacío se toma el siguiente libre.'],
-  ['4) Duplicá la hoja "EJEMPLO USD" (o "EJEMPLO COLONES") y renombrala con el nombre del operador. Agregá una hoja por cada operador.'],
-  ['5) Reemplazá las filas de ejemplo por los tours: la columna # debe ser un número y TOUR es el nombre del tour.'],
+  ['2) Para crear un operador nuevo, duplicá una hoja de ejemplo y completá sus datos. Para crear un tour, agregá una fila con CÓDIGO TOUR vacío.'],
+  ['3) CÓDIGO OPERADOR es único y corto (ej. CANOA); si se deja vacío se genera desde el nombre.'],
+  ['4) CÓDIGO TOUR es el subcódigo dentro del operador (01, 02…); si se deja vacío se toma el siguiente libre. No cambies el código de un tour existente.'],
+  ['5) MONEDA: USD o CRC por fila. Si la hoja dice "colones" o lleva ₡, las filas sin MONEDA se toman en CRC.'],
   ['6) Precios: escribí solo el número. RACK = precio público del cliente. NETA = costo del operador (uso interno, opcional).'],
-  ['7) Rangos de edad: usá las columnas del machote (NIÑO = 0-11, ADULTO = 12-64, ADULTO MAYOR = 65+). Si un rango no aplica, dejalo vacío.'],
-  ['8) Si la hoja menciona "colones" o lleva el símbolo ₡, TODOS los precios de esa hoja se toman en colones (CRC); si no, en dólares (USD).'],
+  ['7) Rangos de edad del ejemplo: NIÑO = 0-11, ADULTO = 12-64, ADULTO MAYOR = 65+. Si un rango no aplica, dejalo vacío.'],
+  ['8) HORARIOS: uno o varios horarios separados por punto y coma. Formato: 08:00-12:00; 13:00-17:00.'],
   ['9) INCLUYE: separá los items con punto y coma (transporte; guía; almuerzo; entradas; equipo; seguro; frutas; snacks; hidratación; toallas).'],
-  ['10) PICK UP / DROP OFF: hora de salida y de regreso del tour (ej: 07:30).'],
-  ['11) DETALLES: notas para el cliente. Si escribís "Duración: X horas" se detecta automáticamente.'],
-  ['12) COMISIÓN: porcentaje de comisión del operador, siempre con % (ej: 10%).'],
-  ['13) Cuando termines, subí el archivo en Admin → Cargar tarifario. Se revisa todo antes de confirmar.'],
+  ['10) CATEGORÍA: aventura, naturaleza, acuático, cultural o termas. Podés combinar con coma.'],
+  ['11) APTO NIÑOS: SI/NO. IVA 13% y PAGO ...: SI/NO. Si la celda queda vacía, se conserva lo que ya tiene el operador.'],
+  ['12) COMISIÓN: porcentaje del operador, siempre con % (ej: 10%).'],
+  ['13) Las columnas TELÉFONO, EMAIL, IVA, PAGOS y URLS son del operador: se repiten en la hoja y se toma el primer valor.'],
+  ['14) Los tours que no estén en este archivo NO se borran. Las tarifas por fecha (temporadas) tampoco se borran; se administran desde Admin → Tours → Temporadas.'],
+  ['15) Si el operador tiene tarifas con otros rangos de edad, descargá su machote desde Admin → Operadores: ese incluye todas sus columnas.'],
+  ['16) Al terminar, subí el archivo en Admin → Cargar tarifario. Se revisa todo antes de confirmar.'],
   [''],
   ['Podés borrar esta hoja de instrucciones antes de subir el archivo.'],
 ];
 
-function hojaConAnchos(filas: unknown[][]): XLSX.WorkSheet {
+function anchoColumna(header: string): number {
+  if (header === '#') return 5;
+  if (header === 'TOUR') return 34;
+  if (header === 'INCLUYE' || header === 'OBSERVACIONES' || header === 'POLÍTICA CANCELACIÓN') return 42;
+  if (header.includes('URL')) return 30;
+  if (header === 'EMAIL' || header === 'TELÉFONO') return 24;
+  if (header === 'HORARIOS' || header === 'CATEGORÍA' || header === 'ZONA') return 18;
+  return Math.max(11, header.length + 3);
+}
+
+function hojaConAnchos(filas: unknown[][], headers: string[] = ENCABEZADOS): XLSX.WorkSheet {
   const ws = XLSX.utils.aoa_to_sheet(filas);
-  ws['!cols'] = ENCABEZADOS.map((h, i) => ({
-    wch: i === 3 ? 32 : i >= 11 && i <= 12 ? 38 : Math.max(10, h.length + 4),
-  }));
+  ws['!cols'] = headers.map((h) => ({ wch: anchoColumna(h) }));
   return ws;
 }
 
@@ -60,20 +87,44 @@ export function descargarMachote(): void {
   const wb = XLSX.utils.book_new();
 
   const wsInstrucciones = XLSX.utils.aoa_to_sheet(INSTRUCCIONES);
-  wsInstrucciones['!cols'] = [{ wch: 120 }];
+  wsInstrucciones['!cols'] = [{ wch: 125 }];
   XLSX.utils.book_append_sheet(wb, wsInstrucciones, 'INSTRUCCIONES');
 
   const usd: unknown[][] = [
     ENCABEZADOS,
-    ['1', 'CANOA', '01', 'Canopy Arenal', 65, 45, 40, 28, '', '07:30', '12:00', 'transporte; guía; equipo; frutas', 'Duración: 4 horas. Traer ropa cómoda y cerrada.', '10%'],
-    ['2', 'CANOA', '02', 'Cataratas La Fortuna', 85, 60, 55, 38, 80, '08:00', '13:00', 'transporte; guía; almuerzo; entradas', 'Duración: 5 horas. Paseo opcional por el pueblo.', '10%'],
+    [
+      '1', 'CANOA', '01', 'Canopy Arenal', 'Arenal', 'Aventura', 'USD',
+      65, 45, 40, 28, '', '',
+      '08:00-12:00; 13:00-17:00',
+      'transporte; guía; equipo; frutas',
+      'Duración: 4 horas. Traer ropa cómoda y cerrada.',
+      4, 2, 'SI', 'Cancelación 48 h antes: 100%.',
+      '+506 2479-9800', 'reservas@canoa.cr', '10%', 'SI', 'SI', 'SI', 'SI', 'NO', '', '',
+    ],
+    [
+      '2', 'CANOA', '02', 'Cataratas La Fortuna', 'La Fortuna centro', 'Naturaleza, Aventura', 'USD',
+      85, 60, 55, 38, 80, 55,
+      '08:00-13:00',
+      'transporte; guía; almuerzo; entradas',
+      'Duración: 5 horas. Paseo opcional por el pueblo.',
+      5, 2, 'SI', 'Cancelación 24 h antes: 50%.',
+      '+506 2479-9800', 'reservas@canoa.cr', '10%', 'SI', 'SI', 'SI', 'SI', 'NO', '', '',
+    ],
   ];
   XLSX.utils.book_append_sheet(wb, hojaConAnchos(usd), 'EJEMPLO USD');
 
   const crc: unknown[][] = [
-    ['Precios en colones ₡ — todos los precios de esta hoja se toman en CRC (podés borrar esta fila)'],
+    ['Precios en colones ₡ — las filas sin MONEDA se toman en CRC (podés borrar esta fila)'],
     ENCABEZADOS,
-    ['1', 'TERMAS', '01', 'Tour termas del bosque', 17500, 12000, 9500, 7000, '', '09:00', '14:00', 'transporte; entradas; toallas', 'Duración: 3 horas.', '10%'],
+    [
+      '1', 'TERMAS', '01', 'Tour termas del bosque', 'La Fortuna centro', 'Termas & Relax', 'CRC',
+      17500, 12000, 9500, 7000, '', '',
+      '09:00-14:00',
+      'transporte; entradas; toallas',
+      'Duración: 3 horas.',
+      3, 2, 'SI', 'Cancelación 24 h antes: 50%.',
+      '+506 2479-1234', 'reservas@termas.cr', '10%', 'NO', 'NO', 'SI', 'SI', 'NO', '', '',
+    ],
   ];
   XLSX.utils.book_append_sheet(wb, hojaConAnchos(crc), 'EJEMPLO COLONES');
 
@@ -140,10 +191,23 @@ function slugArchivo(texto: string): string {
   );
 }
 
+function siNo(valor: boolean): string {
+  return valor ? 'SI' : 'NO';
+}
+
+function horariosTexto(tour: Tour): string {
+  return tour.horarios
+    .slice()
+    .sort((a, b) => a.orden - b.orden)
+    .map((h) => (h.hora_llegada ? `${h.hora_salida}-${h.hora_llegada}` : h.hora_salida))
+    .join('; ');
+}
+
 /**
  * Machote de un operador con sus tours de la base: código único, precios de
- * cada rango, horarios y todos los campos editables. Las filas sin código se
- * crean nuevas al subir; las que tienen código actualizan el tour existente.
+ * cada rango, horarios, datos del operador y todos los campos editables.
+ * Las filas sin código se crean nuevas al subir; las que tienen código
+ * actualizan el tour existente.
  */
 export function descargarMachoteOperador(operador: Operador, tours: Tour[]): void {
   const rangos = rangosDe(tours);
@@ -152,18 +216,27 @@ export function descargarMachoteOperador(operador: Operador, tours: Tour[]): voi
     'CÓDIGO OPERADOR',
     'CÓDIGO TOUR',
     'TOUR',
-    ...rangos.flatMap((r) => [`${r.label} RACK`, `${r.label} NETA`]),
-    'PICK UP',
-    'DROP OFF',
-    'INCLUYE',
-    'DETALLES',
-    'COMISIÓN',
     'ZONA',
     'CATEGORÍA',
+    'MONEDA',
+    ...rangos.flatMap((r) => [`${r.label} RACK`, `${r.label} NETA`]),
+    'HORARIOS',
+    'INCLUYE',
+    'OBSERVACIONES',
     'DURACIÓN (H)',
     'MÍNIMO PERSONAS',
     'APTO NIÑOS',
     'POLÍTICA CANCELACIÓN',
+    'TELÉFONO',
+    'EMAIL',
+    'COMISIÓN',
+    'IVA 13%',
+    'PAGO COMPRACLIC',
+    'PAGO SINPE',
+    'PAGO TRANSFERENCIA',
+    'PAGO CXC',
+    'LOGO URL',
+    'PÓLIZA URL',
   ];
 
   const filas = tours
@@ -175,44 +248,41 @@ export function descargarMachoteOperador(operador: Operador, tours: Tour[]): voi
         const tar = porRango.get(r.key);
         return [tar?.rack ?? '', tar?.neta ?? ''];
       });
-      const horario = t.horarios[0];
       return [
         String(i + 1),
         operador.codigo,
         t.codigo,
         t.nombre,
-        ...precios,
-        horario?.hora_salida ?? '',
-        horario?.hora_llegada ?? '',
-        t.incluye.join('; '),
-        t.observaciones,
-        operador.comision != null ? `${operador.comision}%` : '',
         t.zona,
         t.categorias.join(', '),
+        t.moneda.toUpperCase(),
+        ...precios,
+        horariosTexto(t),
+        t.incluye.join('; '),
+        t.observaciones,
         t.duracion_horas,
         t.minimo_personas,
-        t.apto_ninos ? 'SI' : 'NO',
+        siNo(t.apto_ninos),
         t.politica_cancelacion,
+        operador.telefono,
+        operador.email ?? '',
+        operador.comision != null ? `${operador.comision}%` : '',
+        siNo(operador.con_iva),
+        siNo(operador.pago_compraclic),
+        siNo(operador.pago_sinpe),
+        siNo(operador.pago_transferencia),
+        siNo(operador.pago_cxc),
+        operador.logo_url ?? '',
+        operador.poliza_url ?? '',
       ];
     });
 
   const wb = XLSX.utils.book_new();
   const esCrc = tours.length > 0 && tours.every((t) => t.moneda === 'crc');
   const cuerpo = esCrc
-    ? [['Precios en colones ₡ — todos los precios de esta hoja se toman en CRC'], encabezados, ...filas]
+    ? [['Precios en colones ₡ — las filas sin MONEDA se toman en CRC'], encabezados, ...filas]
     : [encabezados, ...filas];
-  const ws = XLSX.utils.aoa_to_sheet(cuerpo);
-  const primerPrecio = 4;
-  const ultimoPrecio = primerPrecio + rangos.length * 2 - 1;
-  ws['!cols'] = encabezados.map((h, i) => {
-    if (i === 0) return { wch: 5 };
-    if (i === 1) return { wch: 14 };
-    if (i === 2) return { wch: 14 };
-    if (i === 3) return { wch: 40 };
-    if (i >= primerPrecio && i <= ultimoPrecio) return { wch: 14 };
-    if (i >= ultimoPrecio + 3 && i <= ultimoPrecio + 4) return { wch: 38 };
-    return { wch: Math.max(12, h.length + 2) };
-  });
+  const ws = hojaConAnchos(cuerpo, encabezados);
   XLSX.utils.book_append_sheet(wb, ws, nombreHoja(operador.nombre));
 
   const instrucciones = [
@@ -222,14 +292,17 @@ export function descargarMachoteOperador(operador: Operador, tours: Tour[]): voi
     ['2) Para actualizar un tour, dejá su CÓDIGO TOUR y cambiá los datos que necesites.'],
     ['3) Para crear un tour nuevo, agregá una fila con el CÓDIGO TOUR vacío; se toma el siguiente libre.'],
     ['4) No cambies el código de un tour existente: se usa para encontrarlo y actualizarlo.'],
-    ['5) CÓDIGO OPERADOR identifica al operador y ya viene lleno.'],
-    ['6) Los tours que no estén en este archivo NO se borran.'],
-    ['7) RACK = precio público; NETA = costo del operador. Los rangos de edad son los de la base.'],
-    ['8) INCLUYE: separá con punto y coma. APTO NIÑOS: SI/NO.'],
-    ['9) Al terminar, subí el archivo en Admin → Cargar tarifario (con el operador seleccionado).'],
+    ['5) CÓDIGO OPERADOR identifica al operador y ya viene lleno. Para crear un operador nuevo usá una hoja nueva con su nombre.'],
+    ['6) Los tours que no estén en este archivo NO se borran. Las temporadas de precio por fecha tampoco se borran.'],
+    ['7) RACK = precio público; NETA = costo del operador. Los rangos de edad se toman de las columnas del machote.'],
+    ['8) MONEDA: USD o CRC por fila. HORARIOS: separá varios con punto y coma, ej. 08:00-12:00; 13:00-17:00.'],
+    ['9) INCLUYE: separá con punto y coma. APTO NIÑOS, IVA 13% y PAGO ...: SI/NO.'],
+    ['10) TELÉFONO, EMAIL, COMISIÓN, IVA, PAGOS y URLS son del operador; se repiten en cada fila y se toma el primer valor.'],
+    ['11) Si una celda del operador queda vacía, se conserva el valor actual. Para apagar un IVA o pago, escribí NO.'],
+    ['12) Al terminar, subí el archivo en Admin → Cargar tarifario (con el operador seleccionado).'],
   ];
   const wsInstr = XLSX.utils.aoa_to_sheet(instrucciones);
-  wsInstr['!cols'] = [{ wch: 110 }];
+  wsInstr['!cols'] = [{ wch: 115 }];
   XLSX.utils.book_append_sheet(wb, wsInstr, 'INSTRUCCIONES');
 
   XLSX.writeFile(wb, `machote-${slugArchivo(operador.nombre)}.xlsx`);

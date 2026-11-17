@@ -15,6 +15,7 @@ import SiteBackground from '@/components/SiteBackground';
 import TopNav from '@/components/TopNav';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
+import { useBrand } from '@/hooks/useBrand';
 import { useTheme } from '@/hooks/useTheme';
 import { useI18n } from '@/i18n';
 
@@ -42,6 +43,7 @@ const FMT_HORA = new Intl.DateTimeFormat('es-CR', {
 export default function Layout() {
   const { tema, toggle } = useTheme();
   const { t } = useI18n();
+  const brand = useBrand();
   const { cerrarSesion, autenticado, rol } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,12 +86,12 @@ export default function Layout() {
           </button>
 
           <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Inicio">
-            <img src="./logo/volcan.png" alt="" className="h-9 w-9 object-contain" />
+            <img src={brand.logo} alt={brand.marca} className="h-9 w-9 object-contain" />
             <span className="hidden min-w-0 sm:block">
               <span className="block font-display text-[15px] font-bold leading-tight text-[#6F4E37]">
-                Tours Operadores
+                {brand.marca}
               </span>
-              <span className="block text-[10px] leading-tight text-[#8B7355]">Lavas Tacotal</span>
+              <span className="block text-[10px] leading-tight text-[#8B7355]">{brand.sitio}</span>
             </span>
           </Link>
 
@@ -181,7 +183,7 @@ export default function Layout() {
         </main>
 
         <footer className="flex h-8 shrink-0 items-center justify-center gap-1 border-t border-border bg-surface px-4 text-caption text-ink-faint">
-          © {new Date().getFullYear()} {t('footer.derechos')}
+          © {new Date().getFullYear()} {brand.marca} · by Kazehana Cloud
         </footer>
       </div>
     </div>

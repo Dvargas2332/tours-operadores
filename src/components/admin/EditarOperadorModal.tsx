@@ -2,7 +2,7 @@
  * Modal para editar un operador existente: nombre, teléfono, email, comisión y logo.
  */
 import { useEffect, useState } from 'react';
-import { Eye, FileText, ImageIcon, Loader2, Save, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, FileText, ImageIcon, Loader2, Plug, Save, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useMutation } from '@tanstack/react-query';
 import { actualizarOperador, subirLogo, subirPoliza } from '@/data/mutations';
+import { fetchIntegracion, guardarIntegracion } from '@/data/integraciones';
 import type { Operador } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
 import { abrirPoliza } from '@/lib/polizas';
@@ -40,6 +41,16 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
   const [pagoSinpe, setPagoSinpe] = useState(false);
   const [pagoTransferencia, setPagoTransferencia] = useState(false);
   const [pagoCxc, setPagoCxc] = useState(false);
+  const [apiProveedor, setApiProveedor] = useState('custom');
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiActiva, setApiActiva] = useState(false);
+  const [verApiKey, setVerApiKey] = useState(false);
+  const [apiMeta, setApiMeta] = useState<{ ultima_sync: string | null; estado: string }>({ ultima_sync: null, estado: '' });
+  const [apiCargando, setApiCargando] = useState(false);
+  const [apiGuardando, setApiGuardando] = useState(false);
+  const [apiMensaje, setApiMensaje] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
@@ -82,6 +93,56 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
     },
     onError: (err) => setError(err.message),
   });
+
+  const guardarApi = async () => {
+    if (!operador) return;
+    setApiGuardando(true);
+    setApiError(null);
+    setApiMensaje(null);
+    try {
+      await guardarIntegracion({
+        operador_id: operador.id,
+        proveedor: apiProveedor,
+        api_url: apiUrl.trim(),
+        api_key: apiKey.trim(),
+        activa: apiActiva,
+        ultima_sync: apiMeta.ultima_sync,
+        estado: apiMeta.estado,
+        actualizado_en: new Date().toISOString(),
+      });
+      setApiMensaje('Integración guardada');
+    } catch (err) {
+      setApiError((err as Error)?.message ?? 'No se pudo guardar la integración.');
+    } finally {
+      setApiGuardando(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open || !operador) return;
+    let vivo = true;
+    setApiCargando(true);
+    setApiError(null);
+    setApiMensaje(null);
+    fetchIntegracion(operador.id)
+      .then((i) => {
+        if (!vivo) return;
+        setApiProveedor(i?.proveedor ?? 'custom');
+        setApiUrl(i?.api_url ?? '');
+        setApiKey(i?.api_key ?? '');
+        setApiActiva(i?.activa ?? false);
+        setApiMeta({ ultima_sync: i?.ultima_sync ?? null, estado: i?.estado ?? '' });
+      })
+      .catch((err) => {
+        if (vivo) setApiError((err as Error)?.message ?? 'No se pudo leer la integración.');
+      })
+      .finally(() => {
+        if (vivo) setApiCargando(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [open, operador]);
 
   const handleSeleccionarLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -315,6 +376,85 @@ export default function EditarOperadorModal({ operador, open, onClose, onGuardad
                 </div>
               ))}
             </div>
+          </div>
+          <div className="rounded-r-sm border border-border bg-surface-2 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-label uppercase tracking-wide text-ink-muted">Integración API</p>
+              <Plug className="h-4 w-4 text-ink-muted" />
+            </div>
+            <p className="mt-1 text-caption text-ink-muted">
+              Solo admin. La clave no se muestra al vendedor ni al sitio público.
+            </p>
+            {apiCargando ? (
+              <div className="mt-2 flex justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" />
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <div className="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)]">
+                  <select
+                    value={apiProveedor}
+                    onChange={(e) => setApiProveedor(e.target.value)}
+                    className="h-9 w-full rounded-r-sm border border-border bg-surface px-2 text-small text-ink focus:border-brand focus:outline-none"
+                    aria-label="Proveedor de la API"
+                  >
+                    <option value="custom">API propia</option>
+                    <option value="booking">Booking</option>
+                    <option value="expedia">Expedia</option>
+                    <option value="pms">PMS / Channel manager</option>
+                  </select>
+                  <Input
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                    placeholder="https://api.operador.com"
+                    className="h-9"
+                    aria-label="URL de la API"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="relative">
+                    <Input
+                      type={verApiKey ? 'text' : 'password'}
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="API key del operador"
+                      className="h-9 pr-9"
+                      aria-label="API key del operador"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setVerApiKey((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={verApiKey ? 'Ocultar API key' : 'Mostrar API key'}
+                      className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-r-sm text-ink-muted hover:bg-surface-2 hover:text-ink"
+                    >
+                      {verApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <label className="flex items-center gap-2 text-small font-medium text-ink">
+                    <Switch checked={apiActiva} onCheckedChange={setApiActiva} />
+                    Activa
+                  </label>
+                </div>
+                {apiMeta.ultima_sync && (
+                  <p className="text-caption text-ink-faint">
+                    Última sincronización: {apiMeta.ultima_sync}
+                    {apiMeta.estado ? ` · ${apiMeta.estado}` : ''}
+                  </p>
+                )}
+                {apiMensaje && <p className="text-caption text-ok">{apiMensaje}</p>}
+                {apiError && <p className="text-caption text-danger">{apiError}</p>}
+                <button
+                  type="button"
+                  onClick={() => void guardarApi()}
+                  disabled={apiGuardando}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-r-sm border border-border bg-surface px-3 text-caption font-semibold text-ink transition-colors duration-fast hover:border-brand hover:text-brand disabled:opacity-50"
+                >
+                  {apiGuardando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Guardar integración
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -4,12 +4,13 @@
  *   1) Subida: dropzone .xlsx/.xls/.csv, parseo en el cliente con SheetJS.
  *   2) Vista previa: tabla editable mínima con validación por fila.
  *   3) Confirmación: resumen de creados/actualizados (upsert por nombre).
- * Columnas esperadas (primera hoja): nombre (req.), telefono, email, comision (0–100).
+ * Columnas esperadas (primera hoja): nombre (req.), codigo, telefono, email,
+ * comision (0–100), iva y pagos (SI/NO).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Building2, CheckCircle2, Download, Eye, FileSpreadsheet, FileText, ImageIcon, Trash2, UploadCloud, X } from 'lucide-react';
-import { parsearArchivo, parseComision, validar } from '@/components/admin/operadores-excel';
+import { parsearArchivo, parseComision, parseSiNo, validar } from '@/components/admin/operadores-excel';
 import type { FilaExcel } from '@/components/admin/operadores-excel';
 import { useMutation } from '@tanstack/react-query';
 import { crearOperadores, subirLogo, subirPoliza } from '@/data/mutations';
@@ -27,9 +28,9 @@ type Paso = 'subida' | 'preview' | 'exito';
 
 function descargarPlantilla() {
   const csv = [
-    'nombre,telefono,email,comision',
-    'Sunset Tours,+506 2479-9800,reservas@sunset.cr,15',
-    'Ecoterra Costa Rica,+506 2479-1234,reservas@ecoterracr.com,',
+    'codigo,nombre,telefono,email,comision,iva,pago_compraclic,pago_sinpe,pago_transferencia,pago_cxc',
+    'SUNSET,Sunset Tours,+506 2479-9800,reservas@sunset.cr,15,SI,SI,SI,SI,NO',
+    'ECOTERRA,Ecoterra Costa Rica,+506 2479-1234,reservas@ecoterracr.com,,NO,NO,NO,SI,SI',
   ].join('\n');
   const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -135,7 +136,7 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
   const validadas = filas.map(validar);
   const validas = validadas.filter((f) => f.errores.length === 0);
 
-  const editarFila = (key: number, campo: 'nombre' | 'telefono' | 'email' | 'comision', valor: string) => {
+  const editarFila = (key: number, campo: 'codigo' | 'nombre' | 'telefono' | 'email' | 'comision', valor: string) => {
     setFilas((prev) => prev.map((f) => (f.key === key ? { ...f, [campo]: valor } : f)));
   };
 
@@ -148,10 +149,16 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
     setErrorEnvio(null);
     mutacion.mutate(
       validas.map((f) => ({
+        codigo: f.codigo.trim() || undefined,
         nombre: f.nombre,
         telefono: f.telefono,
         email: f.email || null,
         comision: f.comisionNum,
+        conIva: parseSiNo(f.iva),
+        pagoCompraclic: parseSiNo(f.pagoCompraclic),
+        pagoSinpe: parseSiNo(f.pagoSinpe),
+        pagoTransferencia: parseSiNo(f.pagoTransferencia),
+        pagoCxc: parseSiNo(f.pagoCxc),
       })),
     );
   };
@@ -559,8 +566,11 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                   <div className="mt-4 rounded-r-sm bg-surface-2 px-4 py-3">
                     <p className="text-caption text-ink-muted">
                       Formato esperado (primera fila = encabezados): <strong className="text-ink">nombre</strong> (requerido),{' '}
-                      <strong className="text-ink">telefono</strong>, <strong className="text-ink">email</strong> y{' '}
-                      <strong className="text-ink">comision</strong> (opcionales, 0–100). También se acepta la columna legacy{' '}
+                      <strong className="text-ink">codigo</strong>, <strong className="text-ink">telefono</strong>,{' '}
+                      <strong className="text-ink">email</strong>, <strong className="text-ink">comision</strong> (0–100),{' '}
+                      <strong className="text-ink">iva</strong> y los pagos <strong className="text-ink">pago_compraclic</strong>,{' '}
+                      <strong className="text-ink">pago_sinpe</strong>, <strong className="text-ink">pago_transferencia</strong> y{' '}
+                      <strong className="text-ink">pago_cxc</strong> (SI/NO). También se acepta la columna legacy{' '}
                       <strong className="text-ink">contacto</strong>. Si un operador ya existe, se actualiza en vez de duplicarse.
                     </p>
                     <button
@@ -587,14 +597,16 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                       )}
                       . Puedes editar o quitar filas antes de confirmar.
                     </p>
-                    <div className="mt-3 overflow-hidden rounded-r-md border border-border">
-                      <table className="w-full border-collapse text-left">
+                    <div className="mt-3 overflow-x-auto rounded-r-md border border-border">
+                      <table className="w-full min-w-[780px] border-collapse text-left">
                         <thead>
                           <tr className="border-b border-border bg-surface">
+                            <th className="w-[100px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Código</th>
                             <th className="px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Nombre</th>
                             <th className="w-[140px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Teléfono</th>
                             <th className="w-[160px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Email</th>
                             <th className="w-[90px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Comisión %</th>
+                            <th className="w-[150px] px-3 py-2 text-label uppercase tracking-wide text-ink-muted">Condiciones</th>
                             <th className="w-[44px] px-2 py-2" aria-label="Quitar" />
                           </tr>
                         </thead>
@@ -607,6 +619,15 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                                 f.errores.length > 0 && 'bg-danger/[0.04]',
                               )}
                             >
+                              <td className="px-2 py-1.5">
+                                <input
+                                  type="text"
+                                  value={f.codigo}
+                                  onChange={(e) => editarFila(f.key, 'codigo', e.target.value)}
+                                  placeholder="CÓDIGO"
+                                  className="h-8 w-full rounded-r-sm border border-transparent bg-transparent px-1.5 text-[14px] uppercase text-ink outline-none transition-colors duration-fast hover:border-border focus:border-brand focus:bg-surface"
+                                />
+                              </td>
                               <td className="px-2 py-1.5">
                                 <input
                                   type="text"
@@ -648,6 +669,19 @@ export default function AgregarOperadoresModal({ open, onClose, onGuardado }: Ag
                                   placeholder="—"
                                   className="h-8 w-full rounded-r-sm border border-transparent bg-transparent px-1.5 text-[14px] text-ink outline-none transition-colors duration-fast hover:border-border focus:border-brand focus:bg-surface tnum"
                                 />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <p className="px-1.5 text-caption text-ink-muted">
+                                  {[
+                                    parseSiNo(f.iva) ? 'IVA' : null,
+                                    parseSiNo(f.pagoCompraclic) ? 'Compraclic' : null,
+                                    parseSiNo(f.pagoSinpe) ? 'SINPE' : null,
+                                    parseSiNo(f.pagoTransferencia) ? 'Transferencia' : null,
+                                    parseSiNo(f.pagoCxc) ? 'CxC' : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ') || '—'}
+                                </p>
                               </td>
                               <td className="px-2 py-1.5">
                                 <button

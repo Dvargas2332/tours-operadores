@@ -4,6 +4,7 @@
  */
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { useBrand } from '@/hooks/useBrand';
 import { useI18n } from '@/i18n';
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -13,11 +14,12 @@ export function EstadoInicial({ totalTours }: {
   totalTours: number;
 }) {
   const { t } = useI18n();
+  const brand = useBrand();
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
       <motion.img
-        src="./logo/volcan.png"
-        alt={t('buscador.alt_volcan')}
+        src={brand.logo}
+        alt={brand.marca}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: EASE }}

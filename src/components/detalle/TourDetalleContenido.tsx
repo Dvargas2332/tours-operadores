@@ -349,6 +349,11 @@ export default function TourDetalleContenido({ tour, variante, scrolled = false,
                 {tour.operador.con_iva ? 'Tarifa + 13% incluido' : 'Tarifa con 13% incluido'}
               </span>
             </h2>
+            {tour.temporadas.length > 0 && (
+              <p className="text-caption text-ink-muted">
+                Los precios pueden variar según la fecha; el total se calcula al elegir la fecha de la reserva.
+              </p>
+            )}
           </div>
           <div className="overflow-hidden rounded-r-md border border-border bg-surface">
             <table className="w-full text-left text-small">

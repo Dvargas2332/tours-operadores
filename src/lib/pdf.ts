@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { fetchHotel } from '@/data/mock-tours';
 import type { Tour } from '@/data/mock-tours';
 import { politicaSinOperador } from '@/components/detalle/resumen';
 
@@ -17,11 +18,19 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margen = 20;
+  const hotel = await fetchHotel().catch(() => null);
+  const marca = hotel?.marca?.trim() || 'Tours Operadores';
+  const sitio = hotel?.nombre?.trim() || 'Lavas Tacotal';
 
-  // Logo del hotel (volcán de Lavas Tacotal) centrado arriba, sin deformar.
+  // Logo configurado en Admin; si no hay o falla, queda el volcán de siempre.
   let cursor = 20;
   try {
-    const logo = await cargarImagen('./logo/volcan.png');
+    let logo: HTMLImageElement;
+    try {
+      logo = await cargarImagen(hotel?.logo_url?.trim() || './logo/volcan.png');
+    } catch {
+      logo = await cargarImagen('./logo/volcan.png');
+    }
     const maxAncho = 30;
     const maxAlto = 26;
     const ratio = logo.naturalHeight / logo.naturalWidth;
@@ -75,7 +84,7 @@ async function construirDoc(tour: Tour): Promise<jsPDF> {
   // Pie de página
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text(`© ${new Date().getFullYear()} Tours Operadores · Lavas Tacotal`, pageWidth / 2, 285, {
+  doc.text(`© ${new Date().getFullYear()} ${marca} · ${sitio}`, pageWidth / 2, 285, {
     align: 'center',
   });
 

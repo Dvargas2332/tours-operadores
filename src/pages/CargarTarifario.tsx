@@ -26,7 +26,10 @@ interface Borrador {
   archivo: ArchivoSubido;
   filas: FilaRevision[];
   comisiones: Record<string, number | null>;
+  metaOperadores?: Record<string, MetaOperador>;
 }
+
+type MetaOperador = Omit<OperadorCatalogo, 'nombre' | 'codigo' | 'comision' | 'moneda' | 'tours'>;
 
 interface Resultado {
   operadores: number;
@@ -53,6 +56,7 @@ export default function CargarTarifario() {
   const [filas, setFilas] = useState<FilaRevision[]>([]);
   const [comisiones, setComisiones] = useState<Record<string, number | null>>({});
   const [codigosOperador, setCodigosOperador] = useState<Record<string, string>>({});
+  const [metaOperadores, setMetaOperadores] = useState<Record<string, MetaOperador>>({});
   const [errorConfirmacion, setErrorConfirmacion] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [borradorInicial] = useState<Borrador | null>(() => {
@@ -88,11 +92,11 @@ export default function CargarTarifario() {
   useEffect(() => {
     if (paso !== 3 || !archivo || filas.length === 0) return;
     const t = window.setTimeout(() => {
-      const borrador: Borrador = { archivo, filas, comisiones };
+      const borrador: Borrador = { archivo, filas, comisiones, metaOperadores };
       window.sessionStorage.setItem(BORRADOR_KEY, JSON.stringify(borrador));
     }, 500);
     return () => window.clearTimeout(t);
-  }, [paso, archivo, filas, comisiones]);
+  }, [paso, archivo, filas, comisiones, metaOperadores]);
 
   /* ----- Navegación del wizard ----- */
   const irAPaso = (n: number) => {
@@ -120,13 +124,26 @@ export default function CargarTarifario() {
     const todas: FilaRevision[] = ops.flatMap((op) => op.tours);
     const comis: Record<string, number | null> = {};
     const cods: Record<string, string> = {};
+    const meta: Record<string, MetaOperador> = {};
     for (const op of ops) {
       comis[op.nombre] = op.comision;
       cods[op.nombre] = op.codigo;
+      meta[op.nombre] = {
+        telefono: op.telefono,
+        email: op.email,
+        conIva: op.conIva,
+        pagoCompraclic: op.pagoCompraclic,
+        pagoSinpe: op.pagoSinpe,
+        pagoTransferencia: op.pagoTransferencia,
+        pagoCxc: op.pagoCxc,
+        logoUrl: op.logoUrl,
+        polizaUrl: op.polizaUrl,
+      };
     }
     setFilas(todas);
     setComisiones(comis);
     setCodigosOperador(cods);
+    setMetaOperadores(meta);
     irAPaso(3);
   };
 
@@ -146,10 +163,9 @@ export default function CargarTarifario() {
       porOperador.set(f.operador, lista);
     }
     const operadores = [...porOperador.entries()].map(([nombre, tours]) => ({
+      ...(metaOperadores[nombre] ?? {}),
       nombre,
       codigo: codigosOperador[nombre] || undefined,
-      telefono: '',
-      email: null,
       comision: comisiones[nombre] ?? null,
       tours: tours.map(filaAInput),
     }));
@@ -165,6 +181,7 @@ export default function CargarTarifario() {
     setArchivo(borradorInicial.archivo);
     setFilas(borradorInicial.filas);
     setComisiones(borradorInicial.comisiones);
+    setMetaOperadores(borradorInicial.metaOperadores ?? {});
     setHayBorrador(false);
     irAPaso(3);
   };
@@ -179,6 +196,8 @@ export default function CargarTarifario() {
     setArchivoFile(null);
     setFilas([]);
     setComisiones({});
+    setCodigosOperador({});
+    setMetaOperadores({});
     setResultado(null);
     setErrorConfirmacion(null);
     irAPaso(1);

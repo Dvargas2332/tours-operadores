@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { formatPrecio, horarioLabel, horarioRepresentativo } from '@/data/mock-tours';
 import type { Horario, Tour } from '@/data/mock-tours';
 import { cn } from '@/lib/utils';
-import { precioPublico } from '@/lib/tarifas';
+import { precioUnitarioTarifa } from '@/lib/tarifas';
 import { tarifasSegunNacionalidad, useI18n } from '@/i18n';
 
 interface EnviarClienteDialogProps {
@@ -58,9 +58,17 @@ export default function EnviarClienteDialog({ tour, open, onOpenChange }: Enviar
     setCalendarioAbierto(false);
   }, [open, tour.id, esCostaRica]);
 
+  const fechaISO = useMemo(() => {
+    if (!fecha) return undefined;
+    const y = fecha.getFullYear();
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const d = String(fecha.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [fecha]);
+
   const lineas = useMemo(
-    () => calcularLineasPorTarifas(tour, conteos, false),
-    [tour, conteos],
+    () => calcularLineasPorTarifas(tour, conteos, false, fechaISO),
+    [tour, conteos, fechaISO],
   );
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = Object.values(conteos).reduce((s, n) => s + n, 0);
@@ -236,7 +244,7 @@ export default function EnviarClienteDialog({ tour, open, onOpenChange }: Enviar
                       <div>
                         <p className="text-small font-medium text-ink">{labelTarifa(tarifa)}</p>
                         <p className="text-caption text-ink-muted">
-                          {formatPrecio(precioPublico(tour, tarifa.rack), tour.moneda)} por persona
+                          {formatPrecio(precioUnitarioTarifa(tour, tarifa, false, fechaISO), tour.moneda)} por persona
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

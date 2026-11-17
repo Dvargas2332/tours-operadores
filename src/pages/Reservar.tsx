@@ -105,9 +105,17 @@ export default function Reservar() {
     setPaso(n);
   };
 
+  const fechaISO = useMemo(() => {
+    if (!fecha) return undefined;
+    const y = fecha.getFullYear();
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const d = String(fecha.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [fecha]);
+
   const lineas = useMemo(
-    () => (tour ? calcularLineasPorTarifas(tour, conteos, autenticado) : []),
-    [tour, conteos, autenticado],
+    () => (tour ? calcularLineasPorTarifas(tour, conteos, autenticado, fechaISO) : []),
+    [tour, conteos, autenticado, fechaISO],
   );
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = useMemo(() => Object.values(conteos).reduce((s, n) => s + n, 0), [conteos]);
@@ -299,7 +307,7 @@ export default function Reservar() {
                             <div>
                               <p className="font-medium text-ink">{labelTarifa(tarifa)}</p>
                               <p className="text-caption text-ink-muted">
-                                {formatPrecio(precioUnitarioTarifa(tour, tarifa, autenticado), tour.moneda)} por persona
+                                {formatPrecio(precioUnitarioTarifa(tour, tarifa, autenticado, fechaISO), tour.moneda)} por persona
                               </p>
                             </div>
                             <div className="flex items-center gap-3">

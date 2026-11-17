@@ -45,7 +45,18 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
   const { autenticado, rol } = useAuth();
   const hotelInfo = useHotel();
 
-  const lineas = useMemo(() => calcularLineasPorTarifas(tour, conteos, autenticado), [tour, conteos, autenticado]);
+  const fechaISO = useMemo(() => {
+    if (!fecha) return undefined;
+    const y = fecha.getFullYear();
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const d = String(fecha.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [fecha]);
+
+  const lineas = useMemo(
+    () => calcularLineasPorTarifas(tour, conteos, autenticado, fechaISO),
+    [tour, conteos, autenticado, fechaISO],
+  );
   const total = useMemo(() => calcularTotal(lineas), [lineas]);
   const totalPersonas = Object.values(conteos).reduce((s, n) => s + n, 0);
 
@@ -195,7 +206,7 @@ export default function ReservaDrawer({ tour, open, onOpenChange }: ReservaDrawe
                         <div>
                           <p className="font-medium text-ink">{labelTarifa(tarifa)}</p>
                           <p className="text-caption text-ink-muted">
-                            {formatPrecio(precioUnitarioTarifa(tour, tarifa, autenticado), tour.moneda)} por persona
+                            {formatPrecio(precioUnitarioTarifa(tour, tarifa, autenticado, fechaISO), tour.moneda)} por persona
                           </p>
                         </div>
                         <div className="flex items-center gap-3">

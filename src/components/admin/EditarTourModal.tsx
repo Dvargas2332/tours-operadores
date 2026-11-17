@@ -3,7 +3,7 @@
  * y tarifas por tipo de pasajero (niño, adulto, adulto mayor).
  */
 import { useState } from 'react';
-import { Check, Download, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { CalendarDays, Check, Download, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import { actualizarTour, crearTour } from '@/data/mutations';
 import type { Categoria, Moneda, Operador, Tour } from '@/data/mock-tours';
 import { CATEGORIA_META, CATEGORIAS, INCLUYE_KEYS, INCLUYE_META } from '@/lib/tour-meta';
 import { descargarMachote } from '@/components/admin/cargar/machote-excel';
+import TemporadasModal from '@/components/admin/TemporadasModal';
 import { cn } from '@/lib/utils';
 
 interface TarifaForm {
@@ -95,6 +96,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
   const [incluye, setIncluye] = useState<string[]>(() => tour?.incluye ?? []);
   const [tarifas, setTarifas] = useState<TarifaForm[]>(() => tarifasIniciales(tour));
   const [operadorId, setOperadorId] = useState<number | ''>(() => tour?.operador.id ?? operadores[0]?.id ?? '');
+  const [temporadasAbierto, setTemporadasAbierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mutacionActualizar = useMutation({
@@ -516,14 +518,26 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
                   Nombre, rango de edad y precios. Agregá todas las que apliquen.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={agregarTarifa}
-                className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Agregar tarifa
-              </button>
+              <div className="flex items-center gap-1">
+                {!esCrear && (
+                  <button
+                    type="button"
+                    onClick={() => setTemporadasAbierto(true)}
+                    className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    Temporadas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={agregarTarifa}
+                  className="inline-flex items-center gap-1 rounded-r-sm px-2 py-1 text-caption font-semibold text-brand transition-colors duration-fast hover:bg-brand-soft"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar tarifa
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               {tarifas.map((t, idx) => (
@@ -637,6 +651,7 @@ export default function EditarTourModal({ tour, operadores = [], open, onClose, 
           </button>
         </DialogFooter>
       </DialogContent>
+      <TemporadasModal tour={tour} open={temporadasAbierto} onOpenChange={setTemporadasAbierto} />
     </Dialog>
   );
 }
